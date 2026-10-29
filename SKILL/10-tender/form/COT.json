@@ -1,0 +1,144 @@
+{
+  "_ghi_chu": "Form cột của skill 10-tender. Đổi thứ tự cột = đổi thứ tự trong 'cot'. Thêm cột = thêm 1 mục. 'buoc' = các bước được ghi cột đó (tool ghi bằng '<buoc>-tool'; 'user' = sửa tay trong xlsx; 'build' = tool tự tính khi dựng). kieu: CHU | SO | LINK | DS (1 giá trị trong ds) | DSN (nhiều giá trị trong ds, cách nhau '; ') | NGAY. boq: 'chinh_thuc' = cột gửi CĐT, 'noi_bo' = cột nội bộ thêm vào BOQ.",
+  "thu_tu_buoc": ["kiemke", "boq", "tcq", "dwg", "mat", "banve", "doichieu"],
+  "sheet": {
+    "FILE_INDEX": {
+      "loai": "KHOA", "khoa": "ID", "file": "01_index",
+      "cot": {
+        "ID":            {"kieu": "CHU", "buoc": ["kiemke-tool", "kiemke", "tcq"]},
+        "Đợt":           {"kieu": "CHU", "buoc": ["kiemke-tool"]},
+        "Ngày đợt":      {"kieu": "NGAY", "buoc": ["kiemke-tool"]},
+        "Đường dẫn":     {"kieu": "CHU", "buoc": ["kiemke-tool", "kiemke", "tcq"]},
+        "Trong zip":     {"kieu": "CHU", "buoc": ["kiemke-tool"]},
+        "Loại":          {"kieu": "CHU", "buoc": ["kiemke-tool"]},
+        "Số BV":         {"kieu": "CHU", "buoc": ["kiemke-tool"]},
+        "Ngày issue":    {"kieu": "NGAY", "buoc": ["kiemke-tool"]},
+        "Vai trò":       {"kieu": "DS", "buoc": ["kiemke-tool", "kiemke", "tcq"], "bat_buoc": "kiemke",
+                          "ds": ["Chính", "Bổ sung/Thay thế", "Làm rõ", "Tham khảo", "Ngoài scope", "Mail", "Bản cũ/Trùng", "Chưa có (link)"]},
+        "Thay thế cho":  {"kieu": "CHU", "buoc": ["kiemke"]},
+        "Ghi chú":       {"kieu": "CHU", "buoc": ["kiemke-tool", "kiemke", "tcq"]}
+      }
+    },
+    "SCOPE": {
+      "loai": "KHOA", "khoa": "Khóa",
+      "cot": {
+        "Khóa":            {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Sheet":           {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Dòng":            {"kieu": "SO",  "buoc": ["boq-tool"]},
+        "Item":            {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Vùng":            {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Nhóm":            {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Mục phụ":         {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Mô tả BOQ":       {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "ĐV":              {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "KL BOQ":          {"kieu": "SO",  "buoc": ["boq-tool"]},
+        "Mã phòng":        {"kieu": "CHU", "buoc": ["boq-tool", "boq"]},
+        "Ghi chú BOQ":     {"kieu": "CHU", "buoc": ["boq-tool"]},
+        "Mô tả NT – Base":   {"kieu": "CHU", "buoc": ["doichieu", "user"], "boq": "chinh_thuc"},
+        "Mô tả NT – Đề xuất":{"kieu": "CHU", "buoc": ["user"], "boq": "chinh_thuc"},
+        "KL – Đề xuất":      {"kieu": "SO",  "buoc": ["user"], "boq": "chinh_thuc"},
+        "Mã VL":           {"kieu": "CHU", "buoc": ["boq-tool", "banve", "doichieu"], "boq": "noi_bo"},
+        "Bản vẽ hiệu lực": {"kieu": "LINK", "buoc": ["banve"], "boq": "noi_bo"},
+        "Rev/ngày/đợt":    {"kieu": "CHU", "buoc": ["build"], "boq": "noi_bo"},
+        "Mã spec/FF&E":    {"kieu": "CHU", "buoc": ["boq-tool", "banve"], "boq": "noi_bo"},
+        "Nhóm thực hiện":  {"kieu": "DS", "buoc": ["doichieu"], "bat_buoc": "doichieu", "boq": "noi_bo",
+                            "ds": ["Nhà máy", "NTP", "MEP", "Owner", "Gói khác", "Chung"]},
+        "NTP chi tiết":    {"kieu": "CHU", "buoc": ["doichieu"], "boq": "noi_bo"},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["doichieu-tool", "doichieu"], "bat_buoc": "doichieu", "boq": "noi_bo",
+                            "ds": ["Base", "VE", "Loại trừ", "Omit", "Chờ", "Không áp dụng"]},
+        "Mã TCQ":          {"kieu": "CHU", "buoc": ["doichieu-tool", "doichieu"], "boq": "noi_bo"},
+        "Nội dung cuối (VN)": {"kieu": "CHU", "buoc": ["doichieu"], "boq": "noi_bo"},
+        "Loại thay đổi":   {"kieu": "DSN", "buoc": ["doichieu"], "boq": "noi_bo",
+                            "ds": ["KL", "VL", "Bản vẽ", "Phạm vi", "Không"]},
+        "Việc còn mở":     {"kieu": "CHU", "buoc": ["doichieu"], "boq": "noi_bo"},
+        "Nguồn":           {"kieu": "LINK", "buoc": ["banve", "doichieu"]},
+        "Ngày cập nhật":   {"kieu": "NGAY", "buoc": ["build"], "boq": "noi_bo"}
+      }
+    },
+    "TCQ_LOG": {
+      "loai": "KHOA", "khoa": "Mã TCQ",
+      "cot": {
+        "Mã TCQ":          {"kieu": "CHU", "buoc": ["tcq-tool"]},
+        "Đợt TCQ":         {"kieu": "SO",  "buoc": ["tcq-tool"]},
+        "Ngày":            {"kieu": "NGAY", "buoc": ["tcq-tool"]},
+        "STT":             {"kieu": "CHU", "buoc": ["tcq-tool"]},
+        "Câu hỏi (EN)":    {"kieu": "CHU", "buoc": ["tcq-tool"]},
+        "Trả lời (EN)":    {"kieu": "CHU", "buoc": ["tcq-tool"]},
+        "Câu hỏi (VN)":    {"kieu": "CHU", "buoc": ["tcq-tool", "tcq"]},
+        "Trả lời (VN)":    {"kieu": "CHU", "buoc": ["tcq-tool", "tcq"]},
+        "Tình trạng trả lời": {"kieu": "DS", "buoc": ["tcq-tool", "tcq"],
+                            "ds": ["Đã trả lời", "Chưa trả lời", "Hoãn/Chờ", "Tham chiếu"]},
+        "Tham chiếu":      {"kieu": "CHU", "buoc": ["tcq-tool", "tcq"]},
+        "Link ngoài":      {"kieu": "CHU", "buoc": ["tcq-tool"]},
+        "Chủ đề":          {"kieu": "DS", "buoc": ["tcq"], "bat_buoc": "tcq",
+                            "ds": ["Phạm vi", "Vật liệu", "Bản vẽ", "Khối lượng", "MEP", "Thương mại/HĐ", "Tiến độ/Logistic", "Mẫu/Hồ sơ nộp", "Khác"]},
+        "Loại thay đổi":   {"kieu": "DSN", "buoc": ["tcq"], "ds": ["KL", "VL", "Bản vẽ", "Phạm vi", "Không"]},
+        "Trạng thái phạm vi": {"kieu": "DS", "buoc": ["tcq"],
+                            "ds": ["Bao gồm", "Loại trừ", "Omit", "VE", "MEP", "Owner", "Chờ", "Không đổi"]},
+        "Mã VL":           {"kieu": "CHU", "buoc": ["tcq"]},
+        "Mã phòng/Khu":    {"kieu": "CHU", "buoc": ["tcq"]},
+        "Dòng BOQ":        {"kieu": "CHU", "buoc": ["tcq"]},
+        "Bị thay bởi":     {"kieu": "CHU", "buoc": ["tcq"]},
+        "Hiệu lực":        {"kieu": "CHU", "buoc": ["build"]},
+        "Nội dung cuối (VN)": {"kieu": "CHU", "buoc": ["tcq"], "bat_buoc": "tcq"},
+        "Nguồn":           {"kieu": "LINK", "buoc": ["tcq-tool"]}
+      }
+    },
+    "DWG": {
+      "loai": "KHOA", "khoa": "Số BV",
+      "cot": {
+        "Số BV":           {"kieu": "CHU", "buoc": ["dwg-tool"]},
+        "Khu (thư mục)":   {"kieu": "CHU", "buoc": ["dwg-tool"]},
+        "Tên tờ":          {"kieu": "CHU", "buoc": ["dwg"]},
+        "Ngày issue hiệu lực": {"kieu": "NGAY", "buoc": ["dwg-tool"]},
+        "Đợt hiệu lực":    {"kieu": "CHU", "buoc": ["dwg-tool"]},
+        "File PDF":        {"kieu": "LINK", "buoc": ["dwg-tool"]},
+        "File DWG":        {"kieu": "LINK", "buoc": ["dwg-tool"]},
+        "Số bản":          {"kieu": "SO",  "buoc": ["dwg-tool"]},
+        "Bản cũ bị thay":  {"kieu": "CHU", "buoc": ["dwg-tool"]},
+        "Mã phòng":        {"kieu": "CHU", "buoc": ["dwg"]},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["dwg-tool", "dwg"], "ds": ["Hiệu lực", "Ngoài scope", "Tham khảo", "Chờ"]},
+        "Ghi chú":         {"kieu": "CHU", "buoc": ["dwg"]}
+      }
+    },
+    "KHU": {
+      "loai": "KHOA", "khoa": "Khu",
+      "cot": {
+        "Khu":             {"kieu": "CHU", "buoc": ["dwg"]},
+        "Bộ hồ sơ":        {"kieu": "DS", "buoc": ["dwg"], "ds": ["IDD", "FF&E", "Thảm", "Schedule", "Khác"]},
+        "Mã phòng":        {"kieu": "CHU", "buoc": ["dwg"], "bat_buoc": "dwg"},
+        "Ghi chú":         {"kieu": "CHU", "buoc": ["dwg"]},
+        "Nguồn":           {"kieu": "LINK", "buoc": ["dwg"]}
+      }
+    },
+    "MAT": {
+      "loai": "KHOA", "khoa": "Mã VL",
+      "cot": {
+        "Mã VL":           {"kieu": "CHU", "buoc": ["mat-tool", "mat"]},
+        "Số dòng BOQ":     {"kieu": "SO",  "buoc": ["mat-tool"]},
+        "Dòng BOQ (mẫu)":  {"kieu": "CHU", "buoc": ["mat-tool"]},
+        "TCQ nhắc tới":    {"kieu": "CHU", "buoc": ["mat-tool"]},
+        "Loại":            {"kieu": "DS", "buoc": ["mat"],
+                            "ds": ["Gỗ/Veneer", "Sàn gỗ", "Đá", "Gạch/Mosaic", "Sơn", "Vải/Da", "Thảm", "Giấy/Vải dán tường", "Kính/Gương", "Kim loại", "Laminate", "Thạch cao/Trần", "Khác"]},
+        "Mô tả":           {"kieu": "CHU", "buoc": ["mat"], "bat_buoc": "mat"},
+        "NCC/Mã SP":       {"kieu": "CHU", "buoc": ["mat"]},
+        "Nguồn spec":      {"kieu": "LINK", "buoc": ["mat"]},
+        "Trạng thái cuối": {"kieu": "DS", "buoc": ["mat"], "bat_buoc": "mat",
+                            "ds": ["Theo spec", "Đổi theo TCQ", "Omit", "VE", "Chờ", "Không thấy spec"]},
+        "TCQ thay đổi":    {"kieu": "CHU", "buoc": ["mat"]},
+        "Nội dung cuối (VN)": {"kieu": "CHU", "buoc": ["mat"]},
+        "Nhóm thực hiện":  {"kieu": "DS", "buoc": ["mat"], "ds": ["Nhà máy", "NTP", "MEP", "Owner", "Gói khác", "Chung"]}
+      }
+    },
+    "VIEC_MO": {
+      "loai": "NOI",
+      "cot": {
+        "Bước":            {"kieu": "CHU", "buoc": ["*"]},
+        "Liên quan":       {"kieu": "CHU", "buoc": ["*"], "bat_buoc": "*"},
+        "Nội dung":        {"kieu": "CHU", "buoc": ["*"], "bat_buoc": "*"},
+        "Cần ai trả lời":  {"kieu": "DS", "buoc": ["*"], "ds": ["CĐT", "Nội bộ", "NCC/NTP"]},
+        "Nguồn":           {"kieu": "LINK", "buoc": ["*"]}
+      }
+    }
+  }
+}
