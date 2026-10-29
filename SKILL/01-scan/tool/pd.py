@@ -26,6 +26,7 @@ Lệnh (chạy: py -I pd.py <lệnh> ...):
   doichieu <goc> <dot> [--ra DIR]            bước doichieu: KL BoQ↔BV, Độ tin cậy, Issue từng mã, issue DT… -> *.doichieu-tool.json (nháp)
   loc    <goc> <dot> <SHEET> cột=gt [cột~regex] [--cot a,b]   lọc dòng trên dữ liệu đã ghép (thay cho đọc cả file JSON)
   do     <goc> <dot>                         đo tỉ lệ ô do tool ghi (file *-tool.json) / tổng ô
+  neo    <goc> <dot>                         sau bước banve: số tờ trong nhãn link / mã spec·ML có trên trang link không -> _neo.json (chỉ XEM)
 """
 import sys, os, re, json, glob, shutil, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "_core"))
@@ -826,6 +827,7 @@ def run_checks(P, sheets, cols, merged, REG, errs, den):
         if not r.get("Trả lời"): W.append(f"Hỏi user {r['ID']}: {str(r.get('Câu hỏi'))[:90]}")
     nt = [p for p in merged.get("PAGES", []) if p.get("Lớp text") == "KHÔNG" and not p.get("Đã đọc bằng")]
     if nt: W.append(f"{len(nt)} trang PDF không có lớp text chưa được xem bằng hình (PAGES: Lớp text = KHÔNG)")
+    W += neo_xem(P, merged)
     return dict(E=E, W=W)
 
 
@@ -833,7 +835,10 @@ def report(res):
     print(f"KIỂM: {len(res['E'])} LỖI, {len(res['W'])} ngoại lệ cho user")
     for x in res["E"][:60]: print("  LỖI ", x)
     if len(res["E"]) > 60: print(f"  … còn {len(res['E']) - 60} lỗi")
-    for x in res["W"][:60]: print("  XEM ", x)
+    w = [x for x in res["W"] if not x.startswith("NEO")]; nl = [x for x in res["W"] if x.startswith("NEO")]
+    for x in w[:60]: print("  XEM ", x)
+    if len(w) > 60: print(f"  … còn {len(w) - 60} ngoại lệ (xem DASHBOARD)")
+    for x in nl[:40] + ([f"NEO: … còn {len(nl) - 41} dòng LỆCH trong _neo.json"] if len(nl) > 41 else []) + nl[-1:] * (len(nl) > 40): print("  XEM ", x)
 
 
 def cmd_check(goc, dot, args):
@@ -1265,6 +1270,206 @@ def cmd_do(goc, dot):
     for b, v in sorted(tot.items()): print(f"  {b}: {v}")
 
 
+# ---- B7 neo: giá trị của link có trên trang/dòng được link không. Chỉ XEM, không bao giờ là LỖI.
+# Đo 29/10 (DOCS\PLAN_NEO-ANCHOR_2026-10-29.md mục 3c): lớp text bản vẽ kiểu GA Design chỉ có khung tên + ghi chú, nên chỉ kiểm
+#   N3.1 số tờ trong nhãn link (+ tên chi tiết sau '#nn') trên trang link · N3.2 mã/model ở link spec/ML trên trang/dòng link.
+# Mã VL và kích thước trên bản vẽ chưa kiểm (N3.3 chưa có ngưỡng đo).
+NEO_TO = {("BOQ_TONGHOP", "Bản vẽ đối chứng"), ("BOQ_MAP", "Tờ đếm KL"), ("BOQ_MAP", "Tờ chi tiết"), ("DAY_TUONG", "Tờ mặt bằng")}
+NEO_SPEC = {("BOQ_TONGHOP", "Spec · ML"): "Thông số riêng", ("SPEC", "File · Trang"): "Mục"}  # cột link -> cột giá trị cùng dòng
+NEO_BO = re.compile(r"^(f\d{3,4}|p\d+|r\d+|\d+(?:[.,]\d+)?(?:mm|cm|m|m2|m3|md|kg|ly|li)?)$")  # file/trang/dòng, số + đơn vị: không là mã
+NEO_STOPW = {"DETAIL", "PLAN", "SECTION", "ELEVATION", "TYPICAL", "AND", "THE", "WITH"}
+NEO_KK = "KHÔNG KIỂM ĐƯỢC"
+
+
+def _an(s): return re.sub(r"[^a-z0-9]", "", _fold(s))
+
+
+def neo_ma(*vals):
+    """Token dạng mã/model (có cả chữ và số, ≥ 3 ký tự chữ-số): WO1, PT-04, MK630, 5040-Y90B. Bỏ F024/p11/r16/18mm."""
+    out = []
+    for v in vals:
+        for t in re.split(r"[\s,;()\[\]/:–—]+", str(v or "")):
+            k = _an(t)
+            if len(k) >= 3 and re.search(r"\d", k) and re.search(r"[a-z]", k) and not NEO_BO.match(k): out.append(t.strip(".-"))
+    return list(dict.fromkeys(out))
+
+
+def neo_items(merged, files_by_id, inp):
+    """-> [dict(sh, dong, cot, ten, kieu 'to'|'spec', nhan, file, trang, o, ma)] — các link kiểm được kiểu N3.1/N3.2."""
+    out = []
+    for sh, rows in merged.items():
+        for i, r in enumerate(rows, 2):
+            for cot, v in r.items():
+                if not isinstance(v, (list, dict)): continue
+                kieu = "to" if (sh, cot) in NEO_TO else ("spec" if (sh, cot) in NEO_SPEC else None)
+                val = r.get(NEO_SPEC.get((sh, cot), ""), "")
+                if sh == "QUAN_SAT" and cot == "Tờ · Chi tiết":
+                    kieu = {"HÌNH": "to", "TEXT": "to", "SPEC": "spec"}.get(r.get("Nguồn")); val = r.get("Giá trị", "")
+                if not kieu: continue
+                links = norm_links(v, files_by_id, inp)[1]
+                ten = " · ".join(str(x) for x in (r.get("Mã") or r.get("Mục") or f"{sh} dòng {i}", r.get("Khu"), r.get("Trường") or cot) if x)
+                for lab, f, pg, sub in links:
+                    # nhiều link trong 1 ô: giá trị của dòng thuộc về cả ô, không biết của link nào -> chỉ kiểm mã trong nhãn
+                    ma = neo_ma(lab, val if len(links) == 1 else "") if kieu == "spec" else []
+                    out.append(dict(sh=sh, dong=i, cot=cot, ten=ten, kieu=kieu, nhan=lab, file=f, trang=pg, o=sub, ma=ma))
+    return out
+
+
+def neo_hash(items):
+    import hashlib
+    return hashlib.md5(json.dumps([[x[k] for k in ("sh", "dong", "cot", "nhan", "file", "trang", "o", "ma")] for x in items],
+                                  ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
+
+
+def neo_to_index(pages):
+    """PAGES -> (số BV của trang, {đuôi chữ-số của số BV: {số BV}}, {số BV: [trang]}). Đuôi tách theo -/_/khoảng trắng:
+    'HC-VTTEV-1BR-504.4' có đuôi 5044, 1br5044, … nên nhãn ghi gọn '504.4' hay đủ 'HC-VTTEV-1BR-504.4' đều nhận ra."""
+    so, duoi, tc = {}, {}, {}
+    for r in pages:
+        s = str(r.get("Số BV") or "").strip()
+        if not s or not r.get("Trang"): continue
+        p = (str(r["File ID"]), int(r["Trang"]))
+        so[p] = s; tc.setdefault(s, []).append(p)
+        seg = [x for x in re.split(r"[-_\s]+", s) if x]
+        for j in range(len(seg)):
+            k = _an("".join(seg[j:]))
+            if len(k) >= 3 and re.search(r"\d", k): duoi.setdefault(k, set()).add(s)
+    return so, duoi, tc
+
+
+def neo_so_to(nhan, duoi):
+    """Số tờ nhắc trong nhãn link -> {số BV}. Mỗi token ('b/504.4' tách theo /) lấy đuôi dài nhất có trong PAGES:
+    'HC-1BR-707' (LLM bỏ đoạn giữa) -> 1br707. Bỏ token F024 (file) và p17 (trang). -> ({số BV}, {đuôi đã khớp})"""
+    want, keys = set(), set()
+    for t in re.split(r"[\s,;·/()]+", str(nhan)):
+        seg = [s for s in re.split(r"[-_]+", t) if s]
+        for j in range(len(seg)):
+            k = _an("".join(seg[j:]))
+            if re.fullmatch(r"f\d{3,4}|p\d+", k): break
+            if k in duoi: want |= duoi[k]; keys.add(k); break
+    return want, keys
+
+
+_NEO_RX = {}
+def neo_rx(s):
+    """Số tờ trên text trang, cho phép ký tự ngăn giữa các ký tự ('ID-JS-65-' xuống dòng '709') nhưng không dính đuôi: 709 ≠ 709A."""
+    if s not in _NEO_RX: _NEO_RX[s] = re.compile(r"(?<![a-z0-9])" + r"[\W_]*".join(_an(s)) + r"(?![a-z0-9])")
+    return _NEO_RX[s]
+
+
+def neo_run(P, merged):
+    """Kiểm từng link -> dict(hash, tong, khong_kiem, lech). Text trang lấy từ cache kiemke (_text), không mở lại PDF."""
+    from collections import Counter
+    files_by_id = {r["ID"]: os.path.join(P["inp"], r["Đường dẫn"]) for r in merged.get("FILES", [])}
+    fid_of = {os.path.normcase(os.path.normpath(v)): k for k, v in files_by_id.items()}
+    items = neo_items(merged, files_by_id, P["inp"])
+    so, duoi, tc = neo_to_index(merged.get("PAGES", []))
+    texts, sq, xl = {}, {}, {}
+
+    def text(fid, pg):
+        if fid not in texts:
+            f = os.path.join(P["data"], "_text", fid + ".json")
+            texts[fid] = json.load(open(f, encoding="utf-8")) if os.path.isfile(f) else None
+        t = texts[fid]
+        return t[pg - 1] if t and 1 <= pg <= len(t) else None
+
+    def sq_of(fid, pg):
+        if (fid, pg) not in sq: sq[(fid, pg)] = _an(text(fid, pg) or "")
+        return sq[(fid, pg)]
+
+    def xl_rows(f, sheet):
+        """Dòng của 1 sheet Excel -> {số dòng: chữ-số cả dòng}."""
+        if (f, sheet) not in xl:
+            import openpyxl
+            try:
+                ws = openpyxl.load_workbook(f, read_only=True, data_only=True)[sheet]
+                xl[(f, sheet)] = {i: _an(" ".join(str(c) for c in row if c is not None)) for i, row in enumerate(ws.iter_rows(values_only=True), 1)}
+            except Exception: xl[(f, sheet)] = None
+        return xl[(f, sheet)]
+
+    tong, kk, lech = Counter(), Counter(), []
+
+    def ket(x, st, why="", goi_y=()):
+        tong[st] += 1
+        if st == NEO_KK: kk[why] += 1
+        if st == "LỆCH":
+            lech.append(dict(sh=x["sh"], dong=x["dong"], cot=x["cot"], ten=x["ten"], nhan=x["nhan"], link=x["link"], ly_do=why, goi_y=list(goi_y)[:3]))
+
+    for x in items:
+        f, pg, fid = x["file"], x["trang"], fid_of.get(os.path.normcase(x["file"]))
+        pdf = bool(fid) and f.lower().endswith(".pdf") and str(pg).isdigit()
+        x["link"] = f"{fid} p{pg}" if pdf else f"{fid or os.path.basename(f)} {x['o']}".strip()
+        if x["kieu"] == "to":
+            if not pdf: continue  # link tới dwg/ảnh/Excel: không thuộc N3.1
+            pg = int(pg)
+            want, keys = neo_so_to(x["nhan"], duoi)
+            if not want: ket(x, NEO_KK, "nhãn không có số tờ (khớp PAGES)"); continue
+            t = text(fid, pg)
+            if so.get((fid, pg)) not in want:
+                if t is None or len(t.strip()) < 20: ket(x, NEO_KK, "trang không có lớp text"); continue
+                # nhãn gọn 'b/502.1', 'MB 121' thường là callout / tên hình in trên chính trang đó (không phải số tờ của trang)
+                words = {_an(w) for w in re.split(r"[\s/()]+", t)}
+                if not (keys & words) and not any(len(_an(s)) >= 6 and neo_rx(s).search(_fold(t)) for s in want):
+                    ket(x, "LỆCH", f"trang là tờ '{so.get((fid, pg), '?')}', không có số tờ {'/'.join(sorted(want)[:3])}",
+                        [f"{a} p{b} ({s})" for s in sorted(want) for a, b in tc.get(s, []) if (a, b) != (fid, pg)]); continue
+            mt = re.search(r"#(\d{1,2})\s*([A-Za-z][^;#]*)$", x["nhan"].strip())  # '… #12 DETAIL - CABINET …': tên chi tiết là text
+            words = {w for w in re.findall(r"[A-Z]{3,}", _fold(mt.group(2)).upper()) if w not in NEO_STOPW} if mt else set()
+            if words and t:
+                tw = set(re.findall(r"[A-Z]{3,}", _fold(t).upper()))
+                if len(words & tw) < 0.8 * len(words):
+                    ket(x, "LỆCH", f"đúng tờ nhưng tên chi tiết #{mt.group(1)} thiếu trên trang: {', '.join(sorted(words - tw)[:4])}"); continue
+            ket(x, "CÓ NEO")
+        else:
+            if not x["ma"]: ket(x, NEO_KK, "không có mã/model để kiểm"); continue
+            if pdf:
+                pg = int(pg); t = text(fid, pg)
+                if t is None or len(t.strip()) < 20: ket(x, NEO_KK, "trang không có lớp text"); continue
+                miss = [m for m in x["ma"] if _an(m) not in sq_of(fid, pg)]
+                gy = [f"{fid} p{q}" for q in range(1, len(texts[fid]) + 1) if q != pg and all(_an(m) in sq_of(fid, q) for m in x["ma"])] if miss else []
+            else:
+                m_ = re.match(r"^'?(.+?)'?!\$?[A-Z]{1,3}\$?(\d+)(?::\$?[A-Z]{1,3}\$?(\d+))?$", str(x["o"]))
+                if not m_ or not f.lower().endswith((".xlsx", ".xlsm")): ket(x, NEO_KK, "link không chỉ tới trang PDF / ô Excel"); continue
+                rows = xl_rows(f, m_.group(1))
+                if not rows: ket(x, NEO_KK, "không mở được sheet Excel"); continue
+                r1 = int(m_.group(2)); r2 = int(m_.group(3) or r1)
+                s = "".join(rows.get(i, "") for i in range(r1, r2 + 1))
+                miss = [m for m in x["ma"] if _an(m) not in s]
+                gy = [f"'{m_.group(1)}'!A{i}" for i, v in rows.items() if not r1 <= i <= r2 and all(_an(m) in v for m in x["ma"])] if miss else []
+            if miss: ket(x, "LỆCH", "không thấy mã " + ", ".join(miss[:4]), gy)
+            else: ket(x, "CÓ NEO")
+    return dict(ngay=f"{datetime.datetime.now():%Y-%m-%d %H:%M}", hash=neo_hash(items), tong=dict(tong), khong_kiem=dict(kk), lech=lech)
+
+
+def neo_dong(l):
+    return f"NEO LỆCH {l['ten']}: '{str(l['nhan'])[:50]}' → {l['link']}: {l['ly_do']}" + (f"; gợi ý {', '.join(l['goi_y'])}" if l["goi_y"] else "")
+
+
+def neo_tong(res):
+    t = res["tong"]
+    return (f"NEO: {t.get('CÓ NEO', 0)} CÓ NEO · {t.get('LỆCH', 0)} LỆCH · {t.get(NEO_KK, 0)} {NEO_KK}"
+            + (" (" + "; ".join(f"{k}: {v}" for k, v in sorted(res["khong_kiem"].items(), key=lambda z: -z[1])) + ")" if res["khong_kiem"] else ""))
+
+
+def neo_xem(P, merged):
+    """Cho run_checks: đọc _neo.json -> các dòng XEM. Link đổi sau lần chạy neo thì báo chạy lại, không in kết quả cũ."""
+    res = read_aux(P, "_neo.json")
+    if not res: return []
+    files_by_id = {r["ID"]: os.path.join(P["inp"], r["Đường dẫn"]) for r in merged.get("FILES", [])}
+    if res.get("hash") != neo_hash(neo_items(merged, files_by_id, P["inp"])):
+        return [f"NEO: link đã đổi sau lần chạy neo {res.get('ngay', '')} — chạy lại `pd.py neo` để kiểm"]
+    return [neo_dong(l) for l in res["lech"]] + [neo_tong(res)]
+
+
+def cmd_neo(goc, dot):
+    P = paths(goc, dot)
+    sheets, cols, merged, errs = load_merged(P)
+    if not os.path.isdir(os.path.join(P["data"], "_text")): raise SystemExit("Chưa có cache text (_data\\<DOT>\\_text): chạy kiemke trước.")
+    res = neo_run(P, merged)
+    json.dump(res, open(os.path.join(P["data"], "_neo.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    for l in res["lech"]: print("  XEM", neo_dong(l))
+    print(neo_tong(res)); print(f"-> {os.path.join(P['data'], '_neo.json')}  (LỆCH: mở lại đúng trang, sửa link/giá trị hoặc ghi lý do; không phải LỖI)")
+
+
 # ---------------------------------------------------------------- main
 if __name__ == "__main__":
     a = sys.argv[1:]
@@ -1287,4 +1492,5 @@ if __name__ == "__main__":
     elif c == "scope": cmd_scope(r[0], r[1], r[2:])
     elif c == "loc": cmd_loc(r[0], r[1], r[2:])
     elif c == "do": cmd_do(r[0], r[1])
+    elif c == "neo": cmd_neo(r[0], r[1])
     else: print(__doc__); sys.exit(2)

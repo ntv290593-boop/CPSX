@@ -42,5 +42,6 @@ Tên bắt đầu bằng `_` nên `build`/`check` không ghép như sheet. Dùng
 | `_timkiem.json` | tool (`kiemke`, `ungvien`) | `trang_trung` (trang → bản giữ), `file_tong`, `loai` (loại tờ đoán từ tên tờ: danh_muc/thong_ke/mep/mat_bang/hoan_thien/chi_tiet/mat_dung/legend/khac). Không sửa tay. |
 | `_timkiem.kiemke.json` | bước kiemke (LLM) | `{"du_phong": ["F004"]}` |
 | `_boq_tach.json` | tool (`boq-tach`) | `{"<sheet>!<dòng>": {"ma_boq": "VL1", "dai_rong_cao": ["900","","2375"]}}` — mã cột "Mã SP" và R/S/C của BoQ để bước boq điền `Kích thước BoQ` |
+| `_neo.json` | tool (`neo`) | `{"ngay", "hash" (dấu của các link lúc chạy), "tong": {CÓ NEO/LỆCH/KHÔNG KIỂM ĐƯỢC: n}, "khong_kiem": {lý do: n}, "lech": [{sh, dong, cot, ten, nhan, link, ly_do, goi_y}]}` — `check` đọc file này (chỉ XEM). Không sửa tay. |
 | `_doichieu_tool.json` | tool (`doichieu`) | `{"muc": {mã: CAO/TB/THAP}, "ly_do": {mã: [lý do]}}` |
 | `_timkiem.boq.json` | bước boq (LLM) | `{"khu_file": {Khu: [FID]}, "ma_cha": {mã: [mã cha]}, "tu_khoa": {mã: "từ khóa"}, "ma_bv": {mã: [mã BV hoặc từ]}}` — `check` kiểm mã/file có thật |

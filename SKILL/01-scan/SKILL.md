@@ -34,6 +34,7 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 ## 2. Sau mỗi bước
 1. `py -I "<TOOL>" check <GOC> <DOT> --den <buoc>`.
 2. Có LỖI → gửi nguyên danh sách lỗi cho subagent vừa làm (SendMessage) để sửa file JSON của nó. Tối đa 2 vòng; còn lỗi → ghi vào báo cáo, làm tiếp bước sau.
+   Sau bước 4 (và bước 3 nếu có link SPEC/ML): chạy `py -I "<TOOL>" neo <GOC> <DOT>` → `_data\<DOT>\_neo.json`. Gửi các dòng `NEO LỆCH` của từng nhóm cho subagent nhóm đó (giống vòng sửa LỖI, tối đa 2 vòng, chạy lại `neo` sau mỗi vòng). Còn LỆCH thì để trong CẦN XEM, không chặn build. `check` tự in kết quả `_neo.json`; link đổi sau lần chạy `neo` thì `check` nhắc chạy lại.
 3. Bước 2 xong: đọc số mã `Phạm vi nhà máy` TRONG SCOPE / KHÔNG THUỘC SCOPE / CHƯA RÕ. Có CHƯA RÕ → hỏi user 1 câu gộp (danh sách mã + lý do) **trước khi** giao bước 3–4; user trả lời thì ghi vào `QUAN_SAT.user.json` (Trường `Phạm vi nhà máy`). Mã KHÔNG THUỘC SCOPE: không giao bước 3, 4 (PROJECT_DATA vẫn giữ dòng).
 4. Rồi mới chia nhóm cho bước 4 (theo cách user làm: **đọc BoQ → biết tính gì → tìm tên tờ → tìm chi tiết trong PDF**):
    - Chạy `py -I "<TOOL>" ungvien <GOC> <DOT>` → `_data\<DOT>\_ungvien.txt`. Mỗi mã có các nhóm: `CHI TIẾT` (xếp điểm), `THỐNG KÊ`, `MẶT BẰNG` (để đếm KL theo khu), `DANH MỤC`, `CỦA MÃ CHA` (phụ kiện/hạng mục con → trang của cửa/tủ cha, chỉ để tìm). Tool đã loại trang trùng, file tổng, file DỰ PHÒNG, tờ MEP/hoàn thiện. Muốn tốt hơn: bước kiemke ghi `_timkiem.kiemke.json`, bước boq ghi `_timkiem.boq.json` (xem `JSON.md`).
