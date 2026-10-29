@@ -1,0 +1,4 @@
+
+Private Sub Workbook_Open()
+    modSrcLinks.SL_Init
+End Sub

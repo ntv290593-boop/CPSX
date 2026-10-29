@@ -6,6 +6,8 @@ Model chỉ ghi JSON trong <GOC>\\10_TENDER\\_data\\; tool dựng xlsx, tạo li
 """
 import sys, os, re, json, shutil, zipfile, datetime, glob
 from collections import OrderedDict, Counter, defaultdict
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "_core"))
+from scan_core import chu_ky_file, doc_pdf, trang_trung, chi_muc, bm25_dao, loai_to, toks, ncode, _fold
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")  # thông báo LỖI của sys.exit
@@ -23,6 +25,11 @@ LENH = """Lệnh:
   dwg <GOC>                     DWG.dwg-tool.json (số BV, bản hiệu lực, bản cũ)
   mat <GOC>                     MAT.mat-tool.json (mã VL gặp trong BOQ/TCQ)
   doichieu <GOC>                SCOPE.doichieu-tool.json (nháp Mã TCQ/Trạng thái từ TCQ_LOG)
+  thaydoi <GOC>                 sau kiemke đợt mới: file mới/đổi/mất + dòng SCOPE/MAT/TCQ bị ảnh hưởng
+  trang <GOC>                   đọc chữ + khung tên mọi trang PDF được dùng -> _data\\_text (chỉ file mới/đổi)
+  tim <GOC> <regex> [--file s] [--max n]   trang có chữ khớp regex
+  ungvien <GOC> [--phong SK-01 | --sheet S | --khoa K] [--top 6] [--ra f.txt] [--do]
+                                mỗi dòng SCOPE -> trang PDF ứng viên (lõi scan: BM25 + mã + phòng); --do = đo trùng với LLM
   zip <GOC> <FID> [--ra <dir>]  giải nén 1 file trong zip ra _data\\_zip để đọc
   cot [--buoc <buoc>]           cột bước được ghi
   loc <GOC> <SHEET> [cột=gt | cột!=gt | cột~regex | cột=] ... [--cot a,b] [--max n]
@@ -36,6 +43,24 @@ RX_VL = re.compile(r"(?<![\w-])([A-Z]{2,3}-\d{2}[A-Z]?)(?![\w-])")
 RX_FFE = re.compile(r"(?<![\w-])(\d{2}-\d{3}[A-Z]?)(?![\w-])")
 RX_ROOM = re.compile(r"^([A-Z]{2,3}-\d{2}[A-Z]?)")
 RX_URL = re.compile(r"https?://\S+")
+RX_NGU_PHONG = re.compile(r"\b(rooms?|units?|suites?|room type|căn|phòng|loại phòng)\b", re.I)
+
+
+def ma_vl(text, rc, tien_to):
+    """Mã VL trong chữ. Mã trùng mã phòng (SOFITEL: ST-01 = phòng Standard Twin = đá Black Forest) chỉ tính là VL khi
+    họ mã có mã VL khác (tien_to: tiền tố các mã VL không trùng phòng, vd ST từ ST-02…) và 25 ký tự quanh nó không nói là phòng."""
+    out = set()
+    for m in RX_VL.finditer(text):
+        c = m.group(1)
+        if c in rc and (c.split("-")[0] not in tien_to or RX_NGU_PHONG.search(text[max(0, m.start() - 25):m.end() + 25])):
+            continue
+        out.add(c)
+    return sorted(out)
+
+
+def phong_of(v):
+    """'SK-01:12 | ST-01:4' hoặc 'SK-02; PS-01' -> {mã phòng}."""
+    return {m.group(1) for x in re.split(r"[|;,\n]", s(_txt(v))) for m in [RX_ROOM.match(x.strip())] if m}
 
 
 # ---------------------------------------------------------------- chung
@@ -379,6 +404,8 @@ def cmd_kiemke(goc):
         old[(r["Đường dẫn"], r.get("Trong zip", ""))] = r["ID"]
     n_max = max([int(i[1:]) for i in old.values() if re.match(r"F\d+$", i)] or [0])
     rx_dwg = re.compile(p.cfg.get("dwg_regex", RX_DWG))
+    ck_cu = jload(p.f("_chuky.json"))  # {FID: chữ ký} lần kiemke trước; None = lần đầu
+    ck_by_key = {}
     items = []
     for root, dirs, files in os.walk(p.inp):
         dirs.sort()
@@ -388,6 +415,8 @@ def cmd_kiemke(goc):
                 continue
             rel = os.path.relpath(os.path.join(root, fn), p.inp).replace("\\", "/")
             items.append((rel, "", ext))
+            fid_cu = old.get((rel, ""))
+            ck_by_key[(rel, "")] = chu_ky_file(os.path.join(root, fn), (ck_cu or {}).get(fid_cu))
             if ext == ".zip":
                 try:
                     for zi in zipfile.ZipFile(os.path.join(root, fn)).infolist():
@@ -397,6 +426,7 @@ def cmd_kiemke(goc):
                         if nm.endswith("/") or BO_TEN.search(bn) or e2 in BO_DUOI:
                             continue
                         items.append((rel, nm, e2))
+                        ck_by_key[(rel, nm)] = {"size": zi.file_size, "crc": zi.CRC}  # CRC có sẵn trong zip, không cần đọc
                 except zipfile.BadZipFile:
                     print(f"XEM: zip hỏng {rel}")
     rows, pdf_set = [], set()
@@ -430,6 +460,17 @@ def cmd_kiemke(goc):
             r["Vai trò"] = vt
         rows.append(r)
     write_tool(p, "FILE_INDEX", "kiemke", rows)
+    ck = {r["ID"]: ck_by_key[(r["Đường dẫn"], r.get("Trong zip", ""))] for r in rows}
+    if ck_cu is not None:
+        sosanh = lambda a, b: {k: v for k, v in a.items() if k != "mtime"} == {k: v for k, v in b.items() if k != "mtime"}
+        td = {"ngay": TODAY.strftime("%Y-%m-%d"), "moi": sorted(set(ck) - set(ck_cu)),
+              "doi": sorted(f for f in set(ck) & set(ck_cu) if not sosanh(ck[f], ck_cu[f])),
+              "mat": sorted(set(ck_cu) - set(ck))}
+        jdump(p.f("_thaydoi.json"), td)
+        print(f"\nSo với lần kiemke trước: {len(td['moi'])} file mới, {len(td['doi'])} file đổi nội dung, {len(td['mat'])} file mất -> chạy `thaydoi` để xem dòng bị ảnh hưởng")
+    else:
+        print("\nLần đầu ghi chữ ký file (_chuky.json) — lần kiemke sau sẽ báo file mới/đổi/mất")
+    jdump(p.f("_chuky.json"), ck)
     by_dot = Counter(r["Đợt"] for r in rows)
     print("\nĐợt (số file, kể cả trong zip):")
     for d in sorted(by_dot, key=lambda d: dot_of(d + "/x")[2]):
@@ -527,8 +568,9 @@ def cmd_boq(goc):
             if item:
                 if not texts and kl is None:
                     continue
+                full = re.sub(r"\s+", " ", " ".join(texts))
                 row = {"Khóa": f"{ws.title}!{i + 1}", "Sheet": ws.title, "Dòng": i + 1, "Item": item,
-                       "Mô tả BOQ": re.sub(r"\s+", " ", " ".join(texts))[:600]}
+                       "Mô tả BOQ": full[:600], "_full": full}
                 for c, v in (("Vùng", vung), ("Nhóm", nhom), ("Mục phụ", muc)):
                     if v:
                         row[c] = v
@@ -545,11 +587,7 @@ def cmd_boq(goc):
                         gc.append(("VE: " if ve is not None and j >= ve else "Base: ") + s(r[j]))
                 if gc:
                     row["Ghi chú BOQ"] = " | ".join(gc)
-                desc = row["Mô tả BOQ"]
-                vl = sorted({m for m in RX_VL.findall(desc)} - room_codes)
-                if vl:
-                    row["Mã VL"] = "; ".join(vl)
-                ffe = sorted(set(RX_FFE.findall(desc)))
+                ffe = sorted(set(RX_FFE.findall(full)))
                 if ffe:
                     row["Mã spec/FF&E"] = "; ".join(ffe)
                 out.append(row)
@@ -564,14 +602,17 @@ def cmd_boq(goc):
                 elif c3 and len(c3) <= 120:
                     muc = c3
         print(f"{ws.title}: tiêu đề hàng {h + 1}, cột Item {L(ic + 1)}, {n} dòng hạng mục, {len(rooms)} cột phòng/khu, cột cuối {L(last)}")
-    for r in out:  # mã phòng có thể xuất hiện trước khi thấy hàng tiêu đề của sheet sau
-        if "Mã VL" in r:
-            vl = [x for x in r["Mã VL"].split("; ") if x not in room_codes]
-            if vl:
-                r["Mã VL"] = "; ".join(vl)
-            else:
-                del r["Mã VL"]
-    jdump(p.f("_boq_map.json"), {"sheet": bmap, "ma_phong": sorted(room_codes)})
+    # Mã VL tính sau khi biết mọi mã phòng (mã phòng có thể nằm ở sheet sau) và mọi họ mã VL
+    tien_to = set(p.cfg.get("vl_tien_to", [])) | {c.split("-")[0] for r in out for c in RX_VL.findall(r["_full"]) if c not in room_codes}
+    trung = set()
+    for r in out:
+        vl = ma_vl(r.pop("_full"), room_codes, tien_to)
+        trung |= set(vl) & room_codes
+        if vl:
+            r["Mã VL"] = "; ".join(vl)
+    jdump(p.f("_boq_map.json"), {"sheet": bmap, "ma_phong": sorted(room_codes), "vl_tien_to": sorted(tien_to)})
+    if trung:
+        print(f"XEM: mã trùng mã phòng nhưng tính là VL (họ mã có VL khác, ngữ cảnh không nói phòng): {', '.join(sorted(trung))}")
     write_tool(p, "SCOPE", "boq", out)
     print("Mã phòng:", ", ".join(sorted(room_codes)))
 
@@ -681,34 +722,45 @@ def cmd_tcq(goc):
 def cmd_dwg(goc):
     p = P(goc).need()
     res, _ = merge(p)
-    ver = defaultdict(lambda: defaultdict(lambda: {"pdf": [], "dwg": [], "khu": ""}))
+    ver = defaultdict(lambda: defaultdict(lambda: {"pdf": [], "dwg": [], "khu": "", "cu": True}))
     for fid, r in res["FILE_INDEX"].items():
         bv = s(r.get("Số BV"))
         if not bv or s(r.get("Vai trò")) in ("Ngoài scope", "Mail"):
             continue
-        k = (s(r.get("Ngày issue")) or s(r.get("Ngày đợt")), dot_of(s(r.get("Đường dẫn")))[2], s(r.get("Đợt")))
+        # phiên bản = (ngày issue thật | "", số đợt, ngày đợt, tên đợt)
+        k = (s(r.get("Ngày issue")), dot_of(s(r.get("Đường dẫn")))[2], s(r.get("Ngày đợt")), s(r.get("Đợt")))
         e = s(r.get("Loại"))
         v = ver[bv][k]
         if e in ("pdf", "dwg"):
             v[e].append(fid)
+        v["cu"] = v["cu"] and s(r.get("Vai trò")) == "Bản cũ/Trùng"
         parts = (s(r.get("Đường dẫn")) + "/" + s(r.get("Trong zip"))).strip("/").split("/")
         v["khu"] = parts[-2] if len(parts) > 1 else ""
-    rows = []
+    rows, nghi = [], []
     for bv in sorted(ver):
-        ks = sorted(ver[bv])
+        vs = ver[bv]
+        # bản LLM đánh "Bản cũ/Trùng" xếp sau. Mọi bản đều có ngày issue thật -> so ngày issue; thiếu -> đợt sau đè đợt trước
+        # (không trộn ngày issue của bản này với ngày đợt của bản kia)
+        theo_ngay = lambda k: (not vs[k]["cu"], k[0], k[1], k[2])
+        theo_dot = lambda k: (not vs[k]["cu"], k[1], k[0] or k[2], k[3])
+        ks = sorted(vs, key=theo_ngay if all(k[0] for k in vs) else theo_dot)
         k = ks[-1]
-        v = ver[bv][k]
-        r = {"Số BV": bv, "Khu (thư mục)": v["khu"], "Đợt hiệu lực": k[2], "Số bản": len(ks), "Trạng thái": "Hiệu lực"}
-        if k[0]:
-            r["Ngày issue hiệu lực"] = k[0]
+        v = vs[k]
+        if len(ks) > 1 and max(vs, key=theo_ngay) != max(vs, key=theo_dot):
+            nghi.append(f"{bv}: bản đợt sau ({k[3]}) có ngày issue {k[0] or '?'} cũ hơn/không rõ so với bản khác")
+        r = {"Số BV": bv, "Khu (thư mục)": v["khu"], "Đợt hiệu lực": k[3], "Số bản": len(ks), "Trạng thái": "Hiệu lực"}
+        if k[0] or k[2]:
+            r["Ngày issue hiệu lực"] = k[0] or k[2]
         if v["pdf"]:
             r["File PDF"] = [[f"{bv} PDF", f] for f in v["pdf"]]
         if v["dwg"]:
             r["File DWG"] = [[f"{bv} DWG", f] for f in v["dwg"]]
         if len(ks) > 1:
-            r["Bản cũ bị thay"] = "; ".join(f"{x[0] or '?'} ({x[2]})" for x in ks[:-1])
+            r["Bản cũ bị thay"] = "; ".join(f"{x[0] or x[2] or '?'} ({x[3]})" for x in ks[:-1])
         rows.append(r)
     write_tool(p, "DWG", "dwg", rows)
+    for x in nghi:
+        print("XEM:", x)
     print(f"Có nhiều bản: {sum(1 for r in rows if r['Số bản'] > 1)} số BV; không có PDF: {sum(1 for r in rows if 'File PDF' not in r)}")
     print("Khu (thư mục) — bước dwg lập sheet KHU (khu -> mã phòng):")
     for k, n in sorted(Counter(r["Khu (thư mục)"] for r in rows).items()):
@@ -719,14 +771,15 @@ def cmd_dwg(goc):
 def cmd_mat(goc):
     p = P(goc).need()
     res, _ = merge(p)
-    rc = set((jload(p.f("_boq_map.json")) or {}).get("ma_phong", []))
+    bm = jload(p.f("_boq_map.json")) or {}
+    rc, tien_to = set(bm.get("ma_phong", [])), set(bm.get("vl_tien_to", []))
     boq, tcq = defaultdict(list), defaultdict(list)
     for k, r in res["SCOPE"].items():
         for m in split_list(r.get("Mã VL")):
             boq[m].append(k)
     for k, r in res["TCQ_LOG"].items():
         t = s(r.get("Câu hỏi (EN)")) + " " + s(r.get("Trả lời (EN)"))
-        for m in set(RX_VL.findall(t)) - rc:
+        for m in ma_vl(t, rc, tien_to):
             tcq[m].append(k)
     rows = []
     for m in sorted(set(boq) | set(tcq)):
@@ -745,18 +798,20 @@ MAP_TT = {"Loại trừ": "Loại trừ", "Omit": "Omit", "VE": "VE", "Chờ": "
 
 
 def tcq_chain(tcq):
-    """Mã TCQ -> mã cuối cùng theo chuỗi 'Bị thay bởi' (dừng khi vòng lặp)."""
-    out = {}
-    for k in tcq:
-        seen, cur = [k], k
-        while True:
-            nxt = split_list(tcq.get(cur, {}).get("Bị thay bởi"))
-            if not nxt or nxt[0] in seen or nxt[0] not in tcq:
-                break
-            cur = nxt[0]
-            seen.append(cur)
-        out[k] = cur
-    return out
+    """Mã TCQ -> list mã cuối (còn hiệu lực) theo 'Bị thay bởi', đi hết mọi nhánh (1 câu có thể bị 2 câu thay từng phần).
+    [k] = còn hiệu lực; None = chuỗi có vòng."""
+    def la(k, seen):
+        nxt = [x for x in split_list(tcq.get(k, {}).get("Bị thay bởi")) if x in tcq]
+        if not nxt:
+            return [k]
+        res = []
+        for x in nxt:
+            r = None if x in seen else la(x, seen | {x})
+            if r is None:
+                return None
+            res += r
+        return list(dict.fromkeys(res))
+    return {k: la(k, {k}) for k in tcq}
 
 
 def cmd_doichieu(goc):
@@ -764,9 +819,11 @@ def cmd_doichieu(goc):
     res, _ = merge(p)
     tcq, scope = res["TCQ_LOG"], res["SCOPE"]
     ma, tt = defaultdict(list), defaultdict(set)
+    n_bo = 0
     for k, r in tcq.items():
         if split_list(r.get("Bị thay bởi")):
             continue
+        tp = phong_of(r.get("Mã phòng/Khu"))
         for key in split_list(r.get("Dòng BOQ")):
             if key in scope:
                 ma[key].append(k)
@@ -777,6 +834,10 @@ def cmd_doichieu(goc):
         if vls:
             for key, sr in scope.items():
                 if vls & set(split_list(sr.get("Mã VL"))) and k not in ma[key]:
+                    sp = phong_of(sr.get("Mã phòng"))
+                    if tp and sp and not tp & sp:  # TCQ chỉ nói phòng khác -> không nối chỉ vì trùng mã VL
+                        n_bo += 1
+                        continue
                     ma[key].append(k)
     rows = []
     for key in scope:
@@ -788,7 +849,282 @@ def cmd_doichieu(goc):
         if len(r) > 1:
             rows.append(r)
     write_tool(p, "SCOPE", "doichieu", rows)
-    print(f"Dòng có Mã TCQ: {sum(1 for r in rows if 'Mã TCQ' in r)}; có Trạng thái nháp: {sum(1 for r in rows if 'Trạng thái' in r)} / {len(scope)} dòng BOQ")
+    print(f"Bỏ {n_bo} cặp TCQ–dòng trùng Mã VL nhưng khác mã phòng")
+    print(f"Dòng có Mã TCQ: {sum(1 for r in rows if 'Mã TCQ' in r)}; có Trạng thái nháp:{sum(1 for r in rows if 'Trạng thái' in r)} / {len(scope)} dòng BOQ")
+
+
+# ---------------------------------------------------------------- trang / tim / ungvien / thaydoi (lõi scan: SKILL\_core\scan_core.py)
+VT_DOC = ("Chính", "Bổ sung/Thay thế", "Làm rõ", "")  # vai trò được đọc chữ + tìm trang
+NHOM_TENDER = [("CHI TIẾT", 6, ("chi_tiet", "mat_dung", "khac", "legend")), ("HOÀN THIỆN", 3, ("hoan_thien",)),
+               ("MẶT BẰNG", 3, ("mat_bang",)), ("TRẦN/MEP", 2, ("mep",)), ("THỐNG KÊ", 3, ("thong_ke",)), ("DANH MỤC", 1, ("danh_muc",)),
+               ("TÀI LIỆU", 2, ("tai_lieu",))]
+
+
+def pdf_rows(res):
+    return {fid: r for fid, r in res["FILE_INDEX"].items()
+            if s(r.get("Loại")) == "pdf" and s(r.get("Vai trò")) in VT_DOC and not s(r.get("Đường dẫn")).startswith("http")}
+
+
+def cmd_trang(goc):
+    """Đọc chữ + khung tên mọi trang PDF được dùng -> _data\\_text\\<FID>.json. Chỉ đọc lại file mới/đổi (theo chữ ký của kiemke)."""
+    p = P(goc).need()
+    ck = jload(p.f("_chuky.json"))
+    if not ck:
+        sys.exit("LỖI: chưa có _chuky.json — chạy kiemke trước.")
+    res, _ = merge(p)
+    rows = pdf_rows(res)
+    d = p.f("_text")
+    os.makedirs(d, exist_ok=True)
+    n_doc = n_trang = 0
+    loi, zs = [], {}
+    for fid, r in sorted(rows.items()):
+        f = os.path.join(d, fid + ".json")
+        cu = jload(f)
+        if cu and cu.get("ck") == ck.get(fid):
+            continue
+        try:
+            if s(r.get("Trong zip")):
+                zp = os.path.join(p.inp, r["Đường dẫn"])
+                z = zs[zp] if zp in zs else zs.setdefault(zp, zipfile.ZipFile(zp))
+                pages = doc_pdf(data=z.read(r["Trong zip"]))
+            else:
+                pages = doc_pdf(os.path.join(p.inp, r["Đường dẫn"]))
+        except Exception as e:
+            loi.append(f"{fid}: {e}"[:150])
+            continue
+        jdump(f, {"ck": ck.get(fid), "pages": pages})
+        n_doc += 1
+        n_trang += len(pages)
+        if n_doc % 25 == 0:
+            print(f"  … {n_doc} file, {n_trang} trang", flush=True)
+    for z in zs.values():
+        z.close()
+    tong = Counter()
+    for fid in rows:
+        c = jload(os.path.join(d, fid + ".json"))
+        for x in (c or {}).get("pages", []):
+            tong[x["lop"]] += 1
+    print(f"Đọc mới {n_doc} file ({n_trang} trang); cache có {sum(tong.values())} trang / {len(rows)} file PDF được dùng. Lớp chữ: {dict(tong)}")
+    for x in loi:
+        print("XEM: không đọc được", x)
+
+
+def nap_trang(p, res):
+    """-> (texts {fid: [chữ]}, titles {(fid, tr): 'Số BV tên tờ'}). Tờ 1 trang có Số BV: tên tờ lấy từ DWG (Drawing Register) thay khung tên đoán."""
+    texts, titles, bv_pages = {}, {}, set()
+    for fid, r in pdf_rows(res).items():
+        c = jload(p.f(os.path.join("_text", fid + ".json")))
+        if not c:
+            continue
+        texts[fid] = [x["text"] for x in c["pages"]]
+        bv = s(r.get("Số BV"))
+        ten = s(res["DWG"].get(bv, {}).get("Tên tờ")) if bv else ""
+        for i, x in enumerate(c["pages"], 1):
+            titles[(fid, i)] = f"{bv} {ten}".strip() if bv and ten and len(c["pages"]) == 1 else (f'{x["so"]} {x["ten"]}'.strip() or bv)
+            if bv or re.search(RX_DWG, s(x["so"]).upper()):
+                bv_pages.add((fid, i))
+    return texts, titles, bv_pages
+
+
+def chi_muc_tender(p, res):
+    texts, titles, bv_pages = nap_trang(p, res)
+    if not texts:
+        sys.exit("LỖI: chưa có chữ trang PDF — chạy `trang` trước.")
+    dup, tong = trang_trung(texts)
+    ix = chi_muc(texts, titles)
+    ix.update(texts=texts, titles=titles, dup=dup, tong=set(tong), bv_pages=bv_pages,
+              loai={pg: loai_to(titles.get(pg, "")) if pg in bv_pages else "tai_lieu" for pg in ix["pages"]})
+    cdao, ffe = defaultdict(dict), defaultdict(dict)
+    for pg in ix["pages"]:
+        for c, n in ix["codes"][pg].items():
+            cdao[c][pg] = n
+        for m, n in Counter(RX_FFE.findall(texts[pg[0]][pg[1] - 1])).items():
+            ffe[m][pg] = n
+    ix["cdao"], ix["ffe"] = cdao, ffe
+    fidx, dwg = res["FILE_INDEX"], res["DWG"]
+    ix["bv_file"] = {bv: {x[1] for x in links_of(r.get("File PDF"))} for bv, r in dwg.items()}
+    hl = set().union(*ix["bv_file"].values()) if ix["bv_file"] else set()
+    ix["phong_trang"] = defaultdict(set)
+    ix["bo_file"] = set()  # bản cũ của 1 Số BV, hoặc tờ DWG Ngoài scope/Tham khảo
+    ix["file_phong"] = {}
+    for fid in texts:
+        bv = s(fidx[fid].get("Số BV"))
+        if bv in dwg and (fid not in hl or s(dwg[bv].get("Trạng thái")) in ("Ngoài scope", "Tham khảo")):
+            ix["bo_file"].add(fid)
+        # mã phòng của file: DWG.Mã phòng, không có thì KHU của thư mục khu (theo DWG hoặc theo tên thư mục)
+        mp = phong_of(dwg.get(bv, {}).get("Mã phòng")) if bv in dwg else set()
+        if not mp:
+            k = s(dwg.get(bv, {}).get("Khu (thư mục)")) if bv in dwg else ""
+            parts = (s(fidx[fid].get("Đường dẫn")) + "/" + s(fidx[fid].get("Trong zip"))).split("/")[:-1]
+            for kk in [k] + parts[::-1]:
+                if kk in res["KHU"]:
+                    mp = phong_of(res["KHU"][kk].get("Mã phòng"))
+                    break
+        ix["file_phong"][fid] = mp
+        for m in mp:
+            ix["phong_trang"][m] |= {(fid, i) for i in range(1, len(texts[fid]) + 1) if (fid, i) in bv_pages}
+    return ix
+
+
+def rank_dong(ix, r):
+    """-> [(điểm, (fid, tr), số lần mã)] giảm dần cho 1 dòng SCOPE. Tín hiệu như pd.py rank_ma, chỉnh cho mô tả BOQ dài:
+    BM25(Nhóm + Mục phụ + Mô tả) chuẩn hóa 0..40 trong dòng (trang BM25 cao nhất = 40) + 3×từ trong tên tờ
+    + 8×min(mã VL/FF&E, 3) + 10 mã trong tên tờ + 40 khi mô tả nêu đúng Số BV của tờ + 10 tờ cùng mã phòng; ×0.4 tờ phòng khác.
+    Bỏ: trang trùng, file tổng, bản cũ, tờ Ngoài scope/Tham khảo. Trang tài liệu (không phải tờ bản vẽ) xếp riêng nhóm TÀI LIỆU."""
+    desc = s(r.get("Mô tả BOQ"))
+    q = toks(" ".join(s(r.get(c)) for c in ("Nhóm", "Mục phụ")) + " " + desc)
+    sc = bm25_dao(ix, q)
+    qset = set(q)
+    codes = {c for c in (ncode(m) for m in split_list(r.get("Mã VL"))) if c and ix["cdf"].get(c, 0) <= max(8, 0.1 * ix["N"])}
+    ffe = [m for m in split_list(r.get("Mã spec/FF&E")) if m in ix["ffe"]]
+    bv_nhac = set(re.findall(RX_DWG, desc.upper()))
+    cand = set(sc)
+    for c in codes:
+        cand |= set(ix["cdao"].get(c, {}))
+    for m in ffe:
+        cand |= set(ix["ffe"][m])
+    for bv in bv_nhac:
+        cand |= {pg for pg in ix["pages"] if pg[0] in ix["bv_file"].get(bv, ())}
+    rp = phong_of(r.get("Mã phòng"))
+    for m in rp:  # tờ của phòng dòng này luôn là ứng viên (tờ mặt đứng/FF&E plan chung ít chữ trùng mô tả ngắn)
+        cand |= ix["phong_trang"].get(m, set())
+    mx = max([v for pg, v in sc.items() if pg in ix["bv_pages"]] or [0]) or 1
+    mx_tl = max([v for pg, v in sc.items() if pg not in ix["bv_pages"]] or [0]) or 1
+    out = []
+    for pg in cand:
+        fid = pg[0]
+        if pg in ix["dup"] or fid in ix["tong"] or fid in ix["bo_file"]:
+            continue
+        diem = 40 * sc.get(pg, 0.0) / (mx if pg in ix["bv_pages"] else mx_tl) + 3.0 * sum(1 for w in qset if w in ix["title"][pg])
+        mh = sum(ix["codes"][pg].get(c, 0) for c in codes) + sum(ix["ffe"][m].get(pg, 0) for m in ffe)
+        diem += 8 * min(mh, 3) + (10 if codes & ix["tit_codes"][pg] else 0)
+        if any(fid in ix["bv_file"].get(bv, ()) for bv in bv_nhac):
+            diem += 40
+        fp = ix["file_phong"].get(fid)
+        if rp and fp:
+            diem = diem + 10 if rp & fp else diem * 0.4
+        if diem > 0:
+            out.append((diem, pg, mh))
+    out.sort(key=lambda x: -x[0])
+    return out
+
+
+def cmd_ungvien(goc, args):
+    """Mỗi dòng SCOPE -> trang PDF ứng viên chia nhóm theo loại tờ. Lọc: --phong SK-01 | --sheet <tên> | --khoa <khóa>.
+    --do: so với 'Bản vẽ hiệu lực' LLM đã gán (độ trùng @5/@12/@40) — dùng để đo trước/sau khi sửa lõi."""
+    p = P(goc).need()
+    ph, sh, kh = opt(args, "--phong"), opt(args, "--sheet"), opt(args, "--khoa")
+    top, ra, do = int(opt(args, "--top", "6")), opt(args, "--ra"), "--do" in args
+    res, _ = merge(p)
+    ix = chi_muc_tender(p, res)
+    rows = [(k, r) for k, r in res["SCOPE"].items()
+            if (not ph or ph in phong_of(r.get("Mã phòng"))) and (not sh or s(r.get("Sheet")) == sh) and (not kh or k == kh)]
+    lab = lambda pg: f"{pg[0]} p{pg[1]}"
+    out, tk = [], Counter()
+    for k, r in rows:
+        rk = rank_dong(ix, r)
+        if do:
+            gold = {(l[1], int(l[2]) if len(l) > 2 and l[2] else 1) for l in links_of(r.get("Bản vẽ hiệu lực"))}
+            gold = {g for g in gold if g[0] in ix["texts"]}
+            if gold:
+                tk["dòng"] += 1
+                tk["trang"] += len(gold)
+                pos = [pg for _, pg, _ in rk if pg in ix["bv_pages"]]
+                for n in (5, 12, 40):
+                    tk[f"@{n}"] += len(gold & set(pos[:n]))
+                    tk[f"d@{n}"] += bool(gold & set(pos[:n]))
+            continue
+        out.append(f"## {k} · {s(r.get('Mô tả BOQ'))[:90]}" + (f"   [{', '.join(sorted(phong_of(r.get('Mã phòng'))))}]" if phong_of(r.get("Mã phòng")) else ""))
+        if not rk:
+            out.append("   KHÔNG CÓ ỨNG VIÊN — tìm theo tên tờ (loc DWG) hoặc `tim`")
+            continue
+        for ten, n, loais in NHOM_TENDER:
+            hit = [x for x in rk if ix["loai"][x[1]] in loais]
+            if hit:
+                out.append(f"   {ten:10s} " + ", ".join(f"{lab(x[1])} {ix['titles'].get(x[1], '')[:38]}" + (f" ×{x[2]}" if x[2] else "") for x in hit[:n])
+                           + (f"  (+{len(hit) - n})" if len(hit) > n else ""))
+    if do:
+        n = max(tk["trang"], 1)
+        print(f"Độ trùng với 'Bản vẽ hiệu lực' LLM đã gán: {tk['dòng']} dòng, {tk['trang']} trang · "
+              + " · ".join(f"@{x} {tk[f'@{x}'] * 100 // n}%" for x in (5, 12, 40))
+              + " | dòng có ≥1 trang trùng: " + " · ".join(f"@{x} {tk[f'd@{x}'] * 100 // max(tk['dòng'], 1)}%" for x in (5, 12, 40)))
+        print(f"Chỉ mục: {ix['N']} trang, {len(ix['dup'])} trang trùng, file tổng {sorted(ix['tong']) or 'không'}, bỏ {len(ix['bo_file'])} file bản cũ/ngoài scope")
+        return
+    txt = "\n".join(out)
+    if ra:
+        open(ra, "w", encoding="utf-8").write(txt + "\n")
+        print(f"{len(rows)} dòng -> {ra}")
+    else:
+        print(txt)
+
+
+def cmd_tim(goc, args):
+    """Tìm trang có chữ khớp regex (trên cache `trang`). --file <chuỗi trong tên file> --max n."""
+    p = P(goc).need()
+    fl, mx = opt(args, "--file"), int(opt(args, "--max", "100"))
+    if not args:
+        sys.exit("LỖI: tim <GOC> <regex>")
+    rx = re.compile(args[0], re.I)
+    res, _ = merge(p)
+    texts, titles, _ = nap_trang(p, res)
+    n = 0
+    for fid in sorted(texts):
+        fr = res["FILE_INDEX"][fid]
+        ten = os.path.basename(s(fr.get("Trong zip")) or s(fr.get("Đường dẫn")))
+        if fl and fl.lower() not in ten.lower():
+            continue
+        for i, t in enumerate(texts[fid], 1):
+            hits = sorted(set(m.group(0) for m in rx.finditer(t)))
+            if hits:
+                n += 1
+                if n <= mx:
+                    print(f"{fid} p{i}\t{titles.get((fid, i), '')[:50]}\t{', '.join(hits[:12])}")
+    print(f"-- {n} trang")
+
+
+def cmd_thaydoi(goc):
+    """Sau kiemke (+ dwg) của đợt mới: file mới/đổi/mất và dòng SCOPE/MAT/TCQ bị ảnh hưởng -> giao lại đúng phần cho bước banve/mat/doichieu."""
+    p = P(goc).need()
+    td = jload(p.f("_thaydoi.json"))
+    if not td:
+        sys.exit("Chưa có _thaydoi.json — kiemke phải chạy ít nhất 2 lần (lần đầu chỉ ghi chữ ký).")
+    res, _ = merge(p)
+    fidx = res["FILE_INDEX"]
+    doi, moi = set(td["doi"]) | set(td["mat"]), set(td["moi"])
+    print(f"kiemke {td['ngay']}: {len(moi)} file mới · {len(td['doi'])} đổi nội dung · {len(td['mat'])} mất")
+    for nhom, ids in (("MỚI", sorted(moi)), ("ĐỔI", td["doi"]), ("MẤT", td["mat"])):
+        if ids:
+            vt = Counter(s(fidx.get(f, {}).get("Vai trò")) or "(chưa có vai trò)" for f in ids)
+            print(f"  {nhom}: {dict(vt)}")
+            for f in ids[:10]:
+                r = fidx.get(f, {})
+                print(f"     {f} {s(r.get('Đường dẫn'))[-60:]} {s(r.get('Trong zip'))[-50:]}")
+    bv_moi = {s(fidx[f].get("Số BV")) for f in moi | set(td["doi"]) if f in fidx and s(fidx[f].get("Số BV"))}
+    sc = {}
+    for k, r in res["SCOPE"].items():
+        ly = []
+        for c in ("Bản vẽ hiệu lực", "Nguồn"):
+            for l in links_of(r.get(c)):
+                if l[1] in doi:
+                    ly.append(f"{l[1]} đổi/mất")
+                bv = re.findall(RX_DWG, s(l[0]).upper())
+                if bv and bv[0] in bv_moi:
+                    ly.append(f"{bv[0]} có bản mới")
+        if ly:
+            sc[k] = sorted(set(ly))
+    mat = [k for k, r in res["MAT"].items() if any(l[1] in doi for l in links_of(r.get("Nguồn spec")))]
+    tcq = [k for k, r in res["TCQ_LOG"].items() if not s(r.get("Chủ đề"))]
+    cu = link_cu(res)
+    phong = Counter(m for k in sc for m in phong_of(res["SCOPE"][k].get("Mã phòng")))
+    print(f"Số BV có bản mới: {len(bv_moi)}")
+    print(f"SCOPE bị ảnh hưởng: {len(sc)} dòng; theo mã phòng: {dict(phong.most_common())}")
+    for k in list(sc)[:15]:
+        print(f"     {k}: {'; '.join(sc[k])}")
+    print(f"MAT có nguồn spec đổi/mất: {mat or '—'}")
+    print(f"TCQ chưa phân loại (câu mới): {len(tcq)} {tcq[:12]}")
+    print(f"Link bản vẽ trỏ bản cũ (sau khi chạy dwg): {len(cu)}")
+    td["anh_huong"] = {"SCOPE": sc, "MAT": mat, "TCQ_LOG": tcq}
+    jdump(p.f("_thaydoi.json"), td)
 
 
 # ---------------------------------------------------------------- cot / loc
@@ -904,7 +1240,7 @@ def run_check(p, den=None):
     ch = tcq_chain(tcq)
     for k, r in tcq.items():
         nx = split_list(r.get("Bị thay bởi"))
-        if nx and ch[k] == k:
+        if nx and ch[k] is None:
             errs.append(f"TCQ_LOG {k}: chuỗi 'Bị thay bởi' bị vòng")
     for k, r in scope.items():
         for t in split_list(r.get("Mã TCQ")):
@@ -913,6 +1249,7 @@ def run_check(p, den=None):
         for m in split_list(r.get("Mã VL")):
             if res["MAT"] and m not in res["MAT"]:
                 xem.append(f"SCOPE {k}: Mã VL '{m}' chưa có trong MAT")
+    xem.extend(link_cu(res))
     for st in STEPS[:lim]:
         for sh, d in SHEETS.items():
             for c, x in d["cot"].items():
@@ -935,6 +1272,20 @@ def run_check(p, den=None):
             if miss:
                 errs.append(f"{sh}: {len(miss)} dòng thiếu '{c}' vd: {', '.join(miss[:6])}")
     return errs, xem, res
+
+
+def link_cu(res):
+    """Link 'Bản vẽ hiệu lực' trỏ vào file của 1 Số BV nhưng không phải file của bản hiệu lực (DWG đã đổi bản sau khi LLM gán)."""
+    dwg, fidx, out = res["DWG"], res["FILE_INDEX"], []
+    for k, r in res["SCOPE"].items():
+        for l in links_of(r.get("Bản vẽ hiệu lực")):
+            bv = s(fidx.get(l[1], {}).get("Số BV"))
+            if bv not in dwg:
+                continue
+            ok = {x[1] for c in ("File PDF", "File DWG") for x in links_of(dwg[bv].get(c))}
+            if l[1] not in ok:
+                out.append(f"SCOPE {k}: link {l[1]} là bản cũ của {bv} (hiệu lực: {', '.join(sorted(ok)) or '?'})")
+    return out
 
 
 def _tool_keys(p):
@@ -1086,7 +1437,7 @@ def derive(p, res, snap):
     tcq, scope, dwg = res["TCQ_LOG"], res["SCOPE"], res["DWG"]
     ch = tcq_chain(tcq)
     for k, r in tcq.items():
-        r["Hiệu lực"] = "Hiệu lực" if ch[k] == k else f"Bị thay → {ch[k]}"
+        r["Hiệu lực"] = "Hiệu lực" if ch[k] == [k] else ("Chuỗi bị vòng" if ch[k] is None else f"Bị thay → {'; '.join(ch[k])}")
     for k, r in dwg.items():
         khu = res["KHU"].get(s(r.get("Khu (thư mục)")))
         if khu and not s(_txt(r.get("Mã phòng"))):
@@ -1456,7 +1807,8 @@ def main(a):
           "tcq": lambda: cmd_tcq(goc), "dwg": lambda: cmd_dwg(goc), "mat": lambda: cmd_mat(goc),
           "doichieu": lambda: cmd_doichieu(goc), "zip": lambda: cmd_zip(goc, rest[0], rest[1:]),
           "loc": lambda: cmd_loc(goc, rest[0], rest[1:]), "check": lambda: cmd_check(goc, rest),
-          "build": lambda: cmd_build(goc, rest)}.get(c)
+          "build": lambda: cmd_build(goc, rest), "trang": lambda: cmd_trang(goc), "tim": lambda: cmd_tim(goc, rest),
+          "ungvien": lambda: cmd_ungvien(goc, rest), "thaydoi": lambda: cmd_thaydoi(goc)}.get(c)
     if not fn:
         sys.exit(LENH)
     fn()

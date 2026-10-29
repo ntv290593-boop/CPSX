@@ -1,0 +1,4 @@
+' Dan vao: VBAProject (PERSONAL.XLSB) > Microsoft Excel Objects > ThisWorkbook
+Private Sub Workbook_Open()
+    StartRulesSync
+End Sub

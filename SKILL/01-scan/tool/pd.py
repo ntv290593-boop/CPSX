@@ -28,6 +28,9 @@ Lệnh (chạy: py -I pd.py <lệnh> ...):
   do     <goc> <dot>                         đo tỉ lệ ô do tool ghi (file *-tool.json) / tổng ô
 """
 import sys, os, re, json, glob, shutil, datetime
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "_core"))
+from scan_core import (RAC, title_guess, _fold, STOP, LOAI_TO, TOK, STOP2, CODE_IN_TEXT, loai_to, toks, ncode,  # noqa: F401 (bench gọi pd.<tên>)
+                       _bm25, trang_trung, chi_muc)
 sys.stdout.reconfigure(encoding="utf-8")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -270,46 +273,6 @@ def dup_report(inp, rels):
         if len(v) > 1: print("L1 CÙNG TÊN KHÁC NGÀY/REV (giữ bản mới nhất, ghi NOTES): " + " | ".join(os.path.basename(x) for x in v))
 
 
-RAC = re.compile(r"PERMISSION|COPYRIGHT|WWW\.|@|TƯ VẤN|CONSULTANT|ARCHITECT|DRAWN|CHECKED|APPROVED|SCALE|TỶ LỆ|TỈ LỆ|"
-                 r"HẠNG MỤC|ITEM:|BY:|DIRECTOR|DESIGNER|NGÀY|DATE|REV|CHỦ ĐẦU TƯ|CLIENT|PROJECT|DỰ ÁN|SỐ BẢN VẼ|DRAWING NO|TÊN BẢN VẼ|DRAWING TITLE|SHEET|ISSUE", re.I)
-
-
-def title_guess(p, tok):
-    """Đoán số tờ + tên tờ trong khung tên (góc phải-dưới theo chiều nhìn): số = mã gần nhãn DRAWING NO (+ mảnh tiền tố);
-    tên = khối chữ to nhất gần nhãn DRAWING NAME. Chỉ là đoán — bước bản vẽ sửa khi sai."""
-    import pymupdf
-    W, H, M = p.rect.width, p.rect.height, p.rotation_matrix
-    bl = []
-    for b in p.get_text("dict")["blocks"]:
-        if b.get("type") != 0: continue
-        r = pymupdf.Rect(b["bbox"]) * M  # toạ độ theo chiều nhìn (trang xoay 90/270)
-        if r.x0 < W * 0.6 or r.y0 < H * 0.55: continue
-        sp = [s for l in b["lines"] for s in l["spans"]]
-        t = "\n".join("".join(s["text"] for s in l["spans"]) for l in b["lines"])
-        bl.append((r.x0, r.y0, r.x1, r.y1, t, max((s["size"] for s in sp), default=0)))
-    tx = lambda b: " ".join(b[4].split())
-    nos = lambda b: b[4].replace(" ", "").replace("\n", "").upper()
-    ctr = lambda b: ((b[0] + b[2]) / 2, (b[1] + b[3]) / 2)
-    dist = lambda a, b: ((ctr(a)[0] - ctr(b)[0]) ** 2 + (ctr(a)[1] - ctr(b)[1]) ** 2) ** 0.5
-    frag = re.compile(r"^[A-Z0-9][A-Z0-9.\-_]*[-.]$")
-    lab_no = [b for b in bl if re.search(r"KÝHIỆUBẢNVẼ|DRAWINGNO|SỐBẢNVẼ|SHEETNO", nos(b))]
-    lab_ten = [b for b in bl if re.search(r"TÊNBẢNVẼ|DRAWINGNAME|DRAWINGTITLE", nos(b))]
-    num = [(b, m) for b in bl for m in tok.findall(b[4]) if not RAC.search(tx(b)) and not frag.match(tx(b))]
-    if not num: return "", ""
-    nb, so = min(num, key=lambda x: dist(x[0], lab_no[0])) if lab_no else num[-1]
-    fr = [b for b in bl if frag.match(tx(b))]
-    if fr:
-        f = min(fr, key=lambda b: dist(b, nb))
-        if dist(f, nb) < W * 0.08: so = tx(f) + so
-    anchor = lab_ten[0] if lab_ten else nb
-    ok = [b for b in bl if b is not nb and b is not anchor and 6 <= len(tx(b)) <= 120 and not RAC.search(tx(b))
-          and not tok.fullmatch(tx(b)) and not frag.match(tx(b)) and re.search(r"[A-ZÀ-Ỹ]{3}", tx(b))
-          and not re.search(r"CO\.,? ?LTD|STREET|WARD|TEL[: ]", tx(b), re.I)]
-    ok = [b for b in ok if dist(b, anchor) < W * 0.15] or ok
-    ok.sort(key=lambda b: (-round(b[5]), dist(b, anchor)))  # tên tờ = chữ to nhất gần nhãn
-    return so, " / ".join(tx(b) for b in ok[:2])[:120]
-
-
 def loai_file(rel):
     s, ext = rel.lower(), os.path.splitext(rel)[1].lower()
     if ext in (".msg", ".eml"): return "Mail"
@@ -342,15 +305,6 @@ def cmd_tim(goc, dot, rx, args):
     print(f"-- {n} trang")
 
 
-def _fold(s):
-    import unicodedata
-    s = unicodedata.normalize("NFD", str(s or "").lower().replace("đ", "d"))
-    return re.sub(r"\s+", " ", "".join(c for c in s if unicodedata.category(c) != "Mn"))
-
-
-STOP = set("va voi cho cua the loai dang kieu bang theo tren duoi trong ngoai khong co mot cac cai bo and the with for of in on".split())
-
-
 def ngoai_pham_vi(qs_rows):
     """Mã bước boq đã phân loại ngoài scope nhà máy (5 xưởng BOHO): QUAN_SAT Trường 'Phạm vi nhà máy', Giá trị 'KHÔNG THUỘC SCOPE NHÀ MÁY…'."""
     return {str(r.get("Mã")) for r in qs_rows
@@ -358,41 +312,7 @@ def ngoai_pham_vi(qs_rows):
 
 
 # ---------------------------------------------------------------- tìm trang ứng viên
-LOAI_TO = [  # (loại, regex trên tên tờ đã _fold) — theo thứ tự; "chi tiết" thắng mep/hoan_thien
-    ("danh_muc", r"danh muc|drawing list|muc luc|\bindex\b|cover"),
-    ("thong_ke", r"thong ke|schedule|bang ke|statistic"),
-    ("mep", r"\bdien\b|den tran|\bden\b|cong tac|o cam|cap thoat|\bpccc\b|\bmep\b|lighting|electrical|plumbing|ceiling plan|\bm&e\b"),
-    ("mat_bang", r"mat bang|layout|floor plan|furniture plan"),
-    ("hoan_thien", r"hoan thien|\bsan\b|\btran\b|\btuong\b|finish|flooring|ceiling"),
-    ("chi_tiet", r"chi tiet|detail|\bdt\b|section|mat cat"),
-    ("mat_dung", r"mat dung|elevation"),
-    ("legend", r"legend|ky hieu|ghi chu chung"),
-]
 NHOM_RA = [("chi_tiet", "CHI TIẾT", 8), ("thong_ke", "THỐNG KÊ", 3), ("mat_bang", "MẶT BẰNG", 4), ("danh_muc", "DANH MỤC", 2)]
-TOK = re.compile(r"[a-z0-9]+")
-STOP2 = STOP | set("cung cap lap dat hoan thien ban ve hoan cong phong".split())
-CODE_IN_TEXT = re.compile(r"(?<![a-z0-9])([a-z]{1,4})[\s._-]?0*(\d{1,3})(?![0-9])")
-
-
-def loai_to(title):
-    s = _fold(title)
-    has_ct = bool(re.search(r"chi tiet|detail", s))
-    for loai, rx in LOAI_TO:
-        if loai in ("mep", "hoan_thien") and has_ct: continue
-        if re.search(rx, s): return loai
-    return "khac"
-
-
-def toks(s): return [w for w in TOK.findall(_fold(s)) if len(w) >= 2 and w not in STOP2]
-
-
-def ncode(s):
-    """Chuẩn hóa mã: bỏ . - _ khoảng trắng, bỏ số 0 đầu: LF-04 / LF04 / lf.4 -> lf4. Tiền tố 'ID-' bỏ."""
-    s = re.sub(r"^id[\s._-]+", "", _fold(s).strip())
-    m = re.fullmatch(r"([a-z]{1,4})[\s._-]*0*(\d{1,3})", s)
-    return f"{m.group(1)}{m.group(2)}" if m else None
-
-
 def base_code(ma):
     """Mã BoQ gốc: bỏ hậu tố tự đặt _ST/_1BR/_2BR, -DT/-HM/-TL (hạng mục con), chữ a/b cuối."""
     s = re.sub(r"_(st|1br|2br)$", "", _fold(ma))
@@ -431,22 +351,7 @@ def build_timkiem(P, sheets, write=True):
     texts = {}
     for f in sorted(glob.glob(os.path.join(P["data"], "_text", "F*.json"))):
         texts[os.path.basename(f)[:-5]] = json.load(open(f, encoding="utf-8"))
-    h = {}
-    for fid, pages in texts.items():
-        for i, t in enumerate(pages, 1):
-            k = re.sub(r"\s+", "", re.sub(r"\d{1,2}[/.]\d{1,2}[/.]\d{2,4}", "", t))  # bỏ ngày: bản 29/09 vs 30/09 chỉ khác ngày
-            if len(k) > 50: h.setdefault(hashlib.md5(k.encode("utf-8")).hexdigest(), []).append((fid, i))
-    npg = {fid: len(p) for fid, p in texts.items()}
-    dup = {}
-    for v in h.values():
-        if len({fid for fid, _ in v}) < 2: continue
-        keep = min(v, key=lambda x: (npg[x[0]], -int(x[0][1:]), x[1]))  # file ít trang hơn (cụ thể hơn); hòa -> file sau
-        for p in v:
-            if p != keep: dup[p] = keep
-    tong = []
-    for fid, pages in texts.items():
-        real = [(fid, i) for i, t in enumerate(pages, 1) if len(re.sub(r"\s+", "", t)) > 50]
-        if real and sum(p in dup for p in real) >= 0.85 * len(real): tong.append(fid)
+    dup, tong = trang_trung(texts)
     tk = {"trang_trung": {f"{a} p{b}": f"{c} p{d}" for (a, b), (c, d) in sorted(dup.items())},
           "file_tong": tong,
           "loai": {f"{fid} p{i}": loai_to(titles.get((fid, i), "")) for fid, pages in texts.items() for i in range(1, len(pages) + 1)}}
@@ -466,28 +371,9 @@ def build_index(P, sheets, write=True):
     kk, bq = read_aux(P, "_timkiem.kiemke.json"), read_aux(P, "_timkiem.boq.json")
     ix["du_phong"] = set(kk.get("du_phong", []))
     ix["bq"] = bq
-    pages = [(fid, i) for fid in ix["texts"] for i in range(1, len(ix["texts"][fid]) + 1)]
-    ix["pages"] = pages
-    ix["body"] = {p: collections.Counter(toks(ix["texts"][p[0]][p[1] - 1])) for p in pages}
-    ix["title"] = {p: collections.Counter(toks(ix["titles"].get(p, ""))) for p in pages}
-    ix["codes"] = {p: collections.Counter(a + b for a, b in CODE_IN_TEXT.findall(_fold(ix["texts"][p[0]][p[1] - 1]))) for p in pages}
-    ix["N"] = len(pages)
-    ix["cdf"] = collections.Counter(c for cn in ix["codes"].values() for c in cn)
-    ix["avgdl"] = (sum(sum(c.values()) for c in ix["body"].values()) / len(pages)) if pages else 1
-    ix["df"] = collections.Counter(w for c in ix["body"].values() for w in c)
-    ix["loai"] = {p: ix["tk"]["loai"].get(f"{p[0]} p{p[1]}", "khac") for p in pages}
-    ix["tit_codes"] = {p: {ncode(x) for x in re.findall(r"[A-Za-z]{1,4}[-._]?\d{1,3}", ix["titles"].get(p, ""))} for p in pages}
+    ix.update(chi_muc(ix["texts"], ix["titles"]))
+    ix["loai"] = {p: ix["tk"]["loai"].get(f"{p[0]} p{p[1]}", "khac") for p in ix["pages"]}
     return ix
-
-
-def _bm25(ix, q, c, k1=1.2, b=0.75):
-    import math
-    dl = sum(c.values()); s = 0.0
-    for w in q:
-        if w in c:
-            idf = math.log(1 + (ix["N"] - ix["df"][w] + 0.5) / (ix["df"][w] + 0.5))
-            s += idf * c[w] * (k1 + 1) / (c[w] + k1 * (1 - b + b * dl / ix["avgdl"]))
-    return s
 
 
 def file_allowed(ix, fid, khus, areas, want):
@@ -1246,7 +1132,7 @@ def cmd_loc(goc, dot, args):
 # ---- B1 doichieu (+ B5 kiểm chuỗi cộng)
 PRICE_FIELDS = ["Kích thước BV", "Có cánh", "Ngăn kéo", "Kệ/đợt", "Mặt đá", "Gương", "Kính", "Kim loại", "Giấy/vải"]
 MUC = {"CAO": 3, "TB": 2, "THAP": 1}
-GIA_RX = re.compile(r"dot|canh|ngan|kich thuoc|sau|rong|cao|day|mat da|da|kinh|guong|kim loai|vat lieu|giay|vai")
+GIA_RX = re.compile(r"dot|canh|ngan|kich thuoc|\bsau\b|\brong\b|\bcao\b|\bday\b|mat da|\bda\b|kinh|guong|kim loai|vat lieu|giay|vai")
 CHUOI = re.compile(r"(?<![+×x*\d.,])(\d+(?:[.,]\d+)?(?:\s*\+\s*\d+(?:[.,]\d+)?)+)\s*=\s*(\d+(?:[.,]\d+)?)")
 
 

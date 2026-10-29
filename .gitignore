@@ -1,0 +1,22 @@
+# Dữ liệu dự án và lưu trữ: không đưa lên repo
+_ACTIVE/
+_ARCHIVE/
+
+# Repo con riêng (_SCRIPTS có remote CPSX riêng)
+_SCRIPTS/
+
+# Office / binary / bản vẽ
+*.xlsx
+*.xlsm
+*.xlam
+*.xls
+*.pdf
+*.dwg
+*.zip
+~$*
+
+# Python / cache
+__pycache__/
+*.pyc
+.venv/
+_cache/
