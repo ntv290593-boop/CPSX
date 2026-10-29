@@ -5,7 +5,7 @@ Tool `mat` đã lập: mỗi `Mã VL` gặp trong mô tả BOQ hoặc trong TCQ,
 
 ## Làm
 1. Đọc README. `loc <GOC> MAT --max 300`.
-2. Nguồn spec: Finishes Schedule (bản mới nhất theo FILE_INDEX — vd trong zip bộ chính), FF&E spec, spec thảm/rèm của đợt sau. Giải nén file cần: `py -I "<TOOL>" zip <GOC> <FID>`; đọc `py -I "D:\COSTING EXCEL\SKILL\01-scan\tool\pd.py" chu "<pdf>" <trang>` (tìm trang có mã trước, không đọc cả file bằng ảnh).
+2. Nguồn spec: Finishes Schedule (bản mới nhất theo FILE_INDEX — vd trong zip bộ chính), FF&E spec, spec thảm/rèm của đợt sau. Giải nén file cần: `py -I "<TOOL>" zip <GOC> <FID>`; đọc `py -I "D:\COSTING EXCEL\SKILL\01-scan\tool\pd.py" chu "<pdf>" <trang>` (tìm trang có mã trước: `py -I "<TOOL>" tim <GOC> "\bWD-01\b" --file Schedule` — cache chữ của lệnh `trang`; không đọc cả file bằng ảnh).
 3. Mỗi mã ghi: `Loại`, `Mô tả` (tên VL + quy cách chính, như spec), `NCC/Mã SP`, `Nguồn spec` (LINK có trang), `Trạng thái cuối`, `TCQ thay đổi`, `Nội dung cuối (VN)`, `Nhóm thực hiện`.
    - `Trạng thái cuối`: Theo spec / Đổi theo TCQ (TCQ đổi mã SP, độ dày, grade, loài gỗ… — ghi `TCQ thay đổi` + `Nội dung cuối`) / Omit / VE / Chờ (TCQ hoãn, "to be confirmed") / Không thấy spec.
    - TCQ của mã: lấy câu **còn hiệu lực** `loc <GOC> TCQ_LOG "Mã VL~<mã>" --cot "Mã TCQ,Bị thay bởi,Nội dung cuối (VN)"`; câu đã bị thay thì không dùng làm kết luận.
