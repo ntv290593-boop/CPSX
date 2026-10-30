@@ -175,6 +175,68 @@ Lệnh `pd.py neo <GOC> <DOT>` (khối `B7 neo` trong `pd.py`; không sửa `sca
 
 Lần đầu chạy có 19 LỆCH oan trên Blanca (callout `b/502.1`, tên hình `121`) → thêm luật "token nhãn có trên trang"; 1 lọt `709`/`709A` → khớp có biên. N3.2 **chưa đo trên ML/spec thật của 01-scan** (Blanca cache không có file Excel ML; spec SOFITEL ngoài phạm vi được phép) — đo ở lần scan thật kế tiếp (N5). `bench.py` qua cổng (93% / 78%).
 
+## 3e. N1 đã làm (30/10)
+
+`neo_test7.py` viết lại. Chi tiết và số đo ở `HANDOFF_NEO-ANCHOR_2026-10-29.md` mục "Bài H làm lại — N1".
+- Bản cũ đo trên rác: 157 ca không tự khớp là `Rev.00 -26/06/2026`; gần như toàn bộ 1.021 chuỗi là địa chỉ, mã hạng mục, số tờ, tiêu chuẩn (regex nhận mọi `a-b`). Số 86% cũ bị bỏ.
+- Bộ tách mới: ô theo khoảng trống 0,6 × cao chữ, lọc rác, `-` chỉ nhận khi có mm/cm, chung 1 bộ tách cho trang và giá trị. Tái lập: sort trước random (`py -I` bỏ qua `PYTHONHASHSEED`).
+- Kết quả: viết lại kiểu LLM 2588/2588; đột biến khó bắt 94,6% (cửa sổ 1) / 80,6% (cửa sổ 3); trùng tình cờ khác file 4–6%.
+- **Đổi thiết kế:** kiểm theo thứ tự với **cửa sổ 1** (số liền nhau), không dùng cửa sổ ≤ 3.
+- Giới hạn: chỉ 18 bộ số khác nhau (bảng đèn). Chưa có chuỗi tủ/`a+b=c` từ bản vẽ có text.
+- Khi làm kiểm kích thước thật (N3.3): chép `chuan`/`tach_so`/`tach_chuoi`/`o_trang` từ `neo_test7.py` và chạy lại bài 0 + bài 3.
+
+## 3f. N3.2 đo trên spec/ML thật + sửa (30/10)
+
+Ngày 30/10 user cho phép dùng các link spec/ML trong `SOFITEL\01_scan\PROJECT_DATA_SOFITEL_v8.xlsx` (đợt costing cũ) chỉ để đo. Script `neo-test\neo01_n32.py` gọi thẳng `pd.neo_run`. v8 là form cũ nên script dựng merged theo v9.
+
+| Bộ | Map sang v9 | Lần đầu (code 29/10) | Sau sửa |
+|---|---|---|---|
+| A. FINISHES!E → Finishes Schedule PDF (60) | `SPEC.File · Trang` + `Mục` | 60/60 CÓ NEO; dời trang bắt 60/60; tráo giá trị bắt 60/60 | không đổi |
+| B. BOQ_TONGHOP!S → spec FF&E PDF (42 dòng × 4 link) | `Spec · ML` + `Thông số riêng` = mô tả BoQ | **168/168 LỆCH oan** | 40 CÓ NEO (mức ô), 0 LỆCH; tráo giá trị bắt 31/40; dời trang ±1 bắt 0 (4 trang cùng hạng mục, kiểm hợp) |
+| B1. như B, 1 link/ô (168) | | 168 LỆCH oan | 160 CÓ NEO / 0 LỆCH / 8 KKĐ; tráo bắt 152/160; dời ±1 bắt 68 (84/168 trang dời vẫn thuộc chính hạng mục đó) |
+| C. BOQ_TONGHOP!O → dòng BoQ Excel (168) | `Spec · ML` (đường Excel) + `Thông số riêng` = Mã VL | 80 CÓ NEO / 0 LỆCH / 88 KKĐ; dời dòng bắt 59/80; tráo bắt 79/80 | không đổi |
+
+**Lỗi tìm ra và cách sửa** (trong `pd.py`; bản cũ ở `tool\_backup\pd_2026-10-30_truoc-n32.py`):
+1. `neo_ma` coi token tên file trong nhãn tự sinh (`260605_AREA`, `51_STANDARD`) là mã → bỏ token nằm trong tên file của link.
+2. Kích thước (`900x650x725mmH`, `D900x725mmH`) và số lượng (`2nr`) bị coi là mã → thêm vào `NEO_BO` (kích thước để N3.3, dùng bộ tách của `neo_test7`).
+3. Mã FF&E không có chữ (`51-400`, `53-701A`) bị bỏ qua → `NEO_ITEM` = `^\d{1,3}-\d{3,4}[A-Za-z]{0,2}$` (`30-31` không nhận).
+4. Ô nhiều link không kiểm giá trị → thêm mục `nhom`: mỗi mã trong giá trị phải có trên ≥ 1 trang/dòng được link. Có link không đọc được (Excel thiếu) thì ra KKĐ, không ra LỆCH. Lần chạy đầu không có luật này nên Blanca ra 54 LỆCH oan; hồi quy bắt được.
+
+**Hồi quy sau sửa:** `neo01_regress.py`: Blanca 1201 CÓ NEO / 0 LỆCH (KKĐ tăng 54 do mục `nhom` mới); SOFITEL D1d 199/199, đột biến 193. `bench.py` qua cổng (93% / 78%), không đổi. CLI `neo` + `check` chạy được trên bản sao cache.
+
+**Giới hạn:** các sửa 1–4 rút ra từ chính bộ A–C, nên số "sau sửa" lạc quan. Chưa có bộ spec/ML độc lập. Đo lại ở lần scan thật kế tiếp (N5). Kiểm hợp (`nhom`) yếu với lỗi dời trang trong cùng hạng mục; đó là đúng thiết kế (vẫn là trang của hạng mục đó).
+
+## 3g. N3.3 đã làm: luật KKĐ theo họ mã và kích thước (30/10)
+
+Trong `pd.py` (khối `B7 neo`; bản trước ở `tool\_backup\pd_2026-10-30_truoc-n33.py`). Không sửa `scan_core.py`, form, `doichieu`. Đo bằng `neo-test\neo01_n33.py` (gọi thẳng `pd.neo_run`).
+
+**Ô được kiểm:** QUAN_SAT `Mã hoàn thiện trên BV` và `Kích thước BV` (Nguồn HÌNH/TEXT, link `Tờ · Chi tiết`), `BOQ_TONGHOP.Kích thước BV` (link `Bản vẽ đối chứng`), `BOQ_MAP.Kích thước BV` (link `Tờ chi tiết`). Bỏ qua ô `KHÔNG …` và Trạng thái KHÔNG THẤY/KHÔNG CÓ. Ô nhiều link thì kiểm hợp các trang.
+
+**Luật (thay luật nháp ở 3c):**
+- *Họ mã dự án*: tiền tố chữ của mã dạng `WD-01`, `GL1`, `LM2a` trong QUAN_SAT (Trường có chữ "mã"), `BOQ_TONGHOP.Mã hoàn thiện`, `SPEC.Mã liên quan`. Họ phải gặp ≥ 2 lần. Bỏ `F P R B S V D Q BT DT` (file, trang, dòng, ID issue). Mã dính `-` ở hai đầu (đoạn trong số tờ `ID-SK-52-101`) không tính; mã trùng số tờ của trang cũng bị trừ.
+- *Mã VL*: trang có ≥ 2 mã khác nhau dạng text thì kiểm được mọi họ. Có 1 mã thì chỉ kiểm họ đó. Mã chỉ ra LỆCH khi **mọi** trang được link đều kiểm được họ của nó; không thì KKĐ "mã vẽ bằng nét". Lý do: SOFITEL có trang mang đúng 1 nhãn text `PS1` trong khi mã WD vẽ bằng nét. Cổng "≥ 1 mã bất kỳ" ra 3 LỆCH oan; cổng theo họ mà không có ngưỡng 2 thì Blanca chỉ bắt 8/38 ca tráo giá trị.
+- *Kích thước*: chỉ lấy chuỗi R×S×C **đầu tiên** của giá trị, bỏ chú thích `(R)`, `±`, chiều `?`. Chỉ xét số ≥ 100. Tách số bằng bộ của `neo_test7` (N1). Trang: bỏ dòng **có chữ** lặp ở ≥ 30% số trang của file (khung tên; file ≥ 5 trang). Dòng chỉ có số thì giữ, vì kích thước lặp giữa các tờ. Cổng là ≥ 10 số ≥ 100, không kể cao độ (`+2.360`, LEV/FFL…); cao độ vẫn dùng để khớp. Mỗi số phải có trong hợp số của các trang có text. Có ≥ 1 trang qua cổng thì kết luận được. Kiểm theo **tập**, không theo thứ tự: kích thước trên bản vẽ là các text rời nhau, nên cửa sổ 1 của N1 chỉ dùng được cho bảng.
+- Link có trang không có lớp text (ảnh scan) thì giá trị thiếu ra KKĐ, không ra LỆCH.
+
+**Kết quả** (gốc: CÓ NEO / LỆCH / KKĐ; đột biến, tráo, dời: chỉ tính trên ô CÓ NEO gốc):
+
+| Bộ | Gốc | Đột biến 1 chữ số / số trong mã | Tráo giá trị với mã khác | Dời trang ±1 |
+|---|---|---|---|---|
+| Blanca mã VL | 38 / 1 / 4 | 111/114 (97%) | 29/38 | 6/38 (trang cạnh nhau cùng hạng mục, cùng mã) |
+| Blanca kích thước | 126 / 11 / 42 | 321/378 (84%) | 109/126 (lọt 13,5%) | 69/124 |
+| SOFITEL v8 mã (cột H theo tờ) | 0 / 0 / 103 | — | — | — |
+| SOFITEL v8 kích thước (Mô tả BoQ → cột P) | 24 / 3 / 54 | — | — | — |
+
+- Blanca kích thước, 11 LỆCH = 5 hạng mục lặp ở QUAN_SAT/TONGHOP/MAP. **Tất cả là số LLM tự suy ra**, không in trên bản vẽ: khung bao ngoài cửa `960`/`860`, tổng `240 = 90 + 150`, `310 = 40 + 270`, `330 = 50 + 280`. Giá trị có thể đúng, nên tính là báo oan theo nghĩa "đọc sai". Vẫn để XEM vì số suy ra là chỗ dễ sai; `buoc/4` đã thêm hướng dẫn ghi phép tính vào `Giá trị`.
+- Blanca mã VL, 1 LỆCH: ô ghi `VA2 ≠ BoQ VA1`. LLM đã tự nêu lệch, máy bắt mã BoQ trong câu.
+- SOFITEL kích thước, 3 LỆCH: trang link là spec FF&E có text. Kiểm text 2 trang: chiều rộng sofa trong BoQ khác chiều rộng trên spec, tức là **lệch thật** BoQ↔spec. Số liệu này chỉ để đo, không chuyển sang tender. 24 CÓ NEO cũng nằm trên trang spec. Trang bản vẽ GA Design đều ra KKĐ.
+- Lọt chủ yếu ở ô nhiều link: hợp số của mặt bằng rất lớn. Ô 1 link bắt khoảng 95% đột biến (bản thử `dau`), ô 3+ link thấp hơn. Lọt 13,5% khi tráo giá trị nằm dưới ngưỡng 15% của bài D2, nhưng sát ngưỡng.
+- Lần chạy đầu (cổng mã "≥ 1 mã bất kỳ", kích thước bắt buộc mọi trang qua cổng) ra: SOFITEL 3 LỆCH mã oan; Blanca kích thước chỉ bắt 52% đột biến, tráo bắt 67/126. Hai luật trên được sửa theo chính bộ này, nên số "sau sửa" **lạc quan**.
+
+**Hồi quy:** `neo01_regress.py`: Blanca số tờ 1201/0, SOFITEL D1d 199/199, đột biến 193 (không đổi; tổng Blanca tăng đúng phần N3.3: 1365 CÓ NEO / 12 LỆCH). `neo01_n32.py` không đổi (A 60/60, B1 160/0/8, C 80). `bench.py` qua cổng (93% / 78%). CLI `neo` + `check` chạy được trên bản sao cache; dòng tổng in thêm `[số tờ a/b/c · spec·ML … · mã VL … · kích thước …]`.
+
+**Giới hạn / để N5:** chỉ có 1 bộ bản vẽ có text (Blanca, as-built cùng 1 đơn vị vẽ), và luật được chỉnh trên chính bộ đó. Chưa có chuỗi `a+b=c` trong giá trị thật. Số suy ra vẫn ra LỆCH. Ở lần scan thật kế tiếp: đếm LỆCH kích thước loại "số suy ra" so với "đọc sai"; nếu số suy ra > 50% LỆCH thì cân nhắc nhận phép cộng ghi trong `Giá trị` (mọi số hạng có trên trang và tổng đúng).
+
 ## 4. Để sau (không làm trong plan này)
 - Đọc bảng schedule bằng lưới vector theo `matchline/ingest/pdf_schedules.py` (nhánh `develop`): bảng có khung tin cậy 0,9, không khung 0,75.
 - Lọc lớp OCG.

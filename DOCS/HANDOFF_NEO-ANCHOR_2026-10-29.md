@@ -67,7 +67,7 @@ Thiết kế bản đầu đã đề xuất (chưa viết code):
 
 - [ ] Mở trực tiếp `ingest/pdf_schedules.py` và `ingest/sheet_index.py` của matchline, đối chiếu các hằng số ở mục 2.1.
 - [ ] Đọc `cmd_doichieu` và `cmd_do` trong `pd.py` xem có kiểm nội dung giá trị với text trang chưa (mục 2.2).
-- [ ] Sửa bug ghép từ trong `neo_test7.py` (dùng `get_text("words")` sắp theo block/line/word nhưng 15% chuỗi không tự khớp) rồi chạy lại bài H.
+- [x] Sửa bộ đo `neo_test7.py` + chạy lại bài H — xong 30/10 (xem 5b "Bài H làm lại — N1"; nguyên nhân thật là rác + 2 bộ tách khác nhau, không phải ghép từ).
 - [ ] Chạy lại bài B–E trên một bộ MAT/spec **khác** (không dùng để chỉnh thuật toán).
 - [ ] Lấy mẫu trang chi tiết (không chỉ bìa) của bản vẽ 2026 để đo tỉ lệ số vẽ bằng nét.
 - [ ] Kiểm lại kết quả bằng lệnh, không tin số trong file này: `py -I -X utf8 "D:\COSTING EXCEL\DOCS\scan-toi-uu\neo-test\neo_test3.py"` (kỳ vọng 91 KHOP) và `neo_test4.py` (kỳ vọng ~99,7% bắt đột biến; có random seed).
@@ -87,6 +87,33 @@ Chạy lại script và mở file gốc; không sửa skill, không mở dự á
 | drawing-analyzer | tải raw | `anchor.py`: `_PAD_PT = 8.0`, `_FUZZY_WINDOW_MIN_OVERLAP = 0.85`, EXACT/FUZZY/UNANCHORED ✔. `tiling.py`: ≤99 ô, `DEFAULT_OVERLAP_FRAC = 0.08`, sàn ANSI E ✔ |
 
 Checklist mục 5: đã xong dòng 1 (matchline), 2 (doichieu/do), 6 (chạy lại lệnh). Còn: sửa ghép từ `neo_test7`, bộ MAT/spec khác, mẫu trang chi tiết bản vẽ 2026.
+
+### Bài H làm lại — N1 sửa bộ đo (30/10/2026)
+
+`neo_test7.py` viết lại (cùng 32 file mẫu của `neo_test5`). Chạy `py -I -X utf8 neo_test7.py`, 2 lần ra giống hệt nhau.
+
+**Chẩn đoán bản cũ (khác giả thuyết "ghép từ sai"):**
+- 157 chuỗi không tự khớp đều là rác: 156 ca `Rev.00 -26/06/2026`, 1 ca `931.84.233 - 12.06.2026`. Nguyên nhân là chuỗi và dòng số dùng 2 cách tách khác nhau (`00` sau dấu `.` bị loại ở dòng số nhưng vẫn giữ trong chuỗi), không phải do thứ tự từ.
+- **Gần như toàn bộ 1.021 "chuỗi kích thước" là rác**, vì regex nhận mọi `a-b`: địa chỉ `30-31 Lyme Street`, mã hạng mục `53 - 700`, số tờ `IN-PS2-501`, tiêu chuẩn `ISO 1452-2`, điện thoại `213-4626`, `#1-02`. Dạng phổ biến nhất là `99-99` (205), `99 - 999` (173). → Con số 86% cũ đo trên rác, **bỏ**.
+- `py -I` bao gồm `-E`, nên `PYTHONHASHSEED=0` bị bỏ qua. Nguồn lệch là `set(nums)` khi chọn số thay; giờ đã sort.
+
+**Sửa:** ô = từ cùng (block, line) sắp theo x, tách ô khi khoảng trống > 0,6 × cao chữ. Chuỗi không vượt ô. Trang và giá trị dùng chung 1 bộ tách. Rác (ngày, `1:50`, `1/100`, điện thoại, `#..`, mã dính chữ, `a.b.c`, `Rev.nn`, số có 0 đứng đầu) bị loại trước khi tách. Dấu chuỗi là `x × * + =`; `-` chỉ nhận khi có đơn vị mm/cm (`5–10mm`). Nhận `1,200`, `1.200`, `W1200`, `Ø60`, đuôi `mm`.
+
+| Bài | Kết quả |
+|---|---|
+| 0. Bộ tách tự kiểm (18 ca: dạng LLM + rác đã gặp) | 18/18 |
+| 1. Mẫu | 143 trang, 647 chuỗi, **chỉ 18 bộ số khác nhau / 13 file**, chủ yếu kích thước đèn (`W10 x H10`, `Ø60 x H89`); xem tay 30 mẫu: 0 rác |
+| 2. Chuỗi thật tự khớp (thứ tự) | 647/647. Đúng theo cách dựng (cùng bộ tách), nên **không phải bằng chứng**; bằng chứng là bài 3 |
+| 3. Viết lại kiểu LLM (`a x b mm`, `axb`, `1,200 × 600`, `amm x bmm`) | 2588/2588 (lần chạy đầu 1575/2100: `1200x600` viết liền bị coi là mã → đã sửa) |
+| 4. Đột biến khó (thay bằng số khác có trên trang), n = 1941 | tập 0%; thứ tự **cửa sổ 1: 94,6%** · cửa sổ 2: 87,1% · cửa sổ 3: 80,6%. Lọt chủ yếu số nhỏ (`1`, `5`, `12`) |
+| 5. Đổi chỗ 2 số đầu, n = 381 | cửa sổ 1: 381/381 · cửa sổ 3: 372 |
+| 6. Chuỗi trang A trên trang ngẫu nhiên B | cùng file 40% · khác file 33% (các bảng đèn F064x lặp cùng mẫu) · **khác file và B không ghi chuỗi đó: 4% (cửa sổ 1) / 6% (cửa sổ 3)** |
+
+**Kết luận N1:**
+1. Đạt mục "≥ 98% chuỗi thật tự khớp" (100%), nhưng đó là hệ quả của việc dùng chung bộ tách. Chỉ tiêu có nghĩa là **viết lại kiểu LLM tách đúng 100%**.
+2. Nên dùng **cửa sổ 1** (các số phải liền nhau trong dòng số sạch), không dùng 3 như thiết kế cũ: bắt nhiều hơn (94,6% so với 80,6%) và không làm hỏng ca dương tính nào trong mẫu.
+3. Trùng tình cờ khoảng 4–6%. Tương đương 1 chuỗi `axb` sai có ~5% khả năng vẫn ra CÓ NEO trên trang dày số.
+4. **Giới hạn:** mẫu hẹp (18 bộ số, bảng đèn/thiết bị). Chưa có chuỗi kiểu tủ `1200x600x750` hay `450+450=900` từ bản vẽ, vì bản vẽ GA Design không có kích thước trong text (xem plan 3c, D3). Bộ tách cần kiểm lại trên bản vẽ có kích thước dạng text khi có dữ liệu được phép.
 
 ### Ý kiến của session kiểm (chờ user chọn)
 1. **Bộ thử lệch đối tượng:** mọi test chạy trên `MAT` của **10-tender** (bảng spec có text), còn thiết kế `neo` nhắm `QUAN_SAT` của **01-scan** (kích thước từ ảnh crop) — phần này chưa đo. Đề xuất: viết `neo` dạng hàm thuần trong `SKILL\_core\scan_core.py` (chỉ thêm, không sửa hàm cũ; vẫn chạy `bench.py`), áp cho 10-tender trước (dự án active, có dữ liệu đo), 01-scan dùng lại ở chế độ cảnh báo lần scan thật sau (= hướng b).

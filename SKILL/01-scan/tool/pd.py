@@ -26,7 +26,7 @@ Lệnh (chạy: py -I pd.py <lệnh> ...):
   doichieu <goc> <dot> [--ra DIR]            bước doichieu: KL BoQ↔BV, Độ tin cậy, Issue từng mã, issue DT… -> *.doichieu-tool.json (nháp)
   loc    <goc> <dot> <SHEET> cột=gt [cột~regex] [--cot a,b]   lọc dòng trên dữ liệu đã ghép (thay cho đọc cả file JSON)
   do     <goc> <dot>                         đo tỉ lệ ô do tool ghi (file *-tool.json) / tổng ô
-  neo    <goc> <dot>                         sau bước banve: số tờ trong nhãn link / mã spec·ML có trên trang link không -> _neo.json (chỉ XEM)
+  neo    <goc> <dot>                         sau bước banve: số tờ trong nhãn link / mã spec·ML / mã VL + kích thước BV có trên trang link không -> _neo.json (chỉ XEM)
 """
 import sys, os, re, json, glob, shutil, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "_core"))
@@ -1273,24 +1273,102 @@ def cmd_do(goc, dot):
 # ---- B7 neo: giá trị của link có trên trang/dòng được link không. Chỉ XEM, không bao giờ là LỖI.
 # Đo 29/10 (DOCS\PLAN_NEO-ANCHOR_2026-10-29.md mục 3c): lớp text bản vẽ kiểu GA Design chỉ có khung tên + ghi chú, nên chỉ kiểm
 #   N3.1 số tờ trong nhãn link (+ tên chi tiết sau '#nn') trên trang link · N3.2 mã/model ở link spec/ML trên trang/dòng link.
-# Mã VL và kích thước trên bản vẽ chưa kiểm (N3.3 chưa có ngưỡng đo).
+#   N3.3 mã VL + kích thước đọc trên bản vẽ: chỉ kiểm khi trang có loại neo đó ở dạng text (luật theo họ mã / số đếm),
+#   không thì KHÔNG KIỂM ĐƯỢC — bản vẽ vẽ mã/kích thước bằng nét (GA Design, SOFITEL) ra KKĐ chứ không ra LỆCH oan.
 NEO_TO = {("BOQ_TONGHOP", "Bản vẽ đối chứng"), ("BOQ_MAP", "Tờ đếm KL"), ("BOQ_MAP", "Tờ chi tiết"), ("DAY_TUONG", "Tờ mặt bằng")}
 NEO_SPEC = {("BOQ_TONGHOP", "Spec · ML"): "Thông số riêng", ("SPEC", "File · Trang"): "Mục"}  # cột link -> cột giá trị cùng dòng
-NEO_BO = re.compile(r"^(f\d{3,4}|p\d+|r\d+|\d+(?:[.,]\d+)?(?:mm|cm|m|m2|m3|md|kg|ly|li)?)$")  # file/trang/dòng, số + đơn vị: không là mã
+NEO_BO = re.compile(r"^(f\d{3,4}|p\d+|r\d+|\d+(?:[.,]\d+)?(?:mm|cm|m|m2|m3|md|kg|ly|li|nr|no|pcs|bo|cai|set)?"  # file/trang/dòng, số + đơn vị
+                    r"|[a-z]?\d+(?:[.,]\d+)?(?:x[a-z]?\d+(?:[.,]\d+)?)+(?:mm|cm|m)?[whdl]?)$")  # kích thước 900x650x725mmH: để N3.3
+NEO_ITEM = re.compile(r"^\d{1,3}-\d{3,4}[A-Za-z]{0,2}$")  # mã hạng mục FF&E không có chữ: 51-400, 53-701A (30-31 không nhận)
 NEO_STOPW = {"DETAIL", "PLAN", "SECTION", "ELEVATION", "TYPICAL", "AND", "THE", "WITH"}
 NEO_KK = "KHÔNG KIỂM ĐƯỢC"
+# N3.3: (sheet, cột giá trị, cột link, kiểu); QUAN_SAT lọc theo Trường (Nguồn HÌNH/TEXT)
+NEO_GT = [("BOQ_TONGHOP", "Kích thước BV", "Bản vẽ đối chứng", "kt"), ("BOQ_MAP", "Kích thước BV", "Tờ chi tiết", "kt")]
+NEO_GT_QS = {"Mã hoàn thiện trên BV": "ma", "Kích thước BV": "kt"}
+# mã VL dạng WD-01, GL1, LM2a; không dính '-' hai đầu nên đoạn trong số tờ (ID-SK-52-101) không tính
+NEO_MAVL = re.compile(r"(?<![A-Za-z0-9-])([A-Z]{1,3})-?(\d{1,3})([A-Za-z]?)(?![A-Za-z0-9]|[-./]\d)")
+NEO_HO_BO = {"F", "P", "R", "B", "S", "V", "D", "Q", "BT", "DT"}  # file/trang/dòng, ID issue các bước — không phải họ mã VL
+NEO_MA_CONG = 2  # trang có ≥ 2 mã VL khác nhau dạng text: kiểm được mọi họ; ít hơn: chỉ họ có trên trang
+NEO_KT_MIN, NEO_KT_CONG, NEO_LAP = 100, 10, 0.3  # số ≥ 100 · trang cần ≥ 10 số như vậy · dòng chữ lặp ở ≥ 30% trang = khung tên
+NEO_LEV = re.compile(r"^\s*(?:[+±-]\s*\d+[.,]\d{3}\s*$|.*\b(?:LEV|FFL|FCL|SSL|EL|CL|TOS|AFF)\b)", re.I)  # cao độ: không tính vào cổng
+# bộ tách số chép từ DOCS\scan-toi-uu\neo-test\neo_test7.py (N1, 30/10): cùng 1 bộ cho trang và giá trị
+NEO_FOLD = {"×": "x", "X": "x", "–": "-", "—": "-", "−": "-", "＋": "+", " ": " "}
+NEO_JUNK = [
+    re.compile(r"\b\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}\b"),                    # ngày
+    re.compile(r"\b\d+\s*[:/]\s*\d+\b"),                                     # tỉ lệ, phân số, giờ
+    re.compile(r"\+\s*\(?\d{1,3}\)?[\s.\-]?\(?\d{1,4}\)?(?:[\s.\-]?\d{2,4}){2,}"),  # điện thoại có +
+    re.compile(r"\(\d{2,4}\)\s*\d{3,4}[\s.\-]\d{3,4}"),                      # điện thoại (028) 3824 1525
+    re.compile(r"#\s*\d[\d\-]*"),                                            # #1-02
+    re.compile(r"\b[A-Za-z][\w]*[\-.]\w*\d[\w\-.]*"),                        # mã dính chữ: IN-PS2-501, EN2-4
+    re.compile(r"\b\d+(?:\.\d+){2,}\b"),                                     # 931.84.233
+    re.compile(r"(?i)\brev\.?\s*\d+"),
+]
+_NEO_DINH = r"0-9A-Za-wyz_À-ỹ"  # ký tự dính số làm số thành mã; trừ x để 1200x600 vẫn tách
+_NEO_N0 = r"(?<![" + _NEO_DINH + r".,#/:])(?:[WDHLRS]|Ø)?" + r"(\d+(?:\.\d+)?)(?:\s?(?:mm|cm))?(?![" + _NEO_DINH + r"#/:]|\.\d)"
+NEO_NUM = re.compile(_NEO_N0)
+NEO_CHAIN = re.compile(_NEO_N0.replace("(\\d", "(?:\\d") + r"(?:\s*[x*+=]\s*" + _NEO_N0.replace("(\\d", "(?:\\d") + r")+")  # 1200x600, 450+450=900
+
+
+def neo_chuan(s):
+    import unicodedata
+    s = "".join(NEO_FOLD.get(c, c) for c in unicodedata.normalize("NFKC", str(s)))
+    s = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", s)                       # 1,200 -> 1200
+    s = re.sub(r"(?<![\d.])(\d{1,3})\.(\d{3})(?![.\d])", r"\1\2", s)    # 1.200 -> 1200
+    for j in NEO_JUNK: s = j.sub(" ¦ ", s)
+    return s
+
+
+def neo_so1(t):
+    if len(t) > 1 and t[0] == "0" and not t.startswith("0."): return None  # 0 đứng đầu: rác
+    return t[:-2] if t.endswith(".0") else t
+
+
+def neo_tach_so(s):
+    """Dòng số sạch theo thứ tự đọc."""
+    return [v for cell in neo_chuan(s).split("¦") for v in (neo_so1(m.group(1)) for m in NEO_NUM.finditer(cell)) if v]
+
+
+def neo_kt_gt(v):
+    """Giá trị 'Kích thước BV' -> các số ≥ 100 của chuỗi R×S×C ĐẦU TIÊN. Phần diễn giải sau đó (tổng LLM tự cộng, số tờ khác)
+    không kiểm: đo 30/10 trên Blanca, kiểm mọi số trong câu ra 20/46 LỆCH oan, chỉ chuỗi đầu ra 4/44."""
+    v = re.sub(r"\s*\([^()\d]{1,12}\)", "", str(v or "")).replace("±", "").replace("~", "")  # '1540 (R) × 2375 (C)', '±130'
+    v = re.sub(r"[x×X*]\s*\?\s*(?=[x×X*])", "", v)                                        # '900×?×440': bỏ chiều chưa rõ
+    for cell in neo_chuan(v).split("¦"):
+        for m in NEO_CHAIN.finditer(cell):
+            p = [neo_so1(x) for x in NEO_NUM.findall(m.group(0))]
+            if len(p) >= 2 and all(p): return [x for x in p if float(x) >= NEO_KT_MIN]
+    return []
+
+
+def neo_mavl(s, ho):
+    """Mã VL thuộc họ mã dự án trong chuỗi -> {khóa chuẩn: chữ gốc}. 'WD-01' và 'WD1' cùng khóa WD1."""
+    return {f"{a}{int(b)}{c.upper()}": m.group(0) for m in NEO_MAVL.finditer(str(s or "")) for a, b, c in [m.groups()] if a in ho}
+
+
+def neo_ho(merged):
+    """Họ mã VL của dự án (WD, PT, GL, LM…): tiền tố chữ của mã ở QUAN_SAT (Trường có 'mã'), BOQ_TONGHOP.Mã hoàn thiện,
+    SPEC.Mã liên quan; họ phải gặp ≥ 2 lần, bỏ tiền tố file/trang/issue."""
+    from collections import Counter
+    c = Counter()
+    vals = [r.get("Giá trị") for r in merged.get("QUAN_SAT", []) if "mã" in str(r.get("Trường") or "").lower()]
+    vals += [r.get("Mã hoàn thiện") for r in merged.get("BOQ_TONGHOP", [])] + [r.get("Mã liên quan") for r in merged.get("SPEC", [])]
+    for v in vals:
+        for m in NEO_MAVL.finditer(str(v or "")): c[m.group(1)] += 1
+    return {h for h, n in c.items() if n >= 2 and h not in NEO_HO_BO}
 
 
 def _an(s): return re.sub(r"[^a-z0-9]", "", _fold(s))
 
 
-def neo_ma(*vals):
-    """Token dạng mã/model (có cả chữ và số, ≥ 3 ký tự chữ-số): WO1, PT-04, MK630, 5040-Y90B. Bỏ F024/p11/r16/18mm."""
-    out = []
+def neo_ma(*vals, file=""):
+    """Token dạng mã/model (có cả chữ và số, ≥ 3 ký tự chữ-số): WO1, PT-04, MK630, 5040-Y90B; mã FF&E 51-400.
+    Bỏ F024/p11/r16/18mm/2nr, kích thước 900x650mmH, và token thuộc tên file link (nhãn tự sinh '260605_AREA 51_STANDARD p6')."""
+    out, ten = [], _an(os.path.splitext(os.path.basename(file))[0]) if file else ""
     for v in vals:
         for t in re.split(r"[\s,;()\[\]/:–—]+", str(v or "")):
-            k = _an(t)
-            if len(k) >= 3 and re.search(r"\d", k) and re.search(r"[a-z]", k) and not NEO_BO.match(k): out.append(t.strip(".-"))
+            t = t.strip(".-"); k = _an(t)
+            if len(k) < 3 or not re.search(r"\d", k) or (ten and k in ten): continue
+            if NEO_ITEM.match(t) or (re.search(r"[a-z]", k) and not NEO_BO.match(k)): out.append(t)
     return list(dict.fromkeys(out))
 
 
@@ -1309,9 +1387,27 @@ def neo_items(merged, files_by_id, inp):
                 links = norm_links(v, files_by_id, inp)[1]
                 ten = " · ".join(str(x) for x in (r.get("Mã") or r.get("Mục") or f"{sh} dòng {i}", r.get("Khu"), r.get("Trường") or cot) if x)
                 for lab, f, pg, sub in links:
-                    # nhiều link trong 1 ô: giá trị của dòng thuộc về cả ô, không biết của link nào -> chỉ kiểm mã trong nhãn
-                    ma = neo_ma(lab, val if len(links) == 1 else "") if kieu == "spec" else []
+                    # nhiều link trong 1 ô: mỗi link chỉ kiểm mã trong nhãn; giá trị kiểm riêng bên dưới (mục nhom)
+                    ma = neo_ma(lab, val if len(links) == 1 else "", file=f) if kieu == "spec" else []
                     out.append(dict(sh=sh, dong=i, cot=cot, ten=ten, kieu=kieu, nhan=lab, file=f, trang=pg, o=sub, ma=ma))
+                if kieu == "spec" and len(links) > 1 and neo_ma(val):
+                    # mã trong giá trị phải có trên ít nhất 1 trang/dòng được link của ô (đo 30/10: ô spec FF&E 4 link/ô)
+                    out.append(dict(sh=sh, dong=i, cot=cot, ten=ten, kieu=kieu, nhan=f"giá trị ({len(links)} link)", file=links[0][1],
+                                    trang=links[0][2], o=links[0][3], ma=neo_ma(val), nhom=[l[1:] for l in links]))
+    # N3.3: giá trị đọc trên bản vẽ (mã VL, kích thước) — kiểm hợp trên các trang PDF được link của ô
+    ho = neo_ho(merged)
+    gt = [(sh, cv, cl, k) for sh, cv, cl, k in NEO_GT] + [("QUAN_SAT", "Giá trị", "Tờ · Chi tiết", None)]
+    for sh, cv, cl, kieu in gt:
+        for i, r in enumerate(merged.get(sh, []), 2):
+            k = kieu or (NEO_GT_QS.get(r.get("Trường")) if r.get("Nguồn") in ("HÌNH", "TEXT") else None)
+            val = r.get(cv)
+            if not k or not val or str(val).strip().upper().startswith("KHÔNG") or r.get("Trạng thái") in ("KHÔNG THẤY", "KHÔNG CÓ"): continue
+            links = [l for l in norm_links(r.get(cl), files_by_id, inp)[1] if l[1].lower().endswith(".pdf") and str(l[2]).isdigit()]
+            if not links: continue
+            ma = list(neo_mavl(val, ho).values()) if k == "ma" else neo_kt_gt(val)
+            ten = " · ".join(str(x) for x in (r.get("Mã") or f"{sh} dòng {i}", r.get("Khu"), r.get("Trường") or cv) if x)
+            out.append(dict(sh=sh, dong=i, cot=r.get("Trường") or cv, ten=ten, kieu=k, nhan=str(val)[:60], file=links[0][1],
+                            trang=links[0][2], o=links[0][3], ma=ma, nhom=[l[1:] for l in links], ho=sorted(ho)))
     return out
 
 
@@ -1387,18 +1483,82 @@ def neo_run(P, merged):
             except Exception: xl[(f, sheet)] = None
         return xl[(f, sheet)]
 
-    tong, kk, lech = Counter(), Counter(), []
+    def dich(f, pg, o):
+        """1 link -> (chữ-số của trang PDF / các dòng Excel được link, None) hoặc (None, lý do KHÔNG KIỂM ĐƯỢC)."""
+        fid = fid_of.get(os.path.normcase(f))
+        if fid and f.lower().endswith(".pdf") and str(pg).isdigit():
+            t = text(fid, int(pg))
+            return (sq_of(fid, int(pg)), None) if t is not None and len(t.strip()) >= 20 else (None, "trang không có lớp text")
+        m_ = re.match(r"^'?(.+?)'?!\$?[A-Z]{1,3}\$?(\d+)(?::\$?[A-Z]{1,3}\$?(\d+))?$", str(o))
+        if not m_ or not f.lower().endswith((".xlsx", ".xlsm")): return None, "link không chỉ tới trang PDF / ô Excel"
+        rows = xl_rows(f, m_.group(1))
+        if not rows: return None, "không mở được sheet Excel"
+        return "".join(rows.get(i, "") for i in range(int(m_.group(2)), int(m_.group(3) or m_.group(2)) + 1)), None
+
+    tong, kk, lech, tk = Counter(), Counter(), [], {}
 
     def ket(x, st, why="", goi_y=()):
-        tong[st] += 1
+        tong[st] += 1; tk.setdefault(x["kieu"], Counter())[st] += 1
         if st == NEO_KK: kk[why] += 1
         if st == "LỆCH":
             lech.append(dict(sh=x["sh"], dong=x["dong"], cot=x["cot"], ten=x["ten"], nhan=x["nhan"], link=x["link"], ly_do=why, goi_y=list(goi_y)[:3]))
+
+    lap = {}
+
+    def lap_of(fid):
+        """Dòng có chữ lặp ở ≥ 30% trang của file (khung tên, ghi chú chung; file ≥ 5 trang). Dòng chỉ có số là kích thước, giữ."""
+        if fid not in lap:
+            t = texts[fid] or []; c = Counter()
+            for p in t: c.update({l.strip() for l in p.splitlines() if l.strip()})
+            lap[fid] = {l for l, n in c.items() if len(t) >= 5 and n >= NEO_LAP * len(t) and re.search(r"[A-Za-z]", l)}
+        return lap[fid]
+
+    def neo3(fid, pg, kieu, ho):
+        """Trang -> (tập neo, cổng) — 'ma': khóa mã VL thuộc họ dự án (trừ mã nằm trong số tờ của trang), cổng = các họ kiểm được:
+        mọi họ nếu trang có ≥ 2 mã khác nhau dạng text, chỉ họ đó nếu có 1 mã (SOFITEL: 1 nhãn PS1 text, mã WD vẽ nét);
+        'kt': số ≥ 100 vùng vẽ (bỏ dòng khung tên lặp), cổng = có ≥ 10 số không kể cao độ."""
+        t = text(fid, pg)
+        if kieu == "ma":
+            s = set(neo_mavl(t, ho)) - set(neo_mavl(so.get((fid, pg), ""), ho))
+            return s, (ho if len(s) >= NEO_MA_CONG else {re.match(r"[A-Z]+", k).group(0) for k in s})
+        ls = [l for l in t.splitlines() if l.strip() and l.strip() not in lap_of(fid)]
+        s = {v for v in neo_tach_so(" ¦ ".join(ls)) if float(v) >= NEO_KT_MIN}
+        cong = sum(float(v) >= NEO_KT_MIN for v in neo_tach_so(" ¦ ".join(l for l in ls if not NEO_LEV.match(l))))
+        return s, cong >= NEO_KT_CONG
 
     for x in items:
         f, pg, fid = x["file"], x["trang"], fid_of.get(os.path.normcase(x["file"]))
         pdf = bool(fid) and f.lower().endswith(".pdf") and str(pg).isdigit()
         x["link"] = f"{fid} p{pg}" if pdf else f"{fid or os.path.basename(f)} {x['o']}".strip()
+        if x["kieu"] in ("ma", "kt"):
+            ma_ = x["kieu"] == "ma"; ho = set(x["ho"])
+            if len(x["nhom"]) > 1: x["link"] += f" +{len(x['nhom']) - 1} trang"
+            if not x["ma"]:
+                ket(x, NEO_KK, "giá trị không có mã thuộc họ mã dự án" if ma_ else "giá trị không có chuỗi R×S×C (≥ 2 số ≥ 100)"); continue
+            seen, cong, kk_, trs = set(), [], [], []
+            for f_, pg_, _o in x["nhom"]:
+                fid_ = fid_of.get(os.path.normcase(f_)); t = text(fid_, int(pg_)) if fid_ else None
+                if t is None or len(t.strip()) < 20: kk_.append("trang không có lớp text"); continue
+                s, c_ = neo3(fid_, int(pg_), x["kieu"], ho); seen |= s; trs.append((fid_, int(pg_))); cong.append(c_)
+            key = (lambda m: next(iter(neo_mavl(m, ho)))) if ma_ else (lambda m: m)
+            miss = list(dict.fromkeys(m for m in x["ma"] if key(m) not in seen))
+            if not miss: ket(x, "CÓ NEO"); continue
+            if kk_: ket(x, NEO_KK, f"{kk_[0]} (có thể nằm ở tờ đó)"); continue  # còn trang không có lớp text: không kết luận LỆCH
+            if ma_:  # mã chỉ kiểm khi MỌI trang được link có mã cùng họ dạng text; thiếu thì mã đó có thể vẽ bằng nét ở trang kia
+                hm = {m: re.match(r"[A-Z]+", key(m)).group(0) for m in miss}
+                ko = [m for m in miss if any(hm[m] not in c_ for c_ in cong)]
+                if ko == miss: ket(x, NEO_KK, f"trang không có mã họ {'/'.join(sorted({hm[m] for m in ko}))} dạng text (mã vẽ bằng nét)"); continue
+                miss = [m for m in miss if m not in ko]
+            elif not any(cong):
+                # kích thước: hợp các trang có text, có ≥ 1 trang qua cổng là kết luận được (đo 30/10: đòi mọi trang qua cổng thì
+                # ô nhiều link — luôn kèm mặt bằng ít số — ra KKĐ, chỉ bắt 52% đột biến)
+                ket(x, NEO_KK, f"trang không có kích thước dạng text (< {NEO_KT_CONG} số ≥ {NEO_KT_MIN})"); continue
+            if ma_:
+                gy = [f"{a} p{q}" for a in dict.fromkeys(a for a, _ in trs) for q in range(1, len(texts[a]) + 1)
+                      if (a, q) not in trs and all(key(m) in neo3(a, q, "ma", ho)[0] for m in x["ma"])]
+                ket(x, "LỆCH", f"không thấy mã {', '.join(miss[:4])} trên trang (trang có: {', '.join(sorted(seen)[:6])})", gy)
+            else: ket(x, "LỆCH", f"không thấy số {', '.join(miss[:4])} trong kích thước dạng text của trang")
+            continue
         if x["kieu"] == "to":
             if not pdf: continue  # link tới dwg/ảnh/Excel: không thuộc N3.1
             pg = int(pg)
@@ -1419,6 +1579,15 @@ def neo_run(P, merged):
                 if len(words & tw) < 0.8 * len(words):
                     ket(x, "LỆCH", f"đúng tờ nhưng tên chi tiết #{mt.group(1)} thiếu trên trang: {', '.join(sorted(words - tw)[:4])}"); continue
             ket(x, "CÓ NEO")
+        elif x.get("nhom"):
+            ss = [dich(*l) for l in x["nhom"]]
+            s = "".join(s for s, _ in ss if s is not None)
+            if not s: ket(x, NEO_KK, ss[0][1]); continue
+            miss = [m for m in x["ma"] if _an(m) not in s]
+            kk_ = [w for s_, w in ss if s_ is None]
+            if miss and kk_: ket(x, NEO_KK, f"{kk_[0]} (mã có thể nằm ở link đó)")  # không kết luận LỆCH khi còn link chưa đọc được
+            elif miss: ket(x, "LỆCH", "không thấy mã " + ", ".join(miss[:4]) + f" trên {len(ss)} trang/dòng được link")
+            else: ket(x, "CÓ NEO")
         else:
             if not x["ma"]: ket(x, NEO_KK, "không có mã/model để kiểm"); continue
             if pdf:
@@ -1437,7 +1606,8 @@ def neo_run(P, merged):
                 gy = [f"'{m_.group(1)}'!A{i}" for i, v in rows.items() if not r1 <= i <= r2 and all(_an(m) in v for m in x["ma"])] if miss else []
             if miss: ket(x, "LỆCH", "không thấy mã " + ", ".join(miss[:4]), gy)
             else: ket(x, "CÓ NEO")
-    return dict(ngay=f"{datetime.datetime.now():%Y-%m-%d %H:%M}", hash=neo_hash(items), tong=dict(tong), khong_kiem=dict(kk), lech=lech)
+    return dict(ngay=f"{datetime.datetime.now():%Y-%m-%d %H:%M}", hash=neo_hash(items), tong=dict(tong),
+                theo_kieu={k: dict(v) for k, v in tk.items()}, khong_kiem=dict(kk), lech=lech)
 
 
 def neo_dong(l):
@@ -1445,8 +1615,10 @@ def neo_dong(l):
 
 
 def neo_tong(res):
-    t = res["tong"]
+    t, tk = res["tong"], res.get("theo_kieu", {})
+    ten = {"to": "số tờ", "spec": "spec·ML", "ma": "mã VL", "kt": "kích thước"}
     return (f"NEO: {t.get('CÓ NEO', 0)} CÓ NEO · {t.get('LỆCH', 0)} LỆCH · {t.get(NEO_KK, 0)} {NEO_KK}"
+            + (" [" + " · ".join(f"{ten.get(k, k)} {v.get('CÓ NEO', 0)}/{v.get('LỆCH', 0)}/{v.get(NEO_KK, 0)}" for k, v in tk.items()) + "]" if tk else "")
             + (" (" + "; ".join(f"{k}: {v}" for k, v in sorted(res["khong_kiem"].items(), key=lambda z: -z[1])) + ")" if res["khong_kiem"] else ""))
 
 

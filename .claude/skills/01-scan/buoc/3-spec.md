@@ -22,5 +22,8 @@ Trang `Lớp text = KHÔNG/ÍT` hoặc bảng nằm trong hình: tự xem ảnh 
 ## 3. ISSUES (S…)
 Spec ↔ BoQ, spec ↔ ML, ML ↔ BoQ khác nhau (độ dày, vật liệu, hãng, cấp chống cháy…). `Nội dung` nêu đủ hai giá trị + mục; `Nguồn` link cả hai chỗ; `Mức` CAO nếu đổi giá rõ.
 
+## Trước khi trả kết quả
+Chạy `py -I "<TOOL>" neo <GOC> <DOT>`. Máy kiểm mã/model (`WD-01`, `K6121AN`, mã FF&E `51-400`) trong nhãn link và trong `Thông số riêng` / `Mục` / `Giá trị` có trên trang/dòng được link. Ô có nhiều link thì mỗi mã của giá trị phải có trên ít nhất 1 link. Dòng `NEO LỆCH` của mã bạn làm: mở lại đúng trang/dòng (dùng `gợi ý`), sửa link hoặc giá trị; nếu đúng thì ghi lý do. LỆCH chỉ là XEM. Tên file trong nhãn và kích thước (`900x650mmH`) không được tính là mã.
+
 ## Xong khi
 Mỗi mã trong BOQ_TONGHOP có `Spec · ML` (link hoặc "KHÔNG CÓ – …"); `check --den spec` không còn LỖI.
