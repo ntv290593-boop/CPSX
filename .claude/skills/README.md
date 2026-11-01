@@ -4,7 +4,7 @@ Claude Code đọc thư mục này qua liên kết `D:\COSTING EXCEL\.claude\ski
 
 | Gõ lệnh | Skill | Ra file | Trạng thái |
 |---|---|---|---|
-| `scan` / `scan thư mục <đợt>` | `01-scan` | `01_scan\PROJECT_DATA_<đợt>.xlsx` | ✅ 27/10/2026 |
+| `scan` / `scan thư mục <đợt>` | `01-scan` | `01_scan\PROJECT_DATA_<đợt>.xlsx` | ✅ 27/10/2026; đóng băng từ 01/11/2026, chỉ sửa lỗi |
 | `takeoff` / `bóc` | `02-takeoff` | `02_takeoff\…` (AI_INPUT) | chưa làm |
 | (trong Excel) | `cpsx-master` (Claude trong Excel) | `03_costing\*.xlsm` | giữ nguyên, tách sau |
 | `rfi` | `04-rfi` | `04_rfi\…RFI_REV00.xlsx` | chưa làm |
@@ -25,6 +25,8 @@ Số đầu tên skill = thư mục của dự án mà skill ghi vào.
 
 ## Lõi dùng chung `_core\scan_core.py`
 Cào + tìm trang PDF dùng chung cho `01-scan` (`pd.py`) và `10-tender` (`td.py`): đọc chữ + đoán khung tên, phân loại tờ, trang trùng / file tổng, chỉ mục BM25 + mã chuẩn hóa, chữ ký file (phát hiện file đổi). Mỗi skill chỉ giữ phần riêng của nhiệm vụ (form, bước, cách chấm điểm). Sửa lõi → chạy `DOCS\scan-toi-uu\bench.py` và `td.py ungvien <GOC> --do`, không số nào được tụt.
+
+`_core\doc_file.py` (đọc chữ, ảnh trang PDF, mail, ô Excel) chỉ `td.py` dùng. `pd.py` đóng băng nên giữ bản riêng của các lệnh này cho tới khi xóa 01-scan.
 
 ## Cấu trúc một skill
 ```

@@ -5,6 +5,8 @@ description: Quét hồ sơ thầu (BoQ, bản vẽ PDF, spec, material list, ma
 
 # 01-scan — ĐIỀU PHỐI
 
+**Đóng băng từ 01/11/2026** (`DOCS\PLAN_TENDER-CODEID-DMVT_2026-10-31.md`, quyết định 13): vẫn chạy bình thường, chỉ sửa lỗi, không thêm tính năng. Chỉ xóa sau khi 1 dự án costing thật chạy được từ BOQ_TRACK của `10-tender`.
+
 Phiên này chỉ **điều phối**: chạy script, giao việc, đọc kết quả kiểm. **Không tự đọc BoQ / bản vẽ / spec ở đây** — mỗi bước giao 1 subagent mới (ngữ cảnh sạch, chỉ đọc file hướng dẫn của bước đó). Đó là cách chống ảo giác của skill này.
 
 ## 0. Chuẩn bị (không hỏi user nếu đã rõ)

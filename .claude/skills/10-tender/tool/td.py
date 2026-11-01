@@ -9,6 +9,7 @@ from collections import OrderedDict, Counter, defaultdict
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "_core"))
 from scan_core import chu_ky_file, doc_pdf, trang_trung, chi_muc, bm25_dao, loai_to, toks, ncode, ma_chuan, regex_ma, tach_ma, _fold
 import code_id
+import doc_file
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")  # thông báo LỖI của sys.exit
@@ -39,6 +40,10 @@ LENH = """Lệnh:
   ungvien <GOC> [--phong SK-01 | --sheet S | --khoa K] [--top 6] [--ra f.txt] [--do]
                                 mỗi dòng SCOPE -> trang PDF ứng viên (lõi scan: BM25 + mã + phòng); --do = đo trùng với LLM
   zip <GOC> <FID> [--ra <dir>]  giải nén 1 file trong zip ra _data\\_zip để đọc
+  chu <pdf> <trang> [--clip x0,y0,x1,y1]   in lớp chữ của trang (clip theo tỉ lệ 0..1 của trang)
+  anh <pdf> <trang> <png> [--dpi 150] [--clip ...]  xuất ảnh trang/vùng để xem bằng Read
+  mail <file.msg>               in tiêu đề, người gửi/nhận, đính kèm, nội dung mail Outlook
+  xem <xlsx> [sheet] [A1:Z60]   in giá trị ô; không nêu sheet thì liệt kê sheet
   cot [--buoc <buoc>]           cột bước được ghi
   loc <GOC> <SHEET> [cột=gt | cột!=gt | cột~regex | cột=] ... [--cot a,b] [--max n]
   check <GOC> [--den <buoc>]
@@ -1131,7 +1136,7 @@ def chi_muc_tender(p, res):
 
 
 def rank_dong(ix, r):
-    """-> [(điểm, (fid, tr), số lần mã)] giảm dần cho 1 dòng SCOPE. Tín hiệu như pd.py rank_ma, chỉnh cho mô tả BOQ dài:
+    """-> [(điểm, (fid, tr), số lần mã)] giảm dần cho 1 dòng SCOPE. Tín hiệu như rank_ma của 01-scan, chỉnh cho mô tả BOQ dài:
     BM25(Nhóm + Mục phụ + Mô tả) chuẩn hóa 0..40 trong dòng (trang BM25 cao nhất = 40) + 3×từ trong tên tờ
     + 8×min(mã VL/FF&E, 3) + 10 mã trong tên tờ + 40 khi mô tả nêu đúng Số BV của tờ + 10 tờ cùng mã phòng; ×0.4 tờ phòng khác.
     Bỏ: trang trùng, file tổng, bản cũ, tờ Ngoài scope/Tham khảo. Trang tài liệu (không phải tờ bản vẽ) xếp riêng nhóm TÀI LIỆU."""
@@ -2774,6 +2779,20 @@ def cmd_dmvt(goc, args):
 
 
 # ---------------------------------------------------------------- main
+def cmd_doc_file(c, r):
+    if c == "chu":
+        print(doc_file.chu(r[0], r[1], opt(r, "--clip")))
+    elif c == "anh":
+        w, h = doc_file.anh(r[0], r[1], r[2], opt(r, "--dpi", 150), opt(r, "--clip"))
+        print(r[2], w, "x", h)
+    elif c == "mail":
+        print(doc_file.mail(r[0]))
+    else:
+        ra = doc_file.xem(r[0], *r[1:3])
+        if ra:
+            print(ra)
+
+
 def main(a):
     if not a:
         print(LENH)
@@ -2783,6 +2802,8 @@ def main(a):
         return cmd_cot(rest)
     if not rest:
         sys.exit(LENH)
+    if c in ("chu", "anh", "mail", "xem"):  # đọc 1 file, không cần GOC
+        return cmd_doc_file(c, rest)
     goc, rest = rest[0], rest[1:]
     fn = {"init": lambda: cmd_init(goc, rest), "kiemke": lambda: cmd_kiemke(goc), "boq": lambda: cmd_boq(goc),
           "phanloai": lambda: cmd_phanloai(goc, rest), "ben": lambda: cmd_ben(goc), "goi": lambda: cmd_goi(goc, rest),

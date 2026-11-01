@@ -7,7 +7,7 @@ Tool `dwg` đã lập: mỗi `Số BV` (lấy từ tên file) có ngày issue + 
 1. Đọc README (mục bẫy). `loc <GOC> DWG --cot "Số BV,Khu (thư mục),Ngày issue hiệu lực,Số bản" --max 400`.
 2. **KHU** — mỗi thư mục khu của mỗi bộ hồ sơ 1 dòng: `{"Khu": "Area 51 - Guestroom Lift Lobby", "Bộ hồ sơ": "IDD", "Mã phòng": "Sảnh thang L4-17", "Nguồn": [["Drawing Register p2", "F0xxx", 2]]}`.
    - Cũng lập dòng KHU cho tên khu của bộ FF&E / thảm / schedule (vd `"AREA51 thảm"` → `SK-01; ST-01…`) — **bộ khác nhau có thể đánh số Area khác nhau cho cùng khu**; chỉ gắn theo mã phòng.
-   - Nguồn mã phòng: Drawing Register, trang bìa/khung tên tờ đầu của khu, FF&E Issue Sheet, Room schedule BOQ. Mở file trong zip: `py -I "<TOOL>" zip <GOC> <FID>` → đường dẫn file đã giải nén; đọc chữ `py -I "D:\COSTING EXCEL\SKILL\01-scan\tool\pd.py" chu "<pdf>" <trang>`.
+   - Nguồn mã phòng: Drawing Register, trang bìa/khung tên tờ đầu của khu, FF&E Issue Sheet, Room schedule BOQ. Mở file trong zip: `py -I "<TOOL>" zip <GOC> <FID>` → đường dẫn file đã giải nén; đọc chữ `py -I "<TOOL>" chu "<pdf>" <trang>`.
    - Khu không gắn được → `Mã phòng` = `"KHÔNG THẤY – đã tìm ở …"` + VIEC_MO.
 3. **Tên tờ** — từ Drawing Register (1 lần cho cả bộ), ghi `DWG.dwg.json` theo Số BV. Không mở từng tờ để lấy tên.
 4. `Mã phòng` của DWG: chỉ ghi khi khác mã phòng của khu (vd tờ chung nhiều loại phòng); còn lại để build tra từ KHU qua `Khu (thư mục)`.

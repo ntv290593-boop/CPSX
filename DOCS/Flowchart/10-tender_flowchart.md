@@ -1,7 +1,7 @@
 # Flowchart skill 10-tender
 
 > Cập nhật lần cuối: 2026-11-01 · Theo code: `SKILL/10-tender/` (SKILL.md, `buoc/*.md`, `tool/td.py`)
-> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) đã làm. GĐ6 của `DOCS/PLAN_TENDER-CODEID-DMVT_2026-10-31.md` (gộp pd.py) chưa làm. Main Lobby (BOQ thứ 2) chưa làm.
+> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm. Main Lobby (BOQ thứ 2) chưa làm.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
 Sơ đồ gồm 8 phần: luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu, danh mục vật tư.
@@ -164,6 +164,7 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
 - Quét toàn gói, gắn nhãn chứ không bỏ dòng; không áp quy tắc "phạm vi nhà máy 5 xưởng" của 01-scan.
 - Đợt sau đè đợt trước; `FILE_INDEX` giữ ID file cũ khi chạy lại.
 - `bo_thu_muc` là đường dẫn đầy đủ từ gốc hồ sơ, nên `HSMT/New folder` không bị loại khi cấu hình chỉ ghi `New folder`.
+- Các bước LLM đọc file qua `td.py chu`, `anh`, `mail`, `xem` (`_core/doc_file.py`); 10-tender không gọi tool của 01-scan.
 - Kiểm thử: `DOCS/scan-toi-uu/tender-test/kiemthu.py` (`--mau`, `--sofitel`).
 - Code ID chỉ nói hạng mục thuộc nhóm nào, không suy ra ai làm. Bên thực hiện là chiều riêng, nằm ở `SCOPE.ben.json` chứ không ở file doichieu, để chạy lại bước 7 không làm mất.
 - `Ngày cập nhật` không tính các cột phân loại, Code ID, Bên thực hiện, Mã cấu tạo, Link vật liệu (đổi danh sách bên không làm dòng BOQ hiện như vừa đổi); cột mới chưa có trong snapshot cũ cũng không tính, nên thêm cột không làm mọi dòng BOQ hiện như vừa đổi.

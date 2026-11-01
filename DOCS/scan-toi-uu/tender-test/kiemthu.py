@@ -2349,6 +2349,163 @@ def gd5_sofitel_bao_toan_build_lai_va_link(tmp):
     print(f"      SOFITEL: {len(hang)} mã; giữ sửa tay qua 2 lần build; {kq} link vật tư trỏ đúng dòng")
 
 
+# ---------------------------------------------------------------- GĐ6: đọc file qua _core
+PD = os.path.join(ROOT, "SKILL", "01-scan", "tool", "pd.py")
+
+
+def chay_goc(tool, args):
+    """(mã thoát khác 0?, stdout dạng byte): so từng byte, không qua giải mã. Mã lỗi chỉ so có lỗi hay không, vì traceback khác nhau."""
+    r = subprocess.run([sys.executable, "-I", tool, *args], capture_output=True)
+    return r.returncode != 0, r.stdout
+
+
+def so_voi_ban_cu(args, png=None, moi=None):
+    """Chạy cùng lệnh qua pd.py và td.py (hoặc script đối chứng moi), cùng đầu vào. Trả chuỗi mô tả chỗ khác, giống hệt thì None."""
+    kq = []
+    for tool in (PD, moi or TD):
+        if png and os.path.exists(png):
+            os.remove(png)
+        loi, ra = chay_goc(tool, args)
+        anh = b""
+        if png and os.path.exists(png):
+            with open(png, "rb") as fh:
+                anh = fh.read()
+        kq.append((loi, ra, anh))
+    (l0, r0, a0), (l1, r1, a1) = kq
+    if l0 != l1:
+        return f"{args}: pd.py lỗi={l0}, td.py lỗi={l1}"
+    if r0 != r1:
+        return f"{args}: stdout khác ({len(r0)} / {len(r1)} byte)"
+    if a0 != a1:
+        return f"{args}: ảnh khác ({len(a0)} / {len(a1)} byte)"
+    return None
+
+
+def so_nhieu(ca):
+    """ca = [(args, png)], chạy song song vì mỗi lệnh phải khởi động 2 tiến trình. -> [chỗ khác]."""
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(8) as ex:
+        return [k for k in ex.map(lambda c: so_voi_ban_cu(*c), ca) if k]
+
+
+def ca_pdf(pdf, trang, tmp, ten):
+    png = os.path.join(tmp, f"{ten}_{trang}.png")
+    png2 = os.path.join(tmp, f"{ten}_{trang}_clip.png")
+    return [
+        (["chu", pdf, str(trang)], None),
+        (["chu", pdf, str(trang), "--clip", "0.1,0.2,0.9,0.8"], None),
+        (["anh", pdf, str(trang), png, "--dpi", "50"], png),
+        (["anh", pdf, str(trang), png2, "--dpi", "72", "--clip", "0.5,0.5,1,1"], png2),
+    ]
+
+
+@kiem(6, "mau")
+def gd6_tender_khong_con_goi_pd(tmp):
+    goc = os.path.join(ROOT, "SKILL", "10-tender")
+    sot = []
+    for d, _, ten in os.walk(goc):
+        if "__pycache__" in d:
+            continue
+        for t in ten:
+            if t.lower().endswith((".md", ".py", ".json")):
+                with open(os.path.join(d, t), encoding="utf-8") as fh:
+                    noi_dung = fh.read()
+                if "pd.py" in noi_dung or re.search(r"01-scan[\\/]+tool", noi_dung):
+                    sot.append(os.path.relpath(os.path.join(d, t), goc))
+    assert not sot, f"10-tender còn gọi pd.py: {sot}"
+    for buoc, lenh in (("1-kiemke", "mail"), ("2-boq", "xem"), ("4-dwg", "chu"), ("5-mat", "chu"), ("6-banve", "anh")):
+        with open(os.path.join(goc, "buoc", buoc + ".md"), encoding="utf-8") as fh:
+            assert f'py -I "<TOOL>" {lenh} ' in fh.read(), f"{buoc}.md không còn hướng dẫn lệnh {lenh}"
+
+
+@kiem(6, "mau")
+def gd6_mau_giong_ban_cu(tmp):
+    import openpyxl
+    import pymupdf
+    d = os.path.join(tmp, "thư mục có dấu")
+    os.makedirs(d)
+    pdf = os.path.join(d, "mẫu đọc.pdf")
+    with pymupdf.open() as doc:
+        doc.new_page().insert_text((72, 100), "A-101 chu mau 51 - 500B")
+        xoay = doc.new_page(width=600, height=400)  # trang xoay: clip tính theo rect sau khi xoay
+        xoay.insert_text((50, 50), "ST-01 trang xoay")
+        xoay.set_rotation(90)
+        doc.new_page()  # trang trắng
+        doc.save(pdf)
+    xlsx = os.path.join(d, "mẫu.xlsx")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet có dấu"
+    ws.append(["Item", None, "x" * 100, 1.5])
+    ws.append([])
+    ws.append([None, "Mô tả tiếng Việt", "", 0])
+    wb.create_sheet("Trống")
+    wb.save(xlsx)
+    ca = [c for tr in (1, 2, 3) for c in ca_pdf(pdf, tr, d, "mau")]
+    ca += [(a, None) for a in (
+        ["xem", xlsx], ["xem", xlsx, "Sheet có dấu"], ["xem", xlsx, "Sheet có dấu", "B1:C3"], ["xem", xlsx, "Trống"],
+        ["xem", xlsx, "Không có sheet này"], ["chu", pdf, "9"], ["anh", pdf, "9", os.path.join(d, "x.png")],
+        ["chu", os.path.join(d, "không có.pdf"), "1"], ["mail", os.path.join(d, "không có.msg")])]
+    khac = so_nhieu(ca)
+    assert not khac, "\n".join(khac)
+
+    # đối chứng: phép so phải bắt được khi đầu ra lệch, nếu không thì "giống hệt" ở trên không có giá trị
+    gia = os.path.join(d, "gia.py")
+    png = os.path.join(d, "dc.png")
+    with open(gia, "w", encoding="utf-8") as fh:
+        fh.write("import sys\nprint('khác')\n")
+    assert so_voi_ban_cu(["xem", xlsx], moi=gia), "không bắt được stdout lệch"
+    with open(gia, "w", encoding="utf-8") as fh:
+        fh.write("import sys\nsys.exit(1)\n")
+    assert "lỗi" in (so_voi_ban_cu(["xem", xlsx], moi=gia) or ""), "không bắt được lệnh báo lỗi"
+    lenh_anh = ["anh", pdf, "1", png, "--dpi", "36", "--clip", "0,0,0.5,0.5"]
+    _, ra_dung = chay_goc(PD, lenh_anh)
+    with open(gia, "w", encoding="utf-8") as fh:  # stdout đúng từng byte, ảnh sai
+        fh.write(f"import sys\nopen({png!r},'wb').write(b'x')\nsys.stdout.buffer.write({ra_dung!r})\n")
+    assert "ảnh" in (so_voi_ban_cu(lenh_anh, png, gia) or ""), "không bắt được ảnh lệch"
+    print(f"      {len(ca)} lệnh giống pd.py từng byte, kể cả ảnh; ca lỗi cùng báo lỗi; đối chứng bắt được lệch")
+
+
+@kiem(6, "sofitel")
+def gd6_sofitel_giong_ban_cu(tmp):
+    data = os.path.join(GOC_SOFITEL, "10_TENDER", "_data")
+    with open(os.path.join(data, "_cauhinh.json"), encoding="utf-8") as fh:
+        cfg = json.load(fh)
+    inp = os.path.join(GOC_SOFITEL, cfg["input"])
+    rows = doc_index(GOC_SOFITEL)
+    msg = [os.path.join(inp, r["Đường dẫn"]) for r in rows if r["Đường dẫn"].lower().endswith(".msg") and not r.get("Trong zip")]
+    assert msg, "không thấy file .msg"
+    ca = [(["mail", m], None) for m in msg]
+    n_mail = len(ca)
+
+    n_xem = 0
+    for rel in (cfg["boq"], cfg["tcq"]):
+        x = os.path.join(inp, rel)
+        loi, ra = chay_goc(TD, ["xem", x])
+        assert not loi and ra, f"xem {rel} không ra gì"
+        ten_sheet = re.findall(r"^\[(.+)\] ", ra.decode("utf-8"), re.M)
+        ca.append((["xem", x], None))
+        ca += [(["xem", x, t], None) for t in ten_sheet]
+        ca += [(["xem", x, t, "A1:AP40"], None) for t in ten_sheet]
+        n_xem += 1 + 2 * len(ten_sheet)
+
+    pdfs = sorted(f for f in os.listdir(os.path.join(data, "_zip")) if f.lower().endswith(".pdf"))
+    assert len(pdfs) >= 8, f"chỉ có {len(pdfs)} PDF trong _zip"
+    import pymupdf
+    chon = pdfs[:: len(pdfs) // 8][:8]  # rải đều: có spec, bản vẽ nhiều lớp, ảnh
+    n_pdf = 0
+    for i, f in enumerate(chon):
+        p = os.path.join(data, "_zip", f)
+        with pymupdf.open(p) as doc:
+            n = doc.page_count
+        for tr in sorted({1, (n + 1) // 2, n}):
+            ca += ca_pdf(p, tr, tmp, f"p{i}")
+            n_pdf += 4
+    khac = so_nhieu(ca)
+    assert not khac, f"{len(khac)}/{len(ca)} lệnh khác:\n" + "\n".join(khac[:20])
+    print(f"      SOFITEL: {len(ca)} lệnh giống pd.py từng byte: mail {n_mail} file, xem {n_xem}, chu + anh {n_pdf} ({len(chon)} PDF)")
+
+
 # ---------------------------------------------------------------- chạy
 def main():
     args = set(sys.argv[1:])

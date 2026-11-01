@@ -1,6 +1,6 @@
 # PLAN — Skill 10-tender: Code ID, DMVT, gộp 01-scan (2026-10-31)
 
-Trạng thái: đã chốt qua grill với user 31/10, đã review và đo lại cùng ngày (quyết định 2, 9 đổi, 10 giữ nguyên, thêm 14–16). **GĐ0 và GĐ1 xong 31/10** (`bo_thu_muc`, `ma_chuan`/`regex_ma` trong `_core`, `tim --ma`, vai trò `Scope`; kiểm bằng `kiemthu.py`; chưa commit, `kiemke` thật chưa chạy lại; PVCV mới thử bằng file giả, SOFITEL chưa có file thật). **GĐ2 xong phần code và đo 31/10 (mục 2a), `nho.json` chờ user duyệt `NHO_DUYET.xlsx`.** Chưa chạy `phanloai` trên `_data` thật. **GĐ3 và GĐ3b xong 31/10 (mục 2b, 2c), `build` thật đã chạy, danh sách bên đang TẠM chờ user gửi. GĐ4 xong 01/11 (mục 2d), `build` thật đã chạy. GĐ5 xong 01/11 (mục 2e), `build` thật đã chạy, user chốt. Nhóm mục Finishes, Sanitary vẫn tạm. GĐ6 chưa làm.**
+Trạng thái: đã chốt qua grill với user 31/10, đã review và đo lại cùng ngày (quyết định 2, 9 đổi, 10 giữ nguyên, thêm 14–16). **GĐ0 và GĐ1 xong 31/10** (`bo_thu_muc`, `ma_chuan`/`regex_ma` trong `_core`, `tim --ma`, vai trò `Scope`; kiểm bằng `kiemthu.py`; chưa commit, `kiemke` thật chưa chạy lại; PVCV mới thử bằng file giả, SOFITEL chưa có file thật). **GĐ2 xong phần code và đo 31/10 (mục 2a), `nho.json` chờ user duyệt `NHO_DUYET.xlsx`.** Chưa chạy `phanloai` trên `_data` thật. **GĐ3 và GĐ3b xong 31/10 (mục 2b, 2c), `build` thật đã chạy, danh sách bên đang TẠM chờ user gửi. GĐ4 xong 01/11 (mục 2d), `build` thật đã chạy. GĐ5 xong 01/11 (mục 2e), `build` thật đã chạy, user chốt. Nhóm mục Finishes, Sanitary vẫn tạm. GĐ6 xong 01/11 (mục 2f), chưa commit.**
 Dự án đo: SOFITEL (`ACTIVE.md`). File Sarene (PVCV) và hidden sheet Sheraton trong `YYMMDD_DUAN_List of material.xlsx` chỉ là form, không lấy số liệu.
 
 ## 1. Quyết định đã chốt
@@ -210,6 +210,31 @@ Giới hạn: cùng một BOQ, cùng người lập. **Chưa đo trên BOQ dự 
 - Đọc tag ca `Lệch Area` trên mặt bằng (17 cặp, việc LLM của mục 4). Cột C vẫn theo tiền tố, luôn có cờ.
 - Vật liệu chỉ có ở SPECIAL INSTRUCTIONS: có đọc chữ, chưa tách thành dòng.
 - J:AF của `DMVT BASE (1)` (leadtime, ĐVT, giá) chưa đưa vào, để phép đo độc lập; file ra đang trống các cột đó.
+
+## 2f. Kết quả GĐ6 (01/11)
+
+**Đã làm:** `SKILL\_core\doc_file.py` có `chu`, `anh`, `mail`, `xem`; `td.py` thêm 4 lệnh cùng tên; 5 file `buoc\` đổi sang `py -I "<TOOL>" …`. Trong `SKILL\10-tender` không còn chữ `pd.py` (trước đó chỉ `buoc\` gọi, code không import). `01-scan\SKILL.md` và `SKILL\README.md` ghi đóng băng.
+
+**Kiểm:** `kiemthu.py` chạy đủ bộ cùng lúc: 77 đạt, 0 hỏng, gồm 3 phép GĐ6 (lần chạy đủ bộ này cũng bù phần GĐ5 mục 2e còn ghi chưa chạy cùng lúc). So từng byte stdout và file PNG giữa `pd.py` và `td.py`, cùng đầu vào:
+
+| Dữ liệu | Số lệnh giống hệt | Gồm |
+|---|---|---|
+| Mẫu tự dựng | 21 | PDF (trang xoay, trang trắng), xlsx, đường dẫn có dấu; ca lỗi (trang, sheet, file không có) cùng báo lỗi |
+| SOFITEL | 84 | `mail` 10 file, `xem` 34 (BOQ, TCQ, từng sheet), `chu` + `anh` 40 (8 PDF trong `_zip`, trang đầu, giữa, cuối, có `--clip`) |
+
+Đối chứng: phép so bắt được stdout lệch, lệnh báo lỗi, và ảnh lệch khi stdout đúng. Tốc độ 1 lệnh `chu` ngang nhau, khoảng 3–4 giây, cả 2 tool.
+
+**Tự quyết, khác với plan, do user chưa xét:**
+- Không sửa `pd.py` để gọi `_core`, nên 4 lệnh này tạm có 2 bản: 01-scan đóng băng, `pd.py` còn phần 4.1 chưa commit (`HANDOFF_TOOL-HOA-01SCAN`), và bản cũ giữ độc lập mới làm mốc so được.
+- Chỉ gộp 4 lệnh theo tiêu chí. `so` và các lệnh còn lại vẫn chỉ ở `pd.py`, vì 10-tender không dùng; tính tới khi xóa 01-scan.
+- Module riêng, không gộp vào `scan_core.py`, để sửa đọc file không kéo theo phép đo `bench.py`.
+- Đóng băng = vẫn chạy, chỉ sửa lỗi, không thêm tính năng.
+
+**Giới hạn:** phép so của `mail` chỉ chạy `--sofitel`, vì không có công cụ dựng `.msg` mẫu. Khi xóa `pd.py` phải bỏ 2 phép so GĐ6, vì mất mốc.
+
+**Còn mở:**
+- Đóng băng đụng việc dở của 01-scan: 4.1 chưa commit; đo 4.2 không đổi code nên làm được; 4.3 là tính năng mới, phải user quyết định có bỏ đóng băng không.
+- Điều kiện xóa 01-scan (1 dự án costing thật chạy từ BOQ_TRACK, quyết định 13) chưa có dự án thử.
 
 ## 3. Phân loại Code ID (máy trước)
 

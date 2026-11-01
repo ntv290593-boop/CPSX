@@ -5,7 +5,7 @@ Tool `boq` đã tách: mỗi dòng có số Item (hoặc có KL + ĐV) = 1 dòng
 
 ## Làm
 1. Đọc README. Mở `_boq_map.json`: mỗi sheet có hàng tiêu đề, cột Item, cột KL/ĐV, cột phòng (`phong`), cột Remark, cột cuối.
-2. **Kiểm mẫu** mỗi sheet: lấy 3 dòng (đầu, giữa, cuối) bằng `loc <GOC> SCOPE "Sheet=<tên>" --max 400` rồi so với file BOQ (`py -I "D:\COSTING EXCEL\SKILL\01-scan\tool\pd.py" xem "<BOQ>" "<sheet>" A1:AP40`). So: mô tả, ĐV, KL, KL từng mã phòng, Vùng/Nhóm.
+2. **Kiểm mẫu** mỗi sheet: lấy 3 dòng (đầu, giữa, cuối) bằng `loc <GOC> SCOPE "Sheet=<tên>" --max 400` rồi so với file BOQ (`py -I "<TOOL>" xem "<BOQ>" "<sheet>" A1:AP40`). So: mô tả, ĐV, KL, KL từng mã phòng, Vùng/Nhóm.
 3. Sheet không phải hạng mục (Summary, Cover, Room schedule…) → thêm vào `boq_bo_sheet` trong `_cauhinh.json`, chạy lại `py -I "<TOOL>" boq <GOC>`. **Không bỏ** sheet có hạng mục dù ngoài scope nhà máy (tender quét toàn gói).
 4. Đối chiếu sheet `Room schedule` (nếu có) với mã phòng trong header: số phòng mỗi mã, mã có trong schedule nhưng không có cột BOQ (vd loại phòng bị loại khỏi gói) → README "Bẫy đã biết" + VIEC_MO nếu chưa rõ.
 5. Tool tách sai (mất dòng, gộp nhầm, mã phòng sai cột) → ghi `SCOPE.boq.json` cột `Mã phòng` cho dòng đó, hoặc VIEC_MO mô tả lỗi để sửa tool (không tự viết script).

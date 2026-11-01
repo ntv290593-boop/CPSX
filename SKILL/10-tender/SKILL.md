@@ -9,7 +9,7 @@ Phiên này chỉ **điều phối**: chạy tool, giao việc, đọc kết qu�
 Khác `01-scan`: quét **toàn gói**, gắn nhãn chứ không bỏ dòng; KHÔNG áp quy tắc "phạm vi nhà máy 5 xưởng"; các đợt nối tiếp, đợt sau đè đợt trước.
 
 ## 0. Chuẩn bị (không hỏi user nếu đã rõ)
-- `GOC` = thư mục dự án trong `D:\COSTING EXCEL\ACTIVE.md`. `TOOL` = `D:\COSTING EXCEL\SKILL\10-tender\tool\td.py`, chạy `py -I "<TOOL>" <lệnh> <GOC> …` (không tham số = xem lệnh).
+- `GOC` = thư mục dự án trong `D:\COSTING EXCEL\ACTIVE.md`. `TOOL` = `D:\COSTING EXCEL\SKILL\10-tender\tool\td.py`, chạy `py -I "<TOOL>" <lệnh> <GOC> …` (không tham số = xem lệnh). Riêng `chu`, `anh`, `mail`, `xem` nhận thẳng đường dẫn file, không cần `<GOC>`.
 - Chưa có `GOC\10_TENDER\_data\_cauhinh.json` → `init` với thư mục hồ sơ, BOQ CĐT, file TCQ **gộp mới nhất**, bản dịch nội bộ (lấy từ ACTIVE.md; thiếu thì hỏi user 1 câu). Có TCQ gộp mới hơn → chạy lại `init --tcq <file mới>`.
 - Thư mục trong hồ sơ không phải hồ sơ thầu (file học, form, dữ liệu dự án khác) → `init --bo-thu-muc "<thư mục>;<thư mục 2>"` (đường dẫn tính từ thư mục hồ sơ, ghi vào khóa `bo_thu_muc` của `_cauhinh.json`, thay cả danh sách cũ). `kiemke` không đi vào các thư mục này và báo XEM nếu tên không khớp thư mục nào. Thư mục đã có trong FILE_INDEX thì lần `kiemke` sau báo file mất.
 - Dừng và báo user nếu `~$<DA>_BOQ_TRACK_*.xlsx` hoặc `~$FILE_INDEX.xlsx` tồn tại (file đang mở).
@@ -41,6 +41,8 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 ```
 
 **Lõi tìm trang dùng chung với 01-scan** (`SKILL\_core\scan_core.py`: đọc chữ + khung tên, trang trùng, BM25, mã chuẩn hóa). Lệnh: `trang` (cache chữ), `tim --ma <mã>` (trang có mã, mọi cách viết), `tim <regex>` (trang có chữ), `ungvien --phong <mã>` (trang ứng viên mỗi dòng BOQ, chia nhóm loại tờ). Sửa lõi hoặc cách chấm điểm → đo trước/sau: `DOCS\scan-toi-uu\bench.py` (01-scan) và `ungvien <GOC> --do` (độ trùng với tờ LLM đã gán; SOFITEL 29/10: dòng có ≥1 trang trùng @12 61%, @40 80%).
+
+**Đọc 1 file** (`SKILL\_core\doc_file.py`): `chu <pdf> <trang> [--clip]`, `anh <pdf> <trang> <png> [--dpi] [--clip]`, `mail <file.msg>`, `xem <xlsx> [sheet] [A1:Z60]`. 10-tender không gọi tool của 01-scan.
 
 **Code ID** (`SKILL\_core\code_id.py`, dữ liệu `_MASTER\code_id`): `phanloai` gán `Mã cấp 3` theo thứ tự User > Luật > Nhớ mô tả > Nhớ đầu mục > LLM, cho mọi dòng có đơn vị trừ sheet khớp `codeid_bo_sheet` (mặc định GR&Prelims, Provisional sum, Summary). `Cờ phân loại` = chỗ máy không chắc. Dự án mới: dòng theo luật có cờ `Luật chưa duyệt` cho tới khi user xem xong và chạy `phanloai <GOC> --duyet-luat`. Ô user sửa vào `nho_local.json` của máy; **`nho.json` chỉ người quản lý sửa** (`DOCS\scan-toi-uu\tender-test\nap_codeid.py`). Sheet BOQ chi tiết có `Mã cấp 3` (droplist, ô tô màu = có cờ), `Code ID` (công thức nhảy theo droplist, tra sheet `_CODE`), `Bên thực hiện` (droplist), `Mã cấu tạo` (droplist); 4 cột này không ẩn. `build` tự chạy lại `phanloai` sau khi kéo sửa tay. Đo lại: `DOCS\scan-toi-uu\tender-test\do_codeid.py`.
 
