@@ -1875,7 +1875,7 @@ def pull_user(p):
     return n
 
 
-COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link spec")  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
+COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link vật liệu")  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
 RX_NHIEU_BEN = re.compile(r"plywood|\bMDF\b|framework|metal frame|consisting of", re.I)
 TT_CON_LAM = ("Base", "VE", "Chờ")  # Loại trừ, Omit, Không áp dụng không giao cho bên nào
 
@@ -1903,27 +1903,58 @@ def ben_tu_mat(r, mat, bang_loai):
                               if m in mat and s(mat[m].get("Loại")) in bang_loai))
 
 
-def gan_link_spec(res):
-    """Link spec của dòng = trang spec từng mã: MAT Nguồn spec (đã qua người/LLM đọc, kể cả kết luận TCQ), không có thì trang Định nghĩa mới nhất của VL_XUATHIEN."""
-    dn = defaultdict(list)
+def la_ma_ffe(m):
+    return s(m)[:2].isdigit()
+
+
+def moi_trang_mot_link(ls):
+    """Bỏ link trùng file + trang, giữ link đầu tiên (nhãn có mã) và thứ tự."""
+    d = {}
+    for l in ls:
+        d.setdefault((l[1], l[2] if len(l) > 2 else None), l)
+    return list(d.values())
+
+
+def gan_link_vat_lieu(res):
+    """Link vật liệu của dòng = trang spec gốc từng mã: MAT Nguồn spec (đã qua người/LLM đọc, kể cả kết luận TCQ), không có thì trang Định nghĩa mới nhất của VL_XUATHIEN.
+    Dòng FF&E: trang Ảnh (bản vẽ sản phẩm, cùng tập với trang Định nghĩa mới nhất) hiện ở cột bản vẽ, qua khóa _bv_hien; trang tập FF&E mà bước banve ghi vào
+    Bản vẽ hiệu lực (file không có Số BV) chuyển sang Link vật liệu. Không đổi Bản vẽ hiệu lực gốc: goi đọc số BV từ đó, Ngày cập nhật so theo đó."""
+    dn, anh = defaultdict(list), defaultdict(list)
     for r in res["VL_XUATHIEN"].values():
         if r.get("Loại trang") == "Định nghĩa" and r.get("Hiệu lực") == "Mới nhất":
             dn[r["Mã VL"]].append(r["File"])
+        elif r.get("Loại trang") == "Ảnh":
+            anh[r["Mã VL"]].append(r["File"])
     for r in res["SCOPE"].values():
-        out = []
-        for m in ma_cua_dong(r, res["AREA"]):
+        out, sp = [], []
+        ma = ma_cua_dong(r, res["AREA"])
+        for m in ma:
             ls = links_of(res["MAT"].get(m, {}).get("Nguồn spec"))
             if ls:
                 out += [[f"{m} · {l[0]}"] + list(l[1:]) for l in ls]
             else:
                 out += dn.get(m, [])
+            if la_ma_ffe(m):
+                tap = {l[1] for l in dn.get(m, [])}
+                sp += [l for l in anh.get(m, []) if l[1] in tap]
+        if any(la_ma_ffe(m) for m in ma):
+            giu = []
+            for l in links_of(r.get("Bản vẽ hiệu lực")):
+                (out if l[1] in res["FILE_INDEX"] and not s(res["FILE_INDEX"][l[1]].get("Số BV")) else giu).append(l)
+            r["_bv_hien"] = moi_trang_mot_link(sp) + giu
+            r["_khong_sp"] = not sp
+        out = moi_trang_mot_link(out)
         if out:
-            r["Link spec"] = out
+            r["Link vật liệu"] = out
+
+
+def ban_ve_hien(r):
+    return r["_bv_hien"] if "_bv_hien" in r else r.get("Bản vẽ hiệu lực")
 
 
 def derive(p, res, snap):
     tcq, scope, dwg = res["TCQ_LOG"], res["SCOPE"], res["DWG"]
-    gan_link_spec(res)
+    gan_link_vat_lieu(res)
     for r in scope.values():
         ma = BANG_MA.ma.get(s(r.get("Mã cấp 3"))) if BANG_MA else None
         if ma:
@@ -2182,7 +2213,7 @@ def add_boq_cols(ws, info, scope, p, fidx, scope_letters, chinh_thuc_only=False,
     h = info["hang_tieu_de"]
     start = info["cot_cuoi"] + 2
     ct = [c for c, x in cot.items() if x.get("boq") == "chinh_thuc"]
-    nb = [] if chinh_thuc_only else [c for c, x in cot.items() if x.get("boq") == "noi_bo"] + [COT_SPEC_VL]
+    nb = [] if chinh_thuc_only else [c for c, x in cot.items() if x.get("boq") == "noi_bo"]
     rong = dict(TONGHOP)
     thu_tu = list(rong)
     nb.sort(key=lambda c: thu_tu.index(c) if c in thu_tu else len(thu_tu))  # cùng thứ tự BOQ_TONGHOP; cột chỉ có ở đây xếp cuối
@@ -2215,10 +2246,11 @@ def add_boq_cols(ws, info, scope, p, fidx, scope_letters, chinh_thuc_only=False,
             cell = put(ws, row, column_index(letters[c]), r.get(c), p, fidx)  # không wrap: wrap làm hàng của CĐT tự giãn, mất format gốc
             rec[c] = s(cell.value)
         for c in nb:
-            if c == COT_SPEC_VL:  # không có ở SCOPE nên không tra được; cột không wrap nên nối trên 1 dòng
-                vl, spec = spec_cua_dong(r, res["MAT"])
-                cell = ws.cell(row=row, column=column_index(letters[c]), value=" | ".join(spec) or None)
-                set_links(ws, cell, p, [link_item(p, l, fidx) for m in vl for l in links_of(res["MAT"][m].get("Nguồn spec"))])
+            if c == "Link vật liệu":  # cột không wrap nên nối trên 1 dòng
+                o_vat_lieu(ws, ws.cell(row=row, column=column_index(letters[c])), r, res, p, fidx, " | ")
+                continue
+            if c == "Bản vẽ hiệu lực":
+                put(ws, row, column_index(letters[c]), ban_ve_hien(r), p, fidx, "LINK")
                 continue
             if cot[c].get("sua"):  # giá trị thật, không phải công thức: pull_user đọc ngược ô này
                 cell = put(ws, row, column_index(letters[c]), r.get(c), p, fidx)
@@ -2271,25 +2303,33 @@ def column_index(letter):
 
 TONGHOP = [("Dòng BOQ gốc", 20), ("Item", 7), ("Vùng", 14), ("Nhóm", 14), ("Mô tả BOQ", 50), ("ĐV", 6), ("KL BOQ", 10),
            ("Mã phòng", 28), ("Trạng thái", 11), ("Mã cấp 3", 26), ("Code ID", 9), ("Bên thực hiện", 16), ("Mã cấu tạo", 10), ("Bản vẽ hiệu lực", 40),
-           ("Rev/ngày/đợt", 18), ("Mã VL", 12), ("Spec · VL", 50), ("Link spec", 30), ("Mã spec/FF&E", 14), ("Mã TCQ", 16),
+           ("Rev/ngày/đợt", 18), ("Link vật liệu", 50), ("Mã TCQ", 16),
            ("Nội dung cuối (VN)", 45), ("Việc còn mở", 35), ("Mô tả NT – Base", 40)]
-COT_SPEC_VL = "Spec · VL"  # ghép từ MAT theo Mã VL của dòng, không phải cột SCOPE
-COT_LINK_SO = {"Mã VL": "MAT", "Mã TCQ": "TCQ_LOG"}  # bấm ô nhảy tới dòng ở sổ
+COT_LINK_SO = {"Mã TCQ": "TCQ_LOG"}  # bấm ô nhảy tới dòng ở sổ
 
 
 def hang_cua_so(res):
-    """Mã -> số hàng ở MAT, TCQ_LOG. write_reg ghi đúng thứ tự res, từ hàng 2."""
+    """Mã -> số hàng ở sổ. write_reg ghi đúng thứ tự res, từ hàng 2."""
     return {sh: {k: i for i, k in enumerate(res[sh], 2)} for sh in COT_LINK_SO.values()}
 
 
-def spec_cua_dong(r, mat):
-    """Mã VL của dòng có trong MAT, kèm chữ 'mã: mô tả [trạng thái nếu khác Theo spec]' từng mã."""
-    vl = [m for m in split_list(r.get("Mã VL")) if m in mat]
-    spec = []
-    for m in vl:
-        st = s(mat[m].get("Trạng thái cuối"))
-        spec.append(f"{m}: {s(mat[m].get('Mô tả'))}" + (f" [{st}]" if st and st != "Theo spec" else ""))
-    return vl, spec
+def chu_vat_lieu(r, res):
+    """Chữ hiện ở ô Link vật liệu, từng mã của dòng: 'mã: mô tả [trạng thái nếu khác Theo spec]'; mã không có ở MAT (FF&E) chỉ ghi mã."""
+    out = []
+    for m in ma_cua_dong(r, res["AREA"]):
+        x = res["MAT"].get(m)
+        if not x:
+            out.append(m)
+            continue
+        st = s(x.get("Trạng thái cuối"))
+        out.append(f"{m}: {s(x.get('Mô tả'))}" + (f" [{st}]" if st and st != "Theo spec" else ""))
+    return out
+
+
+def o_vat_lieu(ws, cell, r, res, p, fidx, noi):
+    cell.value = noi.join(chu_vat_lieu(r, res)) or None
+    set_links(ws, cell, p, [link_item(p, l, fidx) for l in links_of(r.get("Link vật liệu"))])
+    return cell
 
 
 def boq_tonghop(wb, res, p, fidx):
@@ -2305,22 +2345,19 @@ def boq_tonghop(wb, res, p, fidx):
         cell.alignment = Alignment(wrap_text=True, vertical="center")
         ws.column_dimensions[L(j)].width = w
     ws.row_dimensions[1].height = CAO_TIEU_DE
-    mat, tcq = res["MAT"], res["TCQ_LOG"]
+    tcq = res["TCQ_LOG"]
     row_of = hang_cua_so(res)
     for i, r in enumerate(res["SCOPE"].values(), 2):
         ws.row_dimensions[i].height = CAO_HANG
-        vl, spec = spec_cua_dong(r, mat)
         tc = [m for m in split_list(r.get("Mã TCQ")) if m in tcq]
         for j, c in enumerate(cols, 1):
             if c == "Dòng BOQ gốc":
                 cell = ws.cell(row=i, column=j, value=s(r.get("Khóa")))
                 set_links(ws, cell, p, [(cell.value, None, None, f"'{r['Sheet']}'!A{int(r['Dòng'])}")])
-            elif c == "Spec · VL":
-                cell = ws.cell(row=i, column=j, value="\n".join(spec) or None)
-                set_links(ws, cell, p, [link_item(p, l, fidx) for m in vl for l in links_of(mat[m].get("Nguồn spec"))])
-            elif c == "Mã VL":
-                cell = put(ws, i, j, r.get(c), p, fidx)
-                set_links(ws, cell, p, [(m, None, None, f"'MAT'!A{row_of['MAT'][m]}") for m in vl])
+            elif c == "Link vật liệu":
+                cell = o_vat_lieu(ws, ws.cell(row=i, column=j), r, res, p, fidx, "\n")
+            elif c == "Bản vẽ hiệu lực":
+                cell = put(ws, i, j, ban_ve_hien(r), p, fidx, "LINK")
             elif c == "Mã TCQ":
                 cell = put(ws, i, j, r.get(c), p, fidx)
                 set_links(ws, cell, p, [(m, None, None, f"'TCQ_LOG'!A{row_of['TCQ_LOG'][m]}") for m in tc])
@@ -2421,7 +2458,8 @@ def dashboard(wb, res, errs, xem, p, n_user):
         line("Sổ xuất hiện VL", len(res["VL_XUATHIEN"]), f"{tk.get('dem', {}).get('mã', 0)} mã; tag trên bản vẽ là nét nên dòng Bản vẽ đi qua dòng BOQ và có cờ")
         line("Mã trong BOQ chưa có trang spec", len(tk.get("ko_spec", [])), "; ".join(tk.get("ko_spec", [])[:30]))
         line("Cặp mã–dòng lệch Area", tk.get("dem", {}).get("ca lệch Area", 0), "Phòng ở dòng BOQ không thuộc tiền tố mã (sheet ẩn AREA). Sheet ẩn VL_XUATHIEN, cột Cờ")
-    line("Dòng có mã nhưng không có Link spec", sum(1 for x in scope.values() if ma_cua_dong(x, res["AREA"]) and not x.get("Link spec")))
+    line("Dòng có mã nhưng không có Link vật liệu", sum(1 for x in scope.values() if ma_cua_dong(x, res["AREA"]) and not x.get("Link vật liệu")))
+    line("Dòng FF&E không có link sản phẩm", sum(1 for x in scope.values() if x.get("_khong_sp")), "Mã không có trang ảnh ở tập mới nhất; lọc mã 5x ở BOQ_TONGHOP")
     line("Sửa tay user giữ lại", n_user)
     r += 1
     line("SHEET ẨN", "Chuột phải tab → Unhide; mỗi lần build ẩn lại", bold=True)

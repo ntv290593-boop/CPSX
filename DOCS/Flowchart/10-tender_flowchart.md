@@ -133,7 +133,7 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
    Nguồn/Cờ theo chỗ user vừa sửa; ô sửa vào nho_local.json
         │
         ▼
- Chạy lại area, xuathien (mục 7), rồi tính Link spec từng dòng
+ Chạy lại area, xuathien (mục 7), rồi tính Link vật liệu từng dòng
         │
         ▼
  Dựng xlsx: sheet BOQ CĐT + 3 cột chính thức + cột nội bộ (không wrap, hàng giữ đúng chiều cao gốc)
@@ -141,7 +141,9 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
             Cột nội bộ theo thứ tự BOQ_TONGHOP, không ẩn cột nào, không lặp cột đã có trên hàng (Item, Mô tả, ĐV, KL):
                       Mã cấp 3 (droplist, tô màu nếu có cờ) · Code ID (công thức, tra _CODE)
                       · Bên thực hiện (droplist, tô màu nếu có cờ) · Mã cấu tạo (droplist)
-                      · Spec · VL (ghép từ MAT, có link) · các cột còn lại (công thức tra SCOPE)
+                      · Bản vẽ hiệu lực (dòng FF&E: thêm trang ảnh sản phẩm, trang tập FF&E chuyển sang Link vật liệu)
+                      · Link vật liệu (1 cột thay Mã VL, Spec · VL, Link spec, Mã spec/FF&E; trỏ trang gốc, không qua MAT)
+                      · các cột còn lại (công thức tra SCOPE)
             Cắt khai báo cột của file gốc lấn vào cột thêm (M:O ẩn ở 4. Provisional sum)
             DASHBOARD (đếm highlight, dòng Base chưa có bên, cờ nhiều bên) · BOQ_TONGHOP, PHAN_VIEC (chỉ xem)
             · TCQ_LOG · MAT · DWG · KHU · AREA · VL_XUATHIEN (chỉ xem) · CAU_TAO · SCOPE · _CODE
@@ -160,7 +162,7 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
 - `bo_thu_muc` là đường dẫn đầy đủ từ gốc hồ sơ, nên `HSMT/New folder` không bị loại khi cấu hình chỉ ghi `New folder`.
 - Kiểm thử: `DOCS/scan-toi-uu/tender-test/kiemthu.py` (`--mau`, `--sofitel`).
 - Code ID chỉ nói hạng mục thuộc nhóm nào, không suy ra ai làm. Bên thực hiện là chiều riêng, nằm ở `SCOPE.ben.json` chứ không ở file doichieu, để chạy lại bước 7 không làm mất.
-- `Ngày cập nhật` không tính các cột phân loại, Code ID, Bên thực hiện, Mã cấu tạo, Link spec (đổi danh sách bên không làm dòng BOQ hiện như vừa đổi); cột mới chưa có trong snapshot cũ cũng không tính, nên thêm cột không làm mọi dòng BOQ hiện như vừa đổi.
+- `Ngày cập nhật` không tính các cột phân loại, Code ID, Bên thực hiện, Mã cấu tạo, Link vật liệu (đổi danh sách bên không làm dòng BOQ hiện như vừa đổi); cột mới chưa có trong snapshot cũ cũng không tính, nên thêm cột không làm mọi dòng BOQ hiện như vừa đổi.
 - Bản `_CDT` không có cột nội bộ, droplist, `_CODE`.
 
 # 5. PHÂN LOẠI CODE ID (td.py phanloai, SKILL/_core/code_id.py)
@@ -248,6 +250,12 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
    Hiệu lực theo từng mã: trang Định nghĩa ngày mới nhất = Mới nhất, còn lại Bản cũ
    Khu, Mã phòng lấy theo file (DWG, link Nguồn của KHU), không đọc từ chữ
 
- Link spec (build, từng dòng BOQ)
+ Link vật liệu (build, từng dòng BOQ)
    Từng mã của dòng: MAT Nguồn spec nếu có, không thì trang Định nghĩa Mới nhất
+   Dòng có mã FF&E:
+     Cột bản vẽ = trang Ảnh của mã, cùng tập với trang Định nghĩa Mới nhất + tờ có Số BV
+     Link vật liệu thêm trang tập FF&E (file không có Số BV) mà bước banve đã ghi
+     Bản vẽ hiệu lực gốc không đổi (goi đọc số BV, Ngày cập nhật so theo cột này)
+     DASHBOARD đếm dòng FF&E không có link sản phẩm
+   1 trang chỉ 1 link
 ```

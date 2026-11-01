@@ -53,7 +53,7 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 - `build` tự chạy `area`, `xuathien`. Chạy riêng khi cần xem số.
 - Sheet `AREA`: tiền tố mã → tập phòng, riêng từng dự án, dựng từ `KHU` chỉ với Bộ hồ sơ FF&E, Thảm. Tender sửa cột `Mã phòng` ngay ở sheet, build lại vẫn giữ. Mọi ô Area của DMVT lấy theo bảng này đều gắn cờ (làm ở GĐ5).
 - Sheet `VL_XUATHIEN` (ẩn): 1 dòng = mã + nơi xuất hiện + file + trang hoặc ô. Chỉ để xem, máy dựng lại mỗi lần build. Dòng `Bản vẽ` đi qua `Bản vẽ hiệu lực` của dòng BOQ và luôn có cờ, vì tag trên bản vẽ là nét. Cờ `Lệch Area` = phòng ở dòng BOQ không thuộc tiền tố mã.
-- Cột `Link spec` (ở sheet BOQ và BOQ_TONGHOP): `MAT.Nguồn spec` nếu có, không thì trang Định nghĩa mới nhất của mã. Mở bằng add-in SRC_LINKS.
+- Cột `Link vật liệu` (ở sheet BOQ và BOQ_TONGHOP): trỏ thẳng trang gốc, không qua sheet MAT. `MAT.Nguồn spec` nếu có, không thì trang Định nghĩa mới nhất của mã. Mở bằng add-in SRC_LINKS. Dòng FF&E: trang spec ở cột này, trang ảnh sản phẩm ở cột `Bản vẽ hiệu lực` (lấy từ cùng tập với trang Định nghĩa mới nhất).
 - DASHBOARD đếm mã chưa có trang spec, dòng có mã chưa có link, cặp lệch Area. `MAT.Nguồn spec` trỏ trang không có chữ mã thì ra dòng `XEM spec`. Đo cột Area: `DOCS\scan-toi-uu\tender-test\do_area.py`.
 
 ## 2. Sau mỗi bước
@@ -65,7 +65,7 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 
 ## 3. Kết thúc
 - `py -I "<TOOL>" build <GOC>` → `03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx` (bản cùng ngày tự sao `_backup`), `01_index\FILE_INDEX.xlsx`, `04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx` (BOQ gốc + chỉ 3 cột chính thức).
-- BOQ_TRACK có sheet **BOQ_TONGHOP** (sau DASHBOARD): 1 dòng = 1 dòng BOQ CĐT, nhìn ngang mô tả – phạm vi – bản vẽ hiệu lực – Mã VL/spec/Link spec – TCQ; ô nào cũng bấm được (dòng BOQ gốc, tờ PDF, MAT, file spec, TCQ_LOG). Chỉ để xem — dựng lại mỗi lần build, sửa ở SCOPE/MAT/TCQ_LOG.
+- BOQ_TRACK có sheet **BOQ_TONGHOP** (sau DASHBOARD): 1 dòng = 1 dòng BOQ CĐT, nhìn ngang mô tả – phạm vi – bản vẽ hiệu lực – Link vật liệu – TCQ; ô nào cũng bấm được (dòng BOQ gốc, tờ PDF, file spec, TCQ_LOG). Chỉ để xem — dựng lại mỗi lần build, sửa ở SCOPE/MAT/TCQ_LOG.
 - Sheet BOQ chi tiết của CĐT có các cột của BOQ_TONGHOP theo cùng thứ tự, không ẩn cột nào, thêm `Loại thay đổi`, `Ngày cập nhật`. Không lặp `Item`, `Mô tả BOQ`, `ĐV`, `KL BOQ`, `Dòng BOQ gốc`, vì đã có trên chính hàng đó. Bản `_CDT` chỉ có 3 cột chính thức.
 - **Sheet hiện:** `DASHBOARD`, `BOQ_TONGHOP`, sheet CĐT, `MAT`, `TCQ_LOG`, `VIEC_MO`. **Sheet ẩn** (mỗi lần build ẩn lại, chuột phải tab → Unhide; `DASHBOARD` có mục lục): `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN`, `_LINKS`, `_CODE`; `CAU_TAO`, `PHAN_VIEC` ẩn khi chưa có mẫu cấu tạo. Sửa ở sheet ẩn vẫn được kéo vào khi build. Link tới sheet ẩn không nhảy, nên link trên sheet hiện không được trỏ vào các sheet này.
 - Cho nhẹ file: `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN` không có hyperlink; `VL_XUATHIEN` bỏ cột `Khóa`, `Dòng BOQ`, `Chữ gốc` ở sheet. JSON trong `_data` vẫn giữ đủ.

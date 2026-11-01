@@ -22,7 +22,7 @@ Bạn chỉ ghi **file JSON** (và file `.md` khi bước của bạn nói rõ).
 | VL_XUATHIEN | KHÓA | `Khóa` = `<mã>\|<FID>\|<trang>` | mã xuất hiện ở đâu; tool dựng lại mỗi lần build, chỉ để xem, không nhận sửa tay |
 | VIEC_MO | NỐI | — | việc còn mở, câu cần hỏi |
 
-Riêng `Mã cấp 3`, `Nguồn phân loại`, `Cờ phân loại` của SCOPE chỉ tool `phanloai` ghi. LLM trả lời qua `_data\_phanloai_llm.json` (`buoc/2b-phanloai.md`); user sửa `Mã cấp 3` bằng droplist ở sheet BOQ hoặc SCOPE. `Code ID`, `Link spec` do `build` tính. `Bên thực hiện` ở `SCOPE.ben.json` hoặc user sửa ở sheet BOQ/SCOPE; không bước LLM nào ghi cột này.
+Riêng `Mã cấp 3`, `Nguồn phân loại`, `Cờ phân loại` của SCOPE chỉ tool `phanloai` ghi. LLM trả lời qua `_data\_phanloai_llm.json` (`buoc/2b-phanloai.md`); user sửa `Mã cấp 3` bằng droplist ở sheet BOQ hoặc SCOPE. `Code ID`, `Link vật liệu` do `build` tính. `Bên thực hiện` ở `SCOPE.ben.json` hoặc user sửa ở sheet BOQ/SCOPE; không bước LLM nào ghi cột này.
 
 ## Dạng file
 ```json

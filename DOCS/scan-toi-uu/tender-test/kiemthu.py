@@ -736,8 +736,8 @@ def gd2_sofitel_build_khong_doi_ngay_cap_nhat(tmp):
 
 # ---------------------------------------------------------------- GĐ3
 CHUYEN = os.path.join(os.path.dirname(os.path.realpath(__file__)), "chuyen_ben.py")
-COT_NOI_BO = ("Vùng", "Nhóm", "Mã phòng", "Mã cấp 3", "Code ID", "Bên thực hiện", "Mã cấu tạo", "Bản vẽ hiệu lực", "Mã VL", "Spec · VL", "Link spec",
-              "Trạng thái", "Mã TCQ", "Nội dung cuối (VN)", "Loại thay đổi", "Việc còn mở", "Rev/ngày/đợt", "Mã spec/FF&E", "Ngày cập nhật")
+COT_NOI_BO = ("Vùng", "Nhóm", "Mã phòng", "Mã cấp 3", "Code ID", "Bên thực hiện", "Mã cấu tạo", "Bản vẽ hiệu lực", "Link vật liệu",
+              "Trạng thái", "Mã TCQ", "Nội dung cuối (VN)", "Loại thay đổi", "Việc còn mở", "Rev/ngày/đợt", "Ngày cập nhật")
 SH = "2. Finishing"
 
 
@@ -931,11 +931,11 @@ def khoang_cot(path, ten_sheet):
 
 @kiem(3, "mau")
 def gd3_sheet_boq_du_cot_nhu_tonghop(tmp):
-    """Sheet BOQ có mọi cột BOQ_TONGHOP, cùng thứ tự, trừ cột đã có trên chính hàng đó. Spec · VL ghép từ MAT, Mã VL bấm được."""
+    """Sheet BOQ có mọi cột BOQ_TONGHOP, cùng thứ tự, trừ cột đã có trên chính hàng đó. Link vật liệu trỏ file gốc, không qua sheet MAT."""
     import openpyxl
     goc, cd, data = dung_boq(tmp)
     ghi(os.path.join(data, "SCOPE.doichieu.json"), {"rows": [{"Khóa": f"{SH}!8", "Mã VL": "ST-04", "Trạng thái": "Base"}]})
-    ghi(os.path.join(data, "MAT.mat.json"), {"rows": [{"Mã VL": "ST-04", "Mô tả": "Da mau", "Trạng thái cuối": "Omit"}]})
+    ghi(os.path.join(data, "MAT.mat.json"), {"rows": [{"Mã VL": "ST-04", "Mô tả": "Da mau", "Trạng thái cuối": "Omit", "Nguồn spec": ["Spec p3", "spec.pdf", 3]}]})
     td_ok("build", goc)
     wb = openpyxl.load_workbook(file_track(goc))
     ws = wb[SH]
@@ -945,11 +945,43 @@ def gd3_sheet_boq_du_cot_nhu_tonghop(tmp):
     thieu = [x for x in th if x not in c]
     assert not thieu, f"thiếu cột {thieu}"
     assert sorted(th, key=lambda x: ws[f"{c[x]}3"].column) == th, "khác thứ tự BOQ_TONGHOP"
-    assert ws[f"{c['Spec · VL']}8"].value == "ST-04: Da mau [Omit]", ws[f"{c['Spec · VL']}8"].value
+    o = f"{c['Link vật liệu']}8"
+    assert ws[o].value == "ST-04: Da mau [Omit]", ws[o].value
     assert ws[f"{c['Nhóm']}8"].value.startswith("=IFERROR(INDEX(SCOPE!"), "Nhóm phải tra SCOPE"
-    hl = ws[f"{c['Mã VL']}8"].hyperlink
-    assert hl and "'MAT'!A2" in f"{hl.target} {hl.location}", f"Mã VL phải nhảy tới MAT: {hl}"
-    assert ws[f"{c['Mã VL']}8"].value.startswith("="), "gắn link không được đè công thức"
+    for x in ("Mã VL", "Spec · VL", "Link spec", "Mã spec/FF&E"):
+        assert x not in c, f"cột {x} đã gộp vào Link vật liệu"
+    dong = [r for r in wb["_LINKS"].iter_rows(min_row=2, values_only=True) if r[0] == f"{SH}!{o}"]
+    assert len(dong) == 1 and "spec.pdf" in dong[0][4] and dong[0][5] == 3, f"phải trỏ file gốc đúng trang: {dong}"
+    assert "MAT" not in f"{ws[o].hyperlink.target} {ws[o].hyperlink.location}", "không được trỏ sheet MAT"
+
+
+@kiem(3, "mau")
+def gd3_ffe_san_pham_o_ban_ve_spec_o_vat_lieu(tmp):
+    """Dòng FF&E: trang ảnh của tập mới nhất ở cột bản vẽ; trang spec và trang tập FF&E banve đã ghi ở Link vật liệu. Dòng thường không đổi; dữ liệu gốc không đổi."""
+    import importlib.util
+    sp = importlib.util.spec_from_file_location("td_mod", TD)
+    td_mod = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(td_mod)
+    moi, cu, bv = "F_MOI", "F_CU", "F_BV"
+    goc_bv = [["MB FF&E", bv, 1], ["FF&E p1", moi, 1], ["FF&E p60", moi, 60]]
+    res = {"AREA": {"51": {}}, "MAT": {"ST-04": {"Nguồn spec": ["Spec ST-04", "F_ST", 3]}},
+           "FILE_INDEX": {moi: {}, cu: {}, bv: {"Số BV": "ID-1"}},
+           "VL_XUATHIEN": {"a": {"Mã VL": "51-500", "Loại trang": "Định nghĩa", "Hiệu lực": "Mới nhất", "File": ["51-500 p60", moi, 60]},
+                           "b": {"Mã VL": "51-500", "Loại trang": "Định nghĩa", "Hiệu lực": "Bản cũ", "File": ["51-500 cu p5", cu, 5]},
+                           "c": {"Mã VL": "51-500", "Loại trang": "Ảnh", "File": ["51-500 p62", moi, 62]},
+                           "d": {"Mã VL": "51-500", "Loại trang": "Ảnh", "File": ["51-500 cu p7", cu, 7]},
+                           "e": {"Mã VL": "51-999", "Loại trang": "Định nghĩa", "Hiệu lực": "Mới nhất", "File": ["51-999 p9", moi, 9]}},
+           "SCOPE": {"ffe": {"Mã spec/FF&E": "51-500", "Bản vẽ hiệu lực": goc_bv},
+                     "khong_anh": {"Mã spec/FF&E": "51-999"},
+                     "vl": {"Mã VL": "ST-04", "Bản vẽ hiệu lực": [["FF&E p1", moi, 1]]}}}
+    td_mod.gan_link_vat_lieu(res)
+    f = res["SCOPE"]["ffe"]
+    assert [(l[1], l[2]) for l in td_mod.ban_ve_hien(f)] == [(moi, 62), (bv, 1)], td_mod.ban_ve_hien(f)
+    assert [(l[1], l[2]) for l in f["Link vật liệu"]] == [(moi, 60), (moi, 1)], f["Link vật liệu"]
+    assert f["Bản vẽ hiệu lực"] is goc_bv and len(goc_bv) == 3, "không được đổi dữ liệu gốc: goi đọc số BV từ đây"
+    assert not f["_khong_sp"] and res["SCOPE"]["khong_anh"]["_khong_sp"], "phải đếm dòng FF&E không có link sản phẩm"
+    v = res["SCOPE"]["vl"]
+    assert td_mod.ban_ve_hien(v) == [["FF&E p1", moi, 1]] and [l[1] for l in v["Link vật liệu"]] == ["F_ST"], v
 
 
 @kiem(3, "mau")
@@ -966,7 +998,7 @@ def gd3_khai_bao_cot_goc_khong_lan_cot_them(tmp):
     wb.save(src)
     td_ok("build", goc)
     import glob
-    for f, cuoi_it in ((file_track(goc), 20), (glob.glob(os.path.join(goc, "10_TENDER", "04_out", "*_CDT.xlsx"))[0], 3)):
+    for f, cuoi_it in ((file_track(goc), 19), (glob.glob(os.path.join(goc, "10_TENDER", "04_out", "*_CDT.xlsx"))[0], 3)):
         wb = openpyxl.load_workbook(f)
         c = cot_cua(wb[SH])
         moi = [openpyxl.utils.column_index_from_string(c[x]) for x in ("Mô tả NT – Base", "Mô tả NT – Đề xuất", "KL – Đề xuất")]
@@ -1762,13 +1794,14 @@ def gd4_link_spec_va_sua_area_qua_build(tmp):
     assert {"AREA", "VL_XUATHIEN"} <= set(wb.sheetnames), wb.sheetnames
     ws = wb[SH]
     h = cot_cua(ws)
-    o8, o9 = f"{SH}!{h['Link spec']}8", f"{SH}!{h['Link spec']}9"
+    o8, o9 = f"{SH}!{h['Link vật liệu']}8", f"{SH}!{h['Link vật liệu']}9"
     dong = [r for r in wb["_LINKS"].iter_rows(min_row=2, values_only=True)]
     d8 = [r for r in dong if r[0] == o8]
     d9 = [r for r in dong if r[0] == o9]
     assert d8 and all(r[5] == 1 and "AREA 51 moi" in r[4] for r in d8), f"dòng 8 phải mở trang mới nhất: {d8}"
-    assert len(d9) >= 2 and any(r[5] == 1 and "Finishes" in r[4] and r[3].startswith("PT-01") for r in d9), f"MAT Nguồn spec phải thắng: {d9}"
-    assert not ws[f"{h['Link spec']}7"].value
+    # PT-01 và ST-01 cùng ở trang 1 của Finishes: 1 trang 1 link, nhãn theo mã đầu
+    assert len(d9) == 1 and d9[0][5] == 1 and "Finishes" in d9[0][4] and d9[0][3].startswith("PT-01"), f"MAT Nguồn spec phải thắng: {d9}"
+    assert not ws[f"{h['Link vật liệu']}7"].value
     # sổ VL_XUATHIEN không vào snapshot: sửa tay không thành user.json
     snap = doc_json(goc, "_snapshot.json")
     assert "VL_XUATHIEN" not in snap["reg"]
@@ -1786,9 +1819,9 @@ def gd4_link_spec_va_sua_area_qua_build(tmp):
     ga = {r[0]: r[hd.index("Mã phòng")] for r in wb2["AREA"].iter_rows(min_row=2, values_only=True)}
     assert ga["51"] == "SK-01", ga
     moi = doc_json(goc, "_snapshot.json")["reg"]["SCOPE"]
-    assert all(moi[k]["Ngày cập nhật"] == ngay[k] for k in ngay), "Link spec không được làm đổi Ngày cập nhật"
+    assert all(moi[k]["Ngày cập nhật"] == ngay[k] for k in ngay), "Link vật liệu không được làm đổi Ngày cập nhật"
     wc = openpyxl.load_workbook(glob.glob(os.path.join(goc, "10_TENDER", "04_out", "*_CDT.xlsx"))[0])
-    assert all(c.value != "Link spec" for row in wc[SH].iter_rows() for c in row), "bản CĐT lộ Link spec"
+    assert all(c.value != "Link vật liệu" for row in wc[SH].iter_rows() for c in row), "bản CĐT lộ Link vật liệu"
     assert not {"AREA", "VL_XUATHIEN"} & set(wc.sheetnames)
 
 
@@ -1803,7 +1836,7 @@ def gd4_hang_khong_gian(tmp):
     ws = wb[SH]
     h = cot_cua(ws)
     for c, l in h.items():
-        if c in ("Mô tả NT – Base", "Mã cấp 3", "Bên thực hiện", "Bản vẽ hiệu lực", "Link spec"):
+        if c in ("Mô tả NT – Base", "Mã cấp 3", "Bên thực hiện", "Bản vẽ hiệu lực", "Link vật liệu"):
             assert not ws[f"{l}8"].alignment.wrap_text, f"cột {c} đang wrap"
     assert ws.row_dimensions[8].height is None, "hàng BOQ bị đặt chiều cao"
     for sh in ("SCOPE", "BOQ_TONGHOP", "VL_XUATHIEN", "MAT"):
@@ -1919,19 +1952,21 @@ def gd4_sofitel_so_xuat_hien_va_link_spec(tmp):
     td_mod = importlib.util.module_from_spec(sp)
     sp.loader.exec_module(td_mod)
     data = td_mod.merge(td_mod.P(goc))[0]
-    td_mod.gan_link_spec(data)
+    td_mod.gan_link_vat_lieu(data)
     co_ma = [r for r in data["SCOPE"].values() if td_mod.ma_cua_dong(r, data["AREA"])]
     for r in co_ma:
-        for l in r.get("Link spec") or []:
+        for l in r.get("Link vật liệu") or []:
             n_link += 1
             ma = l[0].split(" · ")[0]
+            if " · " not in l[0]:  # trang tập FF&E chuyển từ Bản vẽ hiệu lực, nhãn do bước banve đặt, không phải mã
+                continue
             if len(l) > 2 and l[2] and os.path.exists(os.path.join(goc, "10_TENDER", "_data", "_text", l[1] + ".json")):
                 n_trang += 1
                 if not regex_ma(ma).search(trang_cache(goc, l[1], int(l[2]))):
                     sai.append((r["Khóa"], l))
     assert not sai, f"{len(sai)} link spec trỏ trang không có mã: {sai[:5]}"
     assert n_trang > 500, f"chỉ kiểm {n_trang} link, không đủ mẫu"
-    trong = [r["Khóa"] for r in co_ma if not r.get("Link spec")]
+    trong = [r["Khóa"] for r in co_ma if not r.get("Link vật liệu")]
     # các link _LINKS của cột Link spec trong sheet BOQ: file đích tồn tại, trang đúng
     wb = openpyxl.load_workbook(f, read_only=True)
     assert {"SCOPE", "VL_XUATHIEN", "_LINKS", "_CODE"} <= {s for s in wb.sheetnames if wb[s].sheet_state == "hidden"}
