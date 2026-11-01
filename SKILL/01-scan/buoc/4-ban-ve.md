@@ -20,7 +20,7 @@
 | Chữ trong vùng | `chu "<pdf>" <trang> --clip …` |
 | Số kích thước + vị trí | `so "<pdf>" <trang> --clip …` (chỉ khi `Lớp text` của trang = CÓ) |
 
-| Gemini đọc dãy số kích thước | `gemini "<crop.png>" … --claude "900,450,450"` (in KHỚP / chỉ Claude / chỉ Gemini) |
+| Gemini đọc dãy số kích thước của 1 mã | `gemini "<crop.png>" … --ma V01 --goc <GOC> --dot <DOT>` (lưu `_gemini_so\V01.json`, in khớp / chỉ Claude; số Claude lấy từ QUAN_SAT) |
 | Gemini quan sát đủ bộ trường | `gemini "<crop.png>" --quansat "Tủ lavabo dưới chậu LA1 (V01)"` |
 | Gemini hỏi riêng | `gemini "<ảnh.png>" --hoi "How many door leaves does the cabinet have?"` |
 
@@ -28,15 +28,15 @@ Trang `Lớp text = KHÔNG` hoặc số vẽ bằng nét → đọc bằng hình
 
 ## Gemini = người đọc thứ hai (bắt buộc với mọi crop dùng làm bằng chứng)
 Gemini (qua agy) nhìn bản vẽ tốt: nhận đúng cấu kiện, nhãn, đợt/kệ, phần ngoài phạm vi, dãy số in trên hình. Nhưng đã thấy nó **gán nhầm số vào chiều** (lấy sâu 550 làm rộng) và **tự trừ ra số không in** (V01: "cao 300"); đếm số lượng dài cũng hay sót. Vì vậy:
-1. **Độc lập:** Claude đọc crop và ghi giá trị của mình **trước**, rồi mới chạy Gemini trên **đúng các crop đó**. Không đưa số hay nhận xét của Claude vào câu hỏi cho Gemini (lệnh `--quansat` chỉ nhận tên món).
-2. **Mỗi mã:** chạy `--quansat` trên crop mặt đứng/chi tiết chính, và chạy chế độ số (`--claude "<các số Claude đọc>"`) trên mọi crop có dãy kích thước. Nhiều crop thì truyền một lần, script tự chạy song song.
+1. **Độc lập:** Claude đọc crop và ghi giá trị của mình vào `QUAN_SAT.banve-<nhóm>.json` **trước** (`--ma` dừng nếu mã chưa có `Kích thước BV` dạng R×S×C), rồi mới chạy Gemini trên **đúng các crop đó**. Không đưa số hay nhận xét của Claude vào câu hỏi cho Gemini (lệnh `--quansat` chỉ nhận tên món).
+2. **Mỗi mã:** chạy `--quansat` trên crop mặt đứng/chi tiết chính, và chạy chế độ số (`--ma <mã> --goc <GOC> --dot <DOT>`) trên mọi crop có dãy kích thước của mã đó; chạy lại khi thêm crop thì kết quả được cộng dồn. Nhiều crop thì truyền một lần, script tự chạy song song. Crop dùng chung cho nhiều mã: chạy mỗi mã một lần, không tốn thêm lượt vì kết quả đã lưu cạnh ảnh.
 3. **So từng trường:**
    - Khớp → giữ dòng của Claude.
    - Lệch → Claude phóng to đúng chỗ đó đọc lại. Vẫn lệch → giữ 2 dòng (Nguồn `HÌNH` và `GEMINI`), trạng thái `MÂU THUẪN`, cộng 1 issue.
    - Gemini thấy món mà Claude ghi `KHÔNG THẤY` → đọc lại theo `where` Gemini chỉ.
 4. **Không nhận** số Gemini tự tính ra (không in trên hình), và không dùng Gemini làm nguồn duy nhất cho kích thước hay số lượng.
-5. Mỗi mã 1 dòng tóm tắt: `Trường = Kiểm chéo Gemini`, `Nguồn = GEMINI`, `Giá trị` = `"khớp: <các trường>; lệch: <các trường>; crop: <tờ/chi tiết>"`. Bước 5 dùng dòng này để chấm độ tin cậy.
-6. agy lỗi / không có → ghi `Kiểm chéo Gemini = KHÔNG THẤY – <lỗi>`, làm tiếp; độ tin cậy mã đó không được CAO.
+5. Mỗi mã 1 dòng tóm tắt: `Trường = Kiểm chéo Gemini`, `Nguồn = GEMINI`, `Giá trị` = `"khớp: <các trường>; lệch: <các trường>; crop: <tờ/chi tiết>"`, cho **các trường không phải số** (`--quansat`). Phần số kích thước do tool so: bước 5 tự sinh dòng `Kiểm chéo Gemini số`, bạn không ghi. Tool chỉ so theo tập số, không biết số thuộc chiều nào, nên việc gán đúng chiều vẫn phải tự kiểm ở mục 3.
+6. agy lỗi / không có → ghi `Kiểm chéo Gemini = KHÔNG THẤY – <lỗi>`, làm tiếp; độ tin cậy mã đó không được CAO. Mã có kích thước mà chưa chạy `--ma` cũng không được CAO.
 
 ## Tiết kiệm token — lọc trước khi mở ảnh (làm đúng thứ tự)
 1. **PDF trước, CAD sau cùng.** Chỉ đụng `.dwg` khi mã đó không có tờ nào trong PDF (sau khi đã `tim` + Drawing List). Dùng CAD thì ghi `Tờ chưa đọc`/issue nêu rõ "chỉ có CAD".

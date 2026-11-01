@@ -7,7 +7,7 @@
 `py -I "<TOOL>" check <GOC> <DOT> --den banve` (danh sách XEM) + các file JSON của bước 2–4.
 
 ## Chạy tool trước (làm xong phần máy làm được)
-`py -I "<TOOL>" doichieu <GOC> <DOT>` → nháp `BOQ_TONGHOP.doichieu-tool.json` (`Độ tin cậy`, `Issue`, `Giả định tính giá` cho mã ngoài scope), `BOQ_MAP.doichieu-tool.json` (`Trạng thái` KHỚP/LỆCH/CHƯA ĐỌC từ KL BoQ ↔ KL theo BV, `Độ tin cậy`), `ISSUES.doichieu-tool.json` (`DT01`…: chỉ cho mã chưa có issue nào) và `_doichieu_tool.json` (lý do từng mã). Đo trên Blanca: BOQ_MAP Trạng thái trùng 373/373; Độ tin cậy mã trùng ~91% (tool thận trọng: lệch nhau chủ yếu tool THẤP hơn / TB hơn). Tool chưa đọc được: mã hoàn thiện BV↔ML, issue ghi `Mã` kiểu "Nhiều mã" / "Tất cả", cân nhắc ảnh hưởng giá.
+`py -I "<TOOL>" doichieu <GOC> <DOT>` → nháp `BOQ_TONGHOP.doichieu-tool.json` (`Độ tin cậy`, `Issue`, `Giả định tính giá` cho mã ngoài scope), `BOQ_MAP.doichieu-tool.json` (`Trạng thái` KHỚP/LỆCH/CHƯA ĐỌC từ KL BoQ ↔ KL theo BV, `Độ tin cậy`), `ISSUES.doichieu-tool.json` (`DT01`…: chỉ cho mã chưa có issue nào), `QUAN_SAT.doichieu-tool.json` (dòng `Kiểm chéo Gemini số`: so số Claude trong QUAN_SAT với số Gemini đã lưu) và `_doichieu_tool.json` (lý do từng mã). Đo trên Blanca: BOQ_MAP Trạng thái trùng 373/373; Độ tin cậy mã trùng 135/148 (91%). Trong 13 mã lệch, tool **lạc quan hơn** LLM 8 mã, thận trọng hơn 5 mã, nên phải rà cả mã tool chấm CAO, không coi nháp là kết quả. Tool chưa đọc được: mã hoàn thiện BV↔ML, issue ghi `Mã` kiểu "Nhiều mã" / "Tất cả", cân nhắc ảnh hưởng giá.
 **Việc của bạn:** đọc `_doichieu_tool.json`, ghi `*.doichieu.json` chỉ những ô bạn đổi hoặc bổ sung: `Mã hoàn thiện`, `Giả định tính giá`, `Hành động`/`RFI`/`Trạng thái` cho mọi issue, `Issue` của mã mà issue ghi Mã mơ hồ, nâng/hạ `Độ tin cậy` khi biết thêm (kèm lý do trong `Giả định tính giá`), RFI_LOG, ASK_USER. Ô nào bạn ghi thì thắng nháp tool; ô bạn không ghi thì nháp tool vào PROJECT_DATA. Tool không tự quyết bên nào đúng. Dòng "CHUỖI SAI" tool in ra = chuỗi `a+b=c` ở QUAN_SAT tổng sai → ghi issue `Cần đọc lại`.
 
 ## Mã ngoài scope nhà máy
@@ -18,9 +18,9 @@ QUAN_SAT `Phạm vi nhà máy` = `KHÔNG THUỘC SCOPE NHÀ MÁY…` → chỉ g
 2. `Mã hoàn thiện` = mã sẽ tính + nguồn, vd `WD-02 (BV p13; ML ghi WD-01 → D03)`. Mã ghi trên bản vẽ tại chỗ đó được ưu tiên hơn mã của block cùng loại.
 3. `Giả định tính giá`: khi còn lệch, ghi đang tạm tính theo gì. **Không tự quyết bên nào đúng**: lệch BV ↔ BoQ là việc hỏi CĐT (RFI); giả định ghi rõ để RFI nhắc lại.
 4. `Độ tin cậy`:
-   - **CAO**: KL khớp; đủ kích thước; trường quyết định giá không có `KHÔNG THẤY`; không còn `MÂU THUẪN` chưa có giả định; **Gemini khớp ở các trường quyết định giá** (kích thước, số cánh/ngăn kéo/đợt, vật liệu) theo dòng `Kiểm chéo Gemini`.
-   - **TB**: còn lệch nhưng đã có giả định + issue/RFI; hoặc Gemini chưa chạy / lệch ở trường phụ.
-   - **THAP**: thiếu tờ; trường quyết định giá `KHÔNG THẤY`; chưa xem hình; tờ có thể lẫn type/khu; hoặc Claude và Gemini vẫn lệch ở trường quyết định giá.
+   - **CAO**: KL khớp; đủ kích thước; trường quyết định giá không có `KHÔNG THẤY`; không còn `MÂU THUẪN` chưa có giả định; **Gemini khớp ở các trường quyết định giá**: kích thước theo dòng `Kiểm chéo Gemini số` (tool so), số cánh/ngăn kéo/đợt, vật liệu theo dòng `Kiểm chéo Gemini`.
+   - **TB**: còn lệch nhưng đã có giả định + issue/RFI; hoặc Gemini chưa chạy / chưa so số / lệch ở trường phụ.
+   - **THAP**: thiếu tờ; trường quyết định giá `KHÔNG THẤY`; chưa xem hình; tờ có thể lẫn type/khu; hoặc Claude và Gemini vẫn lệch ở trường quyết định giá (kể cả `Kiểm chéo Gemini số` = `chỉ Claude: …`). Dòng này chỉ cho biết Gemini không đọc ra số đó, chưa cho biết bên nào đúng: chỉ nâng mức khi có căn cứ, ghi lý do vào `Giả định tính giá`.
 5. BOQ_MAP: `Trạng thái` KHỚP / LỆCH / CHƯA ĐỌC cho từng khu.
 
 ## ISSUES, RFI, câu hỏi

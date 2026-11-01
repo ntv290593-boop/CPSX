@@ -17,7 +17,7 @@
 **C. Rồi mới quét:**
 1. Nếu chưa có `FILES.kiemke.json`: `py -I "<TOOL>" kiemke <GOC> <DOT>` (vài chục giây / vài trăm trang). Script tự ghi FILES, PAGES, lưu lớp text từng trang cho lệnh `tim`, và **bỏ các file thuộc `_bo_qua.txt`**.
 1b. **Đọc output `kiemke` trước khi làm tiếp (lọc lớp L0/L1, không tốn token):**
-   - `L0 bỏ N file nhiễu` — frame/xref/Archive/log đã tự loại, không cần xử lý.
+   - `L0 bỏ N file` — frame/xref/Archive/`_bo_qua.txt` đã tự loại, không cần xử lý. Danh sách + lý do lưu ở `_kiemke_bo.json`, `check` đưa đủ ra CẦN XEM để user thấy.
    - Luật riêng dự án nằm ở `<GOC>\01_scan\_bo_qua.txt` (mỗi dòng 1 regex theo đường dẫn; user chốt thư mục/bộ nào không đọc thì ghi vào đây, không sửa `pd.py`). Script in `L0 luật riêng dự án` nếu có file.
    - `L1 TRÙNG NỘI DUNG` — chỉ giữ 1 bản trong số việc đọc; ghi NOTES.
    - `L1 CÙNG TÊN KHÁC NGÀY/REV` — mở đầu mỗi file xem ngày/REV, **chỉ đọc bản mới nhất**; ghi NOTES "bản cũ <tên> không dùng" (không xóa file).

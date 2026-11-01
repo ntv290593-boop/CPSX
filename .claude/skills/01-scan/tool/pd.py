@@ -17,6 +17,8 @@ Lệnh (chạy: py -I pd.py <lệnh> ...):
   xem    <xlsx> [sheet] [A1:Z60]             in giá trị ô (đọc BoQ, Material List)
   gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo (V01)"] [--hoi "câu hỏi"]
                                              Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng
+  gemini <a.png> [b.png …] --ma V01 --goc <goc> --dot <dot>
+                                             số Gemini đọc lưu theo mã -> _gemini_so\\<mã>.json; số Claude lấy từ QUAN_SAT (phải ghi trước)
   mail   <file.msg>                          in tiêu đề, người gửi/nhận, đính kèm, nội dung mail Outlook
   build  <goc> <dot>                         ghép JSON theo form -> PROJECT_DATA_<dot>.xlsx (giữ sửa tay của user)
   check  <goc> <dot> [--den buoc]            kiểm; exit 1 nếu có LỖI. --den: chỉ đòi cột bắt buộc của các bước tới buoc
@@ -206,19 +208,28 @@ def cmd_kiemke(goc, dot):
     if not os.path.isdir(P["inp"]): raise SystemExit(f"Không có thư mục {P['inp']}")
     os.makedirs(os.path.join(P["data"], "_text"), exist_ok=True)
     allf, skipped = [], []
-    # L0 riêng dự án: <goc>\01_scan\_bo_qua.txt — mỗi dòng 1 regex (so với đường dẫn tương đối, không phân biệt hoa/thường); dòng bắt đầu # là ghi chú
-    rf = os.path.join(goc, "01_scan", "_bo_qua.txt"); user_rx = None
+    # L0 riêng dự án: <goc>\01_scan\_bo_qua.txt — mỗi dòng 1 regex (so với đường dẫn tương đối, không phân biệt hoa/thường); dòng bắt đầu # là ghi chú, dùng làm lý do cho các regex sau nó
+    rf = os.path.join(goc, "01_scan", "_bo_qua.txt"); luat, note = [], ""
     if os.path.isfile(rf):
-        pats = [l.strip() for l in open(rf, encoding="utf-8") if l.strip() and not l.lstrip().startswith("#")]
-        if pats: user_rx = re.compile("|".join(f"(?:{p})" for p in pats), re.I); print(f"L0 luật riêng dự án: {len(pats)} dòng trong {rf}")
+        for l in open(rf, encoding="utf-8"):
+            l = l.strip()
+            if l.startswith("#"): note = l.lstrip("# ")
+            elif l: luat.append((re.compile(l, re.I), note or l))
+        if luat: print(f"L0 luật riêng dự án: {len(luat)} dòng trong {rf}")
+    def ly_do_bo(f, rel):
+        if SKIP_NAME.search(f): return "tên nhiễu (frame/xref)"
+        if SKIP_DIR.search(rel): return "thư mục archive/backup/old/cũ"
+        return next((f"_bo_qua.txt: {n}" for rx, n in luat if rx.search(rel)), None)
     for dp, dn, fn in os.walk(P["inp"]):
         dn.sort()
         for f in sorted(fn):
             rel = os.path.relpath(os.path.join(dp, f), P["inp"])
             if f.startswith("~$") or os.path.splitext(f)[1].lower() in SKIP_EXT: continue
-            if SKIP_NAME.search(f) or SKIP_DIR.search(rel) or (user_rx and user_rx.search(rel)): skipped.append(rel); continue
+            ld = ly_do_bo(f, rel)
+            if ld: skipped.append({"file": rel, "ly_do": ld}); continue
             allf.append(rel)
-    if skipped: print(f"L0 bỏ {len(skipped)} file nhiễu (frame/xref/Archive/log…): " + "; ".join(os.path.basename(s) for s in skipped[:6]) + (" …" if len(skipped) > 6 else ""))
+    json.dump({"bo": skipped}, open(os.path.join(P["data"], "_kiemke_bo.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=0)  # check đưa ra CẦN XEM
+    if skipped: print(f"L0 bỏ {len(skipped)} file (frame/xref/Archive/_bo_qua.txt…): " + "; ".join(os.path.basename(s["file"]) for s in skipped[:6]) + (" …" if len(skipped) > 6 else ""))
     dup_report(P["inp"], allf)
     FILES, PAGES, npg = [], [], 0
     tok = re.compile(r"\b[A-Z0-9]{1,6}(?:[.\-_][A-Z0-9]{1,6}){2,}\b")
@@ -523,21 +534,69 @@ def agy_exe():
     return g[0]
 
 
+GEM_SO_TRUONG = "Kiểm chéo Gemini số"
+
+
+def gem_file(P, ma): return os.path.join(P["data"], "_gemini_so", re.sub(r'[\\/:*?"<>|]', "_", ma) + ".json")
+
+
+def gem_doc(txt):
+    """Trả lời của Gemini ở chế độ số -> danh sách chuỗi, None nếu lỗi / không có JSON."""
+    m = re.search(r"\[.*\]", txt, re.S)
+    if txt.startswith("LỖI") or not m: return None
+    try: return [str(x).strip() for x in json.loads(m.group(0))]
+    except ValueError: return None
+
+
+def claude_kt(rows):
+    """Số Claude đã ghi của 1 mã: chuỗi R×S×C đầu tiên mỗi dòng 'Kích thước BV' nguồn HÌNH/TEXT."""
+    return sorted({x for r in rows if r.get("Trường") == "Kích thước BV" and r.get("Nguồn") in ("HÌNH", "TEXT") and r.get("Trạng thái") in ("CÓ", "MÂU THUẪN")
+                   for x in neo_kt_gt(r.get("Giá trị"))}, key=float)
+
+
+def gemini_so(P, ma, rows):
+    """So số Claude (QUAN_SAT lúc chạy) với số Gemini đọc trên các crop của mã. Một chiều: số Claude phải có trong số Gemini; Gemini thừa là số khác trên crop.
+    Chỉ so theo tập số: không biết số thuộc chiều nào. -> {tt: KHÔNG CÓ SỐ | CHƯA CHẠY | LỖI | KHỚP | LỆCH, khop, thieu, crops}"""
+    mine = claude_kt(rows)
+    if not mine: return dict(tt="KHÔNG CÓ SỐ", khop=[], thieu=[], crops=[])
+    f = gem_file(P, ma)
+    crops = json.load(open(f, encoding="utf-8")).get("crops", {}) if os.path.isfile(f) else {}
+    if not crops: return dict(tt="CHƯA CHẠY", khop=[], thieu=mine, crops=[])
+    g = {x for c in crops.values() for x in (c.get("so") or [])}
+    thieu, loi = [x for x in mine if x not in g], any(c.get("so") is None for c in crops.values())
+    return dict(tt=("LỖI" if loi else "LỆCH") if thieu else "KHỚP", khop=[x for x in mine if x in g], thieu=thieu, crops=sorted(crops))
+
+
+def gemini_so_dong(ma, kq):
+    """Kết quả gemini_so -> dòng QUAN_SAT do tool sinh."""
+    crop = "; crop: " + ", ".join(kq["crops"]) if kq["crops"] else ""
+    gt = {"CHƯA CHẠY": "chưa chạy gemini --ma", "LỖI": f"agy lỗi ở một số crop, chưa so được: {', '.join(kq['thieu'])}",
+          "KHỚP": f"khớp: {', '.join(kq['khop'])} (so theo tập số, chưa kiểm số thuộc chiều nào)",
+          "LỆCH": f"chỉ Claude: {', '.join(kq['thieu'])}; khớp: {', '.join(kq['khop']) or 'không'}"}[kq["tt"]]
+    return {"Mã": ma, "Trường": GEM_SO_TRUONG, "Giá trị": gt + crop, "Trạng thái": {"KHỚP": "CÓ", "LỆCH": "MÂU THUẪN"}.get(kq["tt"], "KHÔNG THẤY"), "Nguồn": "GEMINI", "Model": "pd.py gemini"}
+
+
 def cmd_gemini(args):
     """Gemini đọc độc lập ảnh crop (người đọc thứ 2). Mặc định: liệt kê số kích thước; --hoi: câu hỏi riêng.
     --quansat "Tủ lavabo (V01)": trả JSON đủ bộ trường quan sát (GEM_TRUONG) để so từng trường với Claude.
-    --claude "900,450,450": so với số Claude đọc -> KHỚP / chỉ Claude / chỉ Gemini. Kết quả lưu cạnh ảnh: <ảnh>.gemini.txt"""
+    --ma V01 --goc <goc> --dot <dot>: lưu số Gemini theo mã, so với số trong QUAN_SAT (Claude phải ghi trước); doichieu dùng kết quả này.
+    --claude "900,450,450": so với số gõ tay -> KHỚP / chỉ Claude / chỉ Gemini, chỉ để xem, không lưu. Kết quả lưu cạnh ảnh: <ảnh>.gemini.txt"""
     import subprocess, concurrent.futures as cf
     from collections import Counter
     pngs = [a for a in args if a.lower().endswith(".png")]
     hoi, mine, par = opt(args, "--hoi"), opt(args, "--claude"), int(opt(args, "--par", 4))
-    vat = opt(args, "--quansat")
+    vat, ma = opt(args, "--quansat"), opt(args, "--ma")
     if vat: hoi = GEM_QS.format(vat=vat, fields=json.dumps(GEM_TRUONG, ensure_ascii=False))
+    if ma:
+        if hoi or not opt(args, "--goc") or not opt(args, "--dot"): raise SystemExit("--ma chỉ dùng ở chế độ số và cần --goc <goc> --dot <dot>")
+        P = paths(opt(args, "--goc"), opt(args, "--dot"))
+        qs_ma = [r for r in load_merged(P, ("kiemke", "boq", "spec", "banve", "user"))[2].get("QUAN_SAT", []) if str(r.get("Mã")) == ma]
+        if not claude_kt(qs_ma): raise SystemExit(f"{ma}: QUAN_SAT chưa có 'Kích thước BV' dạng R×S×C (nguồn HÌNH/TEXT). Ghi số của Claude vào QUAN_SAT.banve-<nhóm>.json trước rồi mới chạy Gemini.")
     exe = agy_exe()
     def run(png):
         png = os.path.abspath(png)
         out = png + ".gemini.txt"
-        if os.path.exists(out) and os.path.getsize(out) > 2 and not hoi: return png, open(out, encoding="utf-8").read()
+        if os.path.exists(out) and os.path.getsize(out) > 2 and not hoi and os.path.getmtime(out) >= os.path.getmtime(png): return png, open(out, encoding="utf-8").read()
         prompt = (f"Do NOT run shell commands; use your file-viewing tool directly on this absolute path: {png} . "
                   + ((hoi if vat else hoi + " Answer only from what is visible in the image; if not visible say NOT VISIBLE. Never guess.") if hoi else GEM_SO))
         try:
@@ -546,7 +605,7 @@ def cmd_gemini(args):
             txt = r.stdout.strip() or f"LỖI agy: {r.stderr.strip()[:200]}"
         except subprocess.TimeoutExpired:
             txt = "LỖI agy: quá 320 s"
-        if not txt.startswith("LỖI") and not hoi: open(out, "w", encoding="utf-8").write(txt)
+        if not hoi and gem_doc(txt) is not None: open(out, "w", encoding="utf-8").write(txt)
         return png, txt
     with cf.ThreadPoolExecutor(par) as ex:
         res = list(ex.map(run, pngs))
@@ -554,10 +613,18 @@ def cmd_gemini(args):
     for png, txt in res:
         print(f"== {os.path.basename(png)}\n{txt}")
         if not hoi:
-            m = re.search(r"\[.*\]", txt, re.S)
-            try: allg += [str(x).strip() for x in json.loads(m.group(0))] if m else []
-            except ValueError: print("  (không đọc được JSON của Gemini)")
-    if mine and not hoi:
+            doc = gem_doc(txt)
+            if doc is None: print("  (không đọc được JSON của Gemini)")
+            else: allg += doc
+    if ma:
+        f = gem_file(P, ma); os.makedirs(os.path.dirname(f), exist_ok=True)
+        crops = json.load(open(f, encoding="utf-8")).get("crops", {}) if os.path.isfile(f) else {}
+        for png, txt in res:
+            doc = gem_doc(txt)
+            crops[os.path.basename(png)] = {"so": None if doc is None else [v for x in doc if x != "?" for v in neo_tach_so(x)], "file": png}
+        json.dump({"ma": ma, "crops": crops}, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
+        print("-- " + gemini_so_dong(ma, gemini_so(P, ma, qs_ma))["Giá trị"])
+    elif mine and not hoi:
         a = Counter(x.strip() for x in mine.split(",") if x.strip()); g = Counter(x for x in allg if x != "?")
         print(f"-- SO SÁNH: khớp {sum((a & g).values())} · chỉ Claude {sorted((a - g).elements())} · chỉ Gemini {sorted((g - a).elements())}")
 
@@ -737,6 +804,30 @@ def auto_file_status(rows, merged, files_by_id):
 
 
 # ---------------------------------------------------------------- check
+def ds_da_loai(P, merged, ngoai):
+    """Mọi thứ đã loại khỏi phạm vi đọc -> dòng XEM (đủ danh sách, không cắt): bỏ nhầm thì các bước sau vẫn qua, chỉ user thấy được."""
+    W, by, ten = [], {}, {str(r.get("ID")): str(r.get("Tên file")) for r in merged.get("FILES", [])}
+    bo = read_aux(P, "_kiemke_bo.json")
+    if merged.get("FILES") and not bo: W.append("ĐÃ LOẠI file: không có _kiemke_bo.json (kiemke bản cũ) nên chưa biết file nào đã bỏ")
+    for x in bo.get("bo", []): by.setdefault((x["ly_do"], os.path.dirname(x["file"]) or "."), []).append(os.path.basename(x["file"]))
+    for (ld, d), fs in sorted(by.items()): W.append(f"ĐÃ LOẠI {len(fs)} file · {ld} · [{d}]: {'; '.join(fs)}")
+    dp = read_aux(P, "_timkiem.kiemke.json").get("du_phong", [])
+    if dp: W.append(f"ĐÃ LOẠI {len(dp)} file dự phòng (ungvien không tìm): " + "; ".join(f"{f} {ten.get(f, '')}".strip() for f in dp))
+    tk = read_aux(P, "_timkiem.json")
+    if tk.get("file_tong"): W.append(f"ĐÃ LOẠI {len(tk['file_tong'])} file tổng (trùng file khác, ungvien không tìm): " + "; ".join(f"{f} {ten.get(f, '')}".strip() for f in sorted(tk["file_tong"])))
+    if tk.get("trang_trung"):
+        c = {}
+        for k in tk["trang_trung"]: c[k.split()[0]] = c.get(k.split()[0], 0) + 1
+        W.append(f"ĐÃ LOẠI {len(tk['trang_trung'])} trang trùng file khác (ungvien không tìm): " + "; ".join(f"{f} {n} trang" for f, n in sorted(c.items())))
+    by = {}
+    for r in merged.get("QUAN_SAT", []):
+        if r.get("Trường") == "Phạm vi nhà máy" and str(r.get("Mã")) in ngoai:
+            v = str(r.get("Giá trị") or "")
+            by.setdefault(v.split("–", 1)[1].strip() if "–" in v else "không ghi lý do", []).append(str(r.get("Mã")))
+    for ld, ms in sorted(by.items()): W.append(f"ĐÃ LOẠI {len(ms)} mã ngoài scope nhà máy, không đọc bản vẽ · {ld}: {', '.join(sorted(ms, key=nat_key))}")
+    return W
+
+
 def run_checks(P, sheets, cols, merged, REG, errs, den):
     import pymupdf
     E, W = list(errs), []
@@ -802,18 +893,25 @@ def run_checks(P, sheets, cols, merged, REG, errs, den):
         qs.setdefault(str(r.get("Mã")), []).append(r)
         if r.get("Nguồn") in ("HÌNH", "TEXT") and not r.get("Tờ · Chi tiết"): E.append(f"QUAN_SAT {r.get('Mã')} · {r.get('Trường')}: nguồn {r.get('Nguồn')} mà không ghi tờ/chi tiết")
     for ma_, tr_, ch_, tong_ in kt_chuoi_sai(merged.get("QUAN_SAT", [])): E.append(f"QUAN_SAT {ma_} · {tr_}: chuỗi cộng sai '{ch_}' (tổng thật {tong_:g})")
-    if ngoai: W.append(f"{len(ngoai)} mã ngoài scope nhà máy, không đọc bản vẽ: {', '.join(sorted(ngoai)[:12])}{' …' if len(ngoai) > 12 else ''}")
+    W += ds_da_loai(P, merged, ngoai)
+    gem_chua = []
     for r in T:
         ma = str(r["Mã"])
         if ma in ngoai: continue
         if "banve" in upto and ma not in qs: E.append(f"{ma}: chưa có dòng QUAN_SAT nào (bước banve chưa làm mã này)")
         elif "banve" in upto and not any(x.get("Trường") == "Kiểm chéo Gemini" for x in qs[ma]):
             E.append(f"{ma}: thiếu dòng QUAN_SAT 'Kiểm chéo Gemini' (bước banve phải cho Gemini đọc lại các crop)")
+        if "banve" in upto and ma in qs:
+            gs = gemini_so(P, ma, qs[ma])
+            if gs["tt"] in ("CHƯA CHẠY", "LỖI"): gem_chua.append(ma)
+            elif gs["tt"] == "LỆCH": W.append(f"{ma}: Gemini không đọc ra số Claude ghi: {', '.join(gs['thieu'])}")
         if ma in bv and abs(kl.get(ma, 0) - bv[ma]) > 1e-6: W.append(f"{ma}: KL BoQ {kl.get(ma, 0):g} ≠ KL theo BV {bv[ma]:g}")
         if r.get("Độ tin cậy") == "THAP": W.append(f"{ma}: độ tin cậy THẤP — {str(r.get('Giả định tính giá') or '')[:60]}")
         for h in ("Bản vẽ đối chứng", "Spec · ML"):
             if isinstance(r.get(h), str) and r[h].upper().startswith(("KHÔNG", "CHƯA")): W.append(f"{ma}: {h} = {r[h]}")
+    if gem_chua: W.append(f"{len(gem_chua)} mã có kích thước nhưng chưa so số với Gemini (gemini --ma), không được CAO: {', '.join(sorted(gem_chua, key=nat_key))}")
     for ma, rs in qs.items():
+        rs = [x for x in rs if x.get("Trường") != GEM_SO_TRUONG]  # dòng tool sinh: đã báo ở trên
         kt = [x.get("Trường") for x in rs if x.get("Trạng thái") == "KHÔNG THẤY"]
         mt = [x.get("Trường") for x in rs if x.get("Trạng thái") == "MÂU THUẪN"]
         if kt: W.append(f"{ma}: KHÔNG THẤY {len(kt)} trường ({', '.join(map(str, kt[:5]))})")
@@ -836,7 +934,7 @@ def report(res):
     for x in res["E"][:60]: print("  LỖI ", x)
     if len(res["E"]) > 60: print(f"  … còn {len(res['E']) - 60} lỗi")
     w = [x for x in res["W"] if not x.startswith("NEO")]; nl = [x for x in res["W"] if x.startswith("NEO")]
-    for x in w[:60]: print("  XEM ", x)
+    for x in w[:60]: print("  XEM ", x[:400] + (" … (đủ ở DASHBOARD)" if len(x) > 400 else ""))
     if len(w) > 60: print(f"  … còn {len(w) - 60} ngoại lệ (xem DASHBOARD)")
     for x in nl[:40] + ([f"NEO: … còn {len(nl) - 41} dòng LỆCH trong _neo.json"] if len(nl) > 41 else []) + nl[-1:] * (len(nl) > 40): print("  XEM ", x)
 
@@ -1190,7 +1288,7 @@ def cmd_doichieu(goc, dot, args):
         if k[0] in ngoai: continue
         bvkl[k] = bv
         map_state[k] = "CHƯA ĐỌC" if bv is None else ("KHỚP" if abs(kl.get(k, 0) - bv) < 1e-6 else "LỆCH")
-    muc, ly_do, moi = {}, {}, []
+    muc, ly_do, moi, gs_rows = {}, {}, [], []
     new_id = lambda: f"DT{len(moi) + 1:02d}"
     tdict = {str(r["Mã"]): r for r in T}
     for ma, tr in tdict.items():
@@ -1215,6 +1313,10 @@ def cmd_doichieu(goc, dot, args):
         if not gem or all(x.get("Trạng thái") == "KHÔNG THẤY" for x in gem): lv = worse(lv, "TB"); why.append("Gemini chưa chạy")
         elif gl:
             lv = worse(lv, "THAP" if GIA_RX.search(_fold(gl)) else "TB"); why.append("Gemini lệch: " + gl[:80])
+        gs = gemini_so(P, ma, rows)  # phần số do tool so, không dựa vào câu LLM viết
+        if gs["tt"] != "KHÔNG CÓ SỐ": gs_rows.append(gemini_so_dong(ma, gs))
+        if gs["tt"] == "LỆCH": lv = worse(lv, "THAP"); why.append("Gemini không đọc ra số: " + ", ".join(gs["thieu"]))
+        elif gs["tt"] in ("CHƯA CHẠY", "LỖI"): lv = worse(lv, "TB"); why.append("Gemini chưa so số kích thước (" + gs["tt"] + ")")
         st = {k[1]: s for k, s in map_state.items() if k[0] == ma}
         lech = [k for k, s in st.items() if s == "LỆCH"]; chua = [k for k, s in st.items() if s == "CHƯA ĐỌC"]
         if lech: lv = worse(lv, "TB"); why.append("KL BoQ ≠ KL BV ở " + ", ".join(lech))
@@ -1230,6 +1332,8 @@ def cmd_doichieu(goc, dot, args):
                             "Nội dung": "Trường quyết định giá chưa đọc được: " + ", ".join(kt), "Nguồn": lk, "Trạng thái": "MỞ"})
             if gl:
                 moi.append({"ID": new_id(), "Loại": "Claude↔Gemini", "Mã": ma, "Mức": "TB", "Nội dung": "Gemini lệch: " + gl[:200], "Nguồn": lk, "Trạng thái": "MỞ"})
+            if gs["tt"] == "LỆCH":
+                moi.append({"ID": new_id(), "Loại": "Claude↔Gemini", "Mã": ma, "Mức": "TB", "Nội dung": "Gemini không đọc ra số Claude ghi ở Kích thước BV: " + ", ".join(gs["thieu"]), "Nguồn": lk, "Trạng thái": "MỞ"})
             iss_of[ma] = [m_["ID"] for m_ in moi if m_["Mã"] == ma]
     t_rows, m_rows = [], []
     for ma in tdict:
@@ -1245,11 +1349,11 @@ def cmd_doichieu(goc, dot, args):
         s = map_state[k]
         m_rows.append({"Mã": ma, "Khu": k[1], "Trạng thái": s, "Độ tin cậy": worse(muc[ma], {"KHỚP": "CAO", "LỆCH": "TB", "CHƯA ĐỌC": "THAP"}[s]),
                        **({"Issue": ", ".join(sorted(set(iss_of[ma]), key=nat_key))} if s == "LỆCH" and iss_of.get(ma) else {})})
-    write_tool(P, ra, "BOQ_TONGHOP", "doichieu", t_rows); write_tool(P, ra, "BOQ_MAP", "doichieu", m_rows); write_tool(P, ra, "ISSUES", "doichieu", moi)
+    write_tool(P, ra, "BOQ_TONGHOP", "doichieu", t_rows); write_tool(P, ra, "BOQ_MAP", "doichieu", m_rows); write_tool(P, ra, "ISSUES", "doichieu", moi); write_tool(P, ra, "QUAN_SAT", "doichieu", gs_rows)
     d = ra or P["data"]; os.makedirs(d, exist_ok=True)
     json.dump({"muc": muc, "ly_do": ly_do}, open(os.path.join(d, "_doichieu_tool.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     from collections import Counter
-    print(f"Độ tin cậy nháp ({len(ngoai)} mã ngoài scope = CAO): {dict(Counter(v for k, v in muc.items() if k not in ngoai))}; KL từng khu: {dict(Counter(map_state.values()))}; issue nháp {len(moi)}")
+    print(f"Độ tin cậy nháp ({len(ngoai)} mã ngoài scope = CAO): {dict(Counter(v for k, v in muc.items() if k not in ngoai))}; KL từng khu: {dict(Counter(map_state.values()))}; issue nháp {len(moi)}; Gemini so số: {dict(Counter(r['Trạng thái'] for r in gs_rows))}")
     for b in kt_chuoi_sai(QS): print("  CHUỖI SAI", b)
     print("LLM còn phải làm: Mã hoàn thiện (BV↔ML), Giả định tính giá, Hành động/RFI cho issue, RFI_LOG, ASK_USER; lý do từng mã ở _doichieu_tool.json")
 

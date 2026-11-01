@@ -104,6 +104,7 @@ Sơ đồ gồm 8 phần: luồng tổng, 5 bước, xếp hạng trang ứng vi
     │ duyệt os.walk(00_input\<DOT>)                                │
     │   bỏ: ~$*, đuôi SKIP_EXT, tên SKIP_NAME, thư mục SKIP_DIR,   │
     │       regex trong _bo_qua.txt                          (L0)  │
+    │   file bỏ + lý do → _kiemke_bo.json (check đưa ra CẦN XEM)   │
     │ dup_report: nhóm trùng hash / cùng tên khác ngày-REV   (L1)  │
     │ đánh ID F001… cho từng file; Loại = loai_file(đường dẫn)     │
     │ với mỗi PDF, mỗi trang:                                      │
@@ -326,9 +327,11 @@ Cầu nối giữa bước 2 và bước 4. Thay cho việc cho subagent dò c�
   │       (check/doichieu có regex CHUOI tự bắt chuỗi cộng sai)     │
   │                                                                 │
   │ (5) GEMINI = NGƯỜI ĐỌC THỨ HAI (bắt buộc cho mọi crop làm bằng chứng)
-  │       a. Claude ghi giá trị CỦA MÌNH TRƯỚC                      │
+  │       a. Claude ghi giá trị CỦA MÌNH vào QUAN_SAT TRƯỚC         │
   │       b. gemini --quansat "<tên món>" trên crop mặt đứng/chi tiết│
-  │          gemini --claude "900,450,450" trên crop có dãy số      │
+  │          gemini --ma V01 --goc --dot trên crop có dãy số        │
+  │            (dừng nếu QUAN_SAT chưa có Kích thước BV R×S×C;      │
+  │             lưu số Gemini → _gemini_so\V01.json)                │
   │          (KHÔNG đưa số/nhận xét của Claude vào câu hỏi)         │
   │       c. so từng trường:                                        │
   │            khớp → giữ dòng Claude                               │
@@ -338,8 +341,9 @@ Cầu nối giữa bước 2 và bước 4. Thay cho việc cho subagent dò c�
   │                   `where`                                       │
   │       d. KHÔNG nhận số Gemini tự tính (không in trên hình);     │
   │          không dùng Gemini làm nguồn duy nhất                   │
-  │       e. ghi QUAN_SAT `Kiểm chéo Gemini`:                       │
+  │       e. ghi QUAN_SAT `Kiểm chéo Gemini` (trường không phải số):│
   │          "khớp: …; lệch: …; crop: …"   (bước 5 dùng chấm tin cậy)│
+  │          phần số: LLM không ghi, doichieu sinh `Kiểm chéo Gemini số`│
   │       f. agy lỗi → "KHÔNG THẤY – <lỗi>" ⇒ tin cậy không được CAO│
   │                                                                 │
   │ (6) Nhóm = Cửa → DAY_TUONG: dày tường tại TỪNG vị trí thật      │
@@ -379,6 +383,10 @@ Cầu nối giữa bước 2 và bước 4. Thay cho việc cho subagent dò c�
    │ Gemini lệch: nếu đoạn sau "lệch:" khớp GIA_RX (đợt|cánh|ngăn|kích      │
    │        thước|sâu|rộng|cao|dày|mặt đá|kính|gương|kim loại|vật liệu|     │
    │        giấy|vải) → THAP, ngược lại → TB                                 │
+   │ Gemini số (tool so, chỉ mã có Kích thước BV R×S×C trong QUAN_SAT):      │
+   │      số Claude không có trong số Gemini các crop của mã → LỆCH → THAP   │
+   │      chưa chạy gemini --ma / agy lỗi còn số chưa so      → TB           │
+   │      đủ số → KHỚP (so theo tập số, CHƯA kiểm số thuộc chiều nào)        │
    │ KL từng khu:  KL BoQ (Σ BOQ_CDT) vs KL theo BV (BOQ_MAP)                │
    │      bv rỗng → CHƯA ĐỌC → hạ TB      |Δ|<1e-6 → KHỚP                   │
    │      khác    → LỆCH     → hạ TB                                         │
@@ -386,9 +394,10 @@ Cầu nối giữa bước 2 và bước 4. Thay cho việc cho subagent dò c�
    BOQ_MAP.Độ tin cậy = worse(muc[mã], {KHỚP:CAO, LỆCH:TB, CHƯA ĐỌC:THAP})
    Issue nháp DT01… chỉ cho mã CHƯA có issue nào:
         lệch KL → "BoQ↔BV" · KHÔNG THẤY → "Thiếu tờ" (CAO nếu thiếu KT)
-        Gemini lệch → "Claude↔Gemini"
+        Gemini lệch / Gemini số LỆCH → "Claude↔Gemini"
    In "CHUỖI SAI" nếu a+b=c tổng sai (sai số > 0.51)
    → BOQ_TONGHOP.doichieu-tool · BOQ_MAP.doichieu-tool · ISSUES.doichieu-tool
+     · QUAN_SAT.doichieu-tool (dòng Kiểm chéo Gemini số)
      · _doichieu_tool.json (lý do từng mã)
 
  LLM làm tiếp (ô nào LLM ghi thì thắng nháp tool):
@@ -443,6 +452,9 @@ Cầu nối giữa bước 2 và bước 4. Thay cho việc cho subagent dò c�
  │ XEM (ngoại lệ cho user): KL BoQ≠BV · tin cậy THẤP · BV đối chứng /  │
  │   Spec·ML = KHÔNG · KHÔNG THẤY / MÂU THUẪN · issue CAO đang MỞ ·   │
  │   ASK_USER chưa trả lời · trang Lớp text KHÔNG chưa xem · NEO LỆCH │
+ │   ĐÃ LOẠI (đủ danh sách): file bỏ khi quét (_kiemke_bo.json), file  │
+ │   dự phòng, file tổng, trang trùng, mã ngoài scope theo lý do ·     │
+ │   Gemini số: LỆCH / mã chưa so số (khi ≥ banve)                     │
  │ exit code 1 nếu có LỖI                                             │
  └─────────────────────────────────────────────────────────────────────┘
 
