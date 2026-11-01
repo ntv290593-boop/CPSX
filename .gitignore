@@ -20,3 +20,6 @@ __pycache__/
 *.pyc
 .venv/
 _cache/
+
+# Bộ nhớ Code ID riêng từng máy (ô user sửa droplist); người quản lý gộp vào nho.json
+_MASTER/code_id/nho_local.json

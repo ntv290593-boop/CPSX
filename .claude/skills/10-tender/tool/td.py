@@ -4,10 +4,11 @@ Chạy: py -I td.py <lệnh> ...   (không tham số = xem lệnh)
 Model chỉ ghi JSON trong <GOC>\\10_TENDER\\_data\\; tool dựng xlsx, tạo link, kiểm lỗi.
 Ưu tiên ghép theo ô: tool (*.<buoc>-tool.json) < LLM (*.<buoc>.json) < user (*.user.json).
 """
-import sys, os, re, json, shutil, zipfile, datetime, glob
+import sys, os, re, json, shutil, zipfile, datetime, glob, unicodedata
 from collections import OrderedDict, Counter, defaultdict
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "_core"))
-from scan_core import chu_ky_file, doc_pdf, trang_trung, chi_muc, bm25_dao, loai_to, toks, ncode, _fold
+from scan_core import chu_ky_file, doc_pdf, trang_trung, chi_muc, bm25_dao, loai_to, toks, ncode, ma_chuan, regex_ma, tach_ma, _fold
+import code_id
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")  # thông báo LỖI của sys.exit
@@ -16,11 +17,17 @@ FORM = json.load(open(os.path.join(HERE, "..", "form", "COT.json"), encoding="ut
 SHEETS = FORM["sheet"]
 STEPS = FORM["thu_tu_buoc"]
 TODAY = datetime.date.today()
+BANG_MA = code_id.nap_bang()
+for _d in SHEETS.values():
+    for _x in _d["cot"].values():
+        if _x.get("ds_tu") == "code_id":  # danh sách đóng lấy từ _MASTER\\code_id\\bang_ma.json, không chép vào form
+            _x["ds"] = ([r["cap3"] for r in BANG_MA.rows] if BANG_MA else []) + [code_id.KHONG_RO]
 
 LENH = """Lệnh:
-  init <GOC> --input <rel> --boq <rel trong input> --tcq <rel> [--takenote <rel>] [--du-an SSP]
-  kiemke <GOC>                  FILE_INDEX.kiemke-tool.json (liệt kê cả zip, ID giữ nguyên khi chạy lại)
+  init <GOC> --input <rel> --boq <rel trong input> --tcq <rel> [--takenote <rel>] [--du-an SSP] [--bo-thu-muc "a;b/c"]
+  kiemke <GOC>                  FILE_INDEX.kiemke-tool.json (liệt kê cả zip, ID giữ nguyên khi chạy lại; bỏ thư mục trong bo_thu_muc)
   boq <GOC>                     SCOPE.boq-tool.json + _boq_map.json
+  phanloai <GOC> [--duyet-luat] SCOPE.phanloai-tool.json: Mã cấp 3 từng dòng (User > Luật > Nhớ > LLM); chạy lại sau khi có _phanloai_llm.json
   tcq <GOC>                     TCQ_LOG.tcq-tool.json (file TCQ gộp + bản dịch takenote)
   dwg <GOC>                     DWG.dwg-tool.json (số BV, bản hiệu lực, bản cũ)
   mat <GOC>                     MAT.mat-tool.json (mã VL gặp trong BOQ/TCQ)
@@ -28,16 +35,22 @@ LENH = """Lệnh:
   thaydoi <GOC>                 sau kiemke đợt mới: file mới/đổi/mất + dòng SCOPE/MAT/TCQ bị ảnh hưởng
   trang <GOC>                   đọc chữ + khung tên mọi trang PDF được dùng -> _data\\_text (chỉ file mới/đổi)
   tim <GOC> <regex> [--file s] [--max n]   trang có chữ khớp regex
+  tim <GOC> --ma <mã> [--file s] [--max n] trang có mã theo mọi cách viết (51 - 500B = 51-500B, ST 01 = ST-01, AREA53 = AREA 53)
   ungvien <GOC> [--phong SK-01 | --sheet S | --khoa K] [--top 6] [--ra f.txt] [--do]
                                 mỗi dòng SCOPE -> trang PDF ứng viên (lõi scan: BM25 + mã + phòng); --do = đo trùng với LLM
   zip <GOC> <FID> [--ra <dir>]  giải nén 1 file trong zip ra _data\\_zip để đọc
   cot [--buoc <buoc>]           cột bước được ghi
   loc <GOC> <SHEET> [cột=gt | cột!=gt | cột~regex | cột=] ... [--cot a,b] [--max n]
   check <GOC> [--den <buoc>]
-  build <GOC> [--ra <dir>]      03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx"""
+  area <GOC>                    AREA.area-tool.json: tiền tố mã -> tập phòng, nháp từ KHU (chỉ Bộ hồ sơ FF&E, Thảm); sửa ở sheet AREA
+  xuathien <GOC>                VL_XUATHIEN.xuathien-tool.json: mã VL xuất hiện ở đâu (BOQ, spec, bản vẽ, TCQ) + khu + file + trang; build tự chạy
+  ben <GOC>                     nháp Bên thực hiện cho dòng chưa có: Mã VL -> Loại (MAT) -> bên theo _data\\_ben.json, luôn gắn cờ
+  goi <GOC> "<bên>"             04_out\\<DA>_GOI_<bên>_<yymmdd>.xlsx gửi nhà thầu phụ, chỉ phần việc của bên đó (chạy sau build); máy soát trước khi lưu
+  build <GOC> [--ra <dir>]      kéo sửa tay + chạy lại phanloai rồi dựng 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; --ra: chỉ ghi file ra thư mục đó, không kéo sửa tay, không đổi _data"""
 
 BO_TEN = re.compile(r"^(~\$|\.~)|^(plot\.log|thumbs\.db|desktop\.ini)$", re.I)
 BO_DUOI = {".dwl", ".dwl2", ".bak", ".log", ".tmp", ".lck"}
+DUOI_SCOPE = {".xlsx", ".xlsm", ".xls", ".pdf", ".doc", ".docx"}
 RX_DWG = r"(?<![A-Z0-9])([A-Z]{1,4}(?:-[A-Z0-9]{1,5}){1,3}-\d{3}[A-Z]?)(?![0-9])"
 RX_VL = re.compile(r"(?<![\w-])([A-Z]{2,3}-\d{2}[A-Z]?)(?![\w-])")
 RX_FFE = re.compile(r"(?<![\w-])(\d{2}-\d{3}[A-Z]?)(?![\w-])")
@@ -330,6 +343,26 @@ def link_item(p, link, fidx):
     return link[0], path, pg, sub
 
 
+def khoa_thu_muc(rel):
+    """Khóa so đường dẫn thư mục: không phân biệt hoa/thường, cùng dạng Unicode (tên từ zip Mac hay ở dạng NFD)."""
+    return unicodedata.normalize("NFC", rel).casefold()
+
+
+def chuan_bo_thu_muc(ds):
+    """Cấu hình bo_thu_muc -> {khóa: đường dẫn như đã ghi}. Mỗi mục là đường dẫn thư mục tính từ thư mục hồ sơ.
+    Từ chối giá trị có thể loại nhầm cả bộ hồ sơ ('', '.') hoặc trỏ ra ngoài thư mục hồ sơ ('..', đường dẫn tuyệt đối)."""
+    if not isinstance(ds, list):
+        sys.exit(f"LỖI: _cauhinh.json: bo_thu_muc phải là danh sách, đang là {ds!r}")
+    out = {}
+    for v in ds:
+        rel = str(v).strip().replace("\\", "/")
+        phan = rel.rstrip("/").split("/")
+        if rel.startswith("/") or ":" in rel or any(x in ("", ".", "..") for x in phan):
+            sys.exit(f"LỖI: bo_thu_muc {v!r} không hợp lệ — ghi đường dẫn thư mục tính từ thư mục hồ sơ, vd \"New folder\"")
+        out[khoa_thu_muc("/".join(phan))] = v
+    return out
+
+
 # ---------------------------------------------------------------- init
 README_DA = """# {du_an} — TENDER (skill 10-tender)
 
@@ -361,8 +394,13 @@ def cmd_init(goc, args):
         v = opt(args, o)
         if v:
             cfg[k] = v
+    bo = opt(args, "--bo-thu-muc")
+    if bo is not None:  # --bo-thu-muc "" = xóa danh sách
+        cfg["bo_thu_muc"] = [x.strip() for x in bo.split(";") if x.strip()]
     cfg.setdefault("du_an", os.path.basename(p.goc))
     cfg.setdefault("boq_bo_sheet", [])
+    cfg.setdefault("bo_thu_muc", [])
+    chuan_bo_thu_muc(cfg["bo_thu_muc"])
     for k in ("input", "boq", "tcq"):
         if not cfg.get(k):
             sys.exit(f"LỖI: thiếu --{k}")
@@ -386,6 +424,8 @@ def vai_tro_doan(rel, inner, ext):
     name = os.path.basename(inner or rel).lower()
     if ext == ".msg":
         return "Mail"
+    if ext in DUOI_SCOPE and re.search(r"(?<![a-z0-9])pvcv(?![a-z0-9])", name):
+        return "Scope"  # file phân chia phạm vi công việc (CĐT hoặc tender lập), nhận theo tên file
     if ("tender quer" in name or re.search(r"\btcq", name)) and ext in (".xlsx", ".pdf"):
         return "Làm rõ"
     if re.search(r"as-?built", t):
@@ -407,8 +447,18 @@ def cmd_kiemke(goc):
     ck_cu = jload(p.f("_chuky.json"))  # {FID: chữ ký} lần kiemke trước; None = lần đầu
     ck_by_key = {}
     items = []
+    bo_tm = chuan_bo_thu_muc(p.cfg.get("bo_thu_muc", []))
+    da_bo = set()
     for root, dirs, files in os.walk(p.inp):
-        dirs.sort()
+        goc_rel = os.path.relpath(root, p.inp).replace("\\", "/")
+        giu = []
+        for d in sorted(dirs):
+            k = khoa_thu_muc(d if goc_rel == "." else f"{goc_rel}/{d}")
+            if k in bo_tm:
+                da_bo.add(k)
+            else:
+                giu.append(d)
+        dirs[:] = giu  # sửa tại chỗ để os.walk không đi vào thư mục đã bỏ
         for fn in sorted(files):
             ext = os.path.splitext(fn)[1].lower()
             if BO_TEN.search(fn) or ext in BO_DUOI:
@@ -429,6 +479,11 @@ def cmd_kiemke(goc):
                         ck_by_key[(rel, nm)] = {"size": zi.file_size, "crc": zi.CRC}  # CRC có sẵn trong zip, không cần đọc
                 except zipfile.BadZipFile:
                     print(f"XEM: zip hỏng {rel}")
+    for k, v in bo_tm.items():
+        if k in da_bo:
+            print(f"Bỏ thư mục (bo_thu_muc): {v}")
+        else:
+            print(f"XEM: bo_thu_muc {v!r} không có trong thư mục hồ sơ — kiểm lại tên, thư mục định loại có thể đang lọt vào FILE_INDEX")
     rows, pdf_set = [], set()
     for rel, inner, ext in items:
         m = rx_dwg.search(os.path.basename(inner or rel).upper())
@@ -615,6 +670,100 @@ def cmd_boq(goc):
         print(f"XEM: mã trùng mã phòng nhưng tính là VL (họ mã có VL khác, ngữ cảnh không nói phòng): {', '.join(sorted(trung))}")
     write_tool(p, "SCOPE", "boq", out)
     print("Mã phòng:", ", ".join(sorted(room_codes)))
+
+
+# ---------------------------------------------------------------- phanloai
+BO_SHEET_CODE = r"prelim|provisional|general req|summary"  # không gán Code ID (plan quyết định 4); đổi bằng codeid_bo_sheet trong _cauhinh
+
+
+def can_ma(p, r):
+    """Dòng cần Mã cấp 3 (plan quyết định 4): có đơn vị và không thuộc sheet bị bỏ. phanloai và droplist dùng chung điều kiện này."""
+    return bool(s(r.get("ĐV"))) and not re.search(p.cfg.get("codeid_bo_sheet", BO_SHEET_CODE), s(r.get("Sheet")), re.I)
+
+
+def cmd_phanloai(goc, args):
+    """Gán Mã cấp 3 cho mọi dòng có đơn vị. Tool là bên duy nhất ghi 3 cột này; LLM trả lời qua _phanloai_llm.json."""
+    p = P(goc).need()
+    if not BANG_MA:
+        sys.exit(f"LỖI: thiếu {code_id.thu_muc()}\\bang_ma.json")
+    if "--duyet-luat" in args:
+        p.cfg["luat_da_duyet"] = True
+        jdump(p.f("_cauhinh.json"), p.cfg)
+        print("Đã ghi luat_da_duyet: dòng theo luật không còn highlight ở dự án này.")
+    du_an = s(p.cfg.get("du_an"))
+    duyet = bool(p.cfg.get("luat_da_duyet"))
+    scope = merge(p)[0]["SCOPE"]
+    if not scope:
+        sys.exit("LỖI: SCOPE rỗng, chạy boq trước.")
+
+    def ma_cua(ten):
+        return BANG_MA.ma.get(ten)
+
+    user, loi, xem = {}, [], []
+    for r in (jload(p.f("SCOPE.user.json")) or {"rows": []})["rows"]:
+        v = s(r.get("Mã cấp 3"))
+        if v:
+            user[s(r.get("Khóa"))] = v
+    llm = {}
+    for i, r in enumerate((jload(p.f("_phanloai_llm.json")) or {"rows": []})["rows"], 1):
+        k, v = s(r.get("Khóa")), s(r.get("Mã cấp 3"))
+        if k not in scope:
+            loi.append(f"_phanloai_llm.json dòng {i}: khóa '{k}' không có trong SCOPE")
+        elif v != code_id.KHONG_RO and not ma_cua(v):
+            loi.append(f"_phanloai_llm.json dòng {i}: '{v}' không thuộc danh sách (xem: cot --buoc phanloai-tool)")
+        else:
+            kl = code_id.khoa_llm({c: s(_txt(scope[k].get(c))) for c in ("Nhóm", "Mục phụ", "Mô tả BOQ")})
+            gia_tri = v if v == code_id.KHONG_RO else ma_cua(v)
+            if kl in llm and llm[kl] != gia_tri:
+                xem.append(f"{k}: LLM trả lời khác với dòng cùng mô tả ({llm[kl]} / {gia_tri}), lấy câu sau")
+            llm[kl] = gia_tri
+    if loi:
+        sys.exit("LỖI:\n  " + "\n  ".join(loi))
+
+    def dong_cua(r):
+        return {c: s(_txt(r.get(c))) for c in ("Nhóm", "Mục phụ", "Mô tả BOQ", "Mã VL")}
+
+    # Ghi nhớ chỗ user sửa trước khi nạp bộ nhớ, để dòng cùng mô tả nhận mã mới ngay trong lần chạy này.
+    n_nho = 0
+    for k, u in user.items():
+        if k in scope and can_ma(p, scope[k]) and ma_cua(u):
+            n_nho += code_id.ghi_nho_local(dong_cua(scope[k]), ma_cua(u), du_an)
+    local, chung = code_id.nap_nho()
+    luat = code_id.nap_luat()
+    dem, co_dem, out = Counter(), Counter(), []
+    for k, r in scope.items():
+        if not can_ma(p, r):
+            continue
+        dong = dong_cua(r)
+        u = user.get(k)
+        if u == "(xóa)":  # user xóa ô: merge để trống, không đoán lại
+            continue
+        ma_user = None
+        if u == code_id.KHONG_RO:
+            ma_user = code_id.KHONG_RO
+        elif u:
+            ma_user = ma_cua(u)
+            if not ma_user:
+                xem.append(f"{k}: user chọn '{u}' không có trong bảng mã, bỏ qua")
+        ma, nguon, khac = code_id.phan_loai(dong, luat, local, chung, llm, du_an, user=ma_user)
+        if ma and ma != code_id.KHONG_RO and not BANG_MA.co(ma):
+            xem.append(f"{k}: {nguon} trả mã '{ma}' không có trong bảng mã, chuyển LLM")
+            ma, nguon = None, None
+        co = code_id.co_highlight(nguon, ma, khac, duyet)
+        ten = code_id.KHONG_RO if ma == code_id.KHONG_RO else (BANG_MA.ten_cua(ma) if ma else None)
+        out.append({"Khóa": k, "Mã cấp 3": ten, "Nguồn phân loại": nguon, "Cờ phân loại": co})
+        dem[nguon or "Chờ LLM"] += 1
+        if co:
+            co_dem[co] += 1
+    write_tool(p, "SCOPE", "phanloai", out)
+    print("Theo nguồn:", dict(dem))
+    print(f"Highlight {sum(co_dem.values())}/{len(out)} dòng:", dict(co_dem))
+    if n_nho:
+        print(f"Đã ghi {n_nho} chỗ user sửa vào nho_local.json (người quản lý gộp vào nho.json).")
+    for x in xem:
+        print("XEM", x)
+    if dem["Chờ LLM"]:
+        print(f"{dem['Chờ LLM']} dòng chờ LLM, làm theo buoc/2b-phanloai.md rồi chạy lại phanloai.")
 
 
 # ---------------------------------------------------------------- tcq
@@ -854,7 +1003,7 @@ def cmd_doichieu(goc):
 
 
 # ---------------------------------------------------------------- trang / tim / ungvien / thaydoi (lõi scan: SKILL\_core\scan_core.py)
-VT_DOC = ("Chính", "Bổ sung/Thay thế", "Làm rõ", "")  # vai trò được đọc chữ + tìm trang
+VT_DOC = ("Chính", "Bổ sung/Thay thế", "Làm rõ", "Scope", "")  # vai trò được đọc chữ + tìm trang
 NHOM_TENDER = [("CHI TIẾT", 6, ("chi_tiet", "mat_dung", "khac", "legend")), ("HOÀN THIỆN", 3, ("hoan_thien",)),
                ("MẶT BẰNG", 3, ("mat_bang",)), ("TRẦN/MEP", 2, ("mep",)), ("THỐNG KÊ", 3, ("thong_ke",)), ("DANH MỤC", 1, ("danh_muc",)),
                ("TÀI LIỆU", 2, ("tai_lieu",))]
@@ -926,6 +1075,18 @@ def nap_trang(p, res):
     return texts, titles, bv_pages
 
 
+def file_bo(res, texts):
+    """File không dùng làm căn cứ: bản cũ của 1 Số BV, hoặc tờ DWG Ngoài scope/Tham khảo."""
+    fidx, dwg = res["FILE_INDEX"], res["DWG"]
+    hl = {x[1] for r in dwg.values() for x in links_of(r.get("File PDF"))}
+    bo = set()
+    for fid in texts:
+        bv = s(fidx[fid].get("Số BV"))
+        if bv in dwg and (fid not in hl or s(dwg[bv].get("Trạng thái")) in ("Ngoài scope", "Tham khảo")):
+            bo.add(fid)
+    return bo
+
+
 def chi_muc_tender(p, res):
     texts, titles, bv_pages = nap_trang(p, res)
     if not texts:
@@ -943,14 +1104,11 @@ def chi_muc_tender(p, res):
     ix["cdao"], ix["ffe"] = cdao, ffe
     fidx, dwg = res["FILE_INDEX"], res["DWG"]
     ix["bv_file"] = {bv: {x[1] for x in links_of(r.get("File PDF"))} for bv, r in dwg.items()}
-    hl = set().union(*ix["bv_file"].values()) if ix["bv_file"] else set()
     ix["phong_trang"] = defaultdict(set)
-    ix["bo_file"] = set()  # bản cũ của 1 Số BV, hoặc tờ DWG Ngoài scope/Tham khảo
+    ix["bo_file"] = file_bo(res, texts)
     ix["file_phong"] = {}
     for fid in texts:
         bv = s(fidx[fid].get("Số BV"))
-        if bv in dwg and (fid not in hl or s(dwg[bv].get("Trạng thái")) in ("Ngoài scope", "Tham khảo")):
-            ix["bo_file"].add(fid)
         # mã phòng của file: DWG.Mã phòng, không có thì KHU của thư mục khu (theo DWG hoặc theo tên thư mục)
         mp = phong_of(dwg.get(bv, {}).get("Mã phòng")) if bv in dwg else set()
         if not mp:
@@ -1059,22 +1217,31 @@ def cmd_ungvien(goc, args):
 
 
 def cmd_tim(goc, args):
-    """Tìm trang có chữ khớp regex (trên cache `trang`). --file <chuỗi trong tên file> --max n."""
+    """Tìm trang có chữ khớp regex hoặc --ma <mã> (trên cache `trang`). --file <chuỗi trong tên file> --max n."""
     p = P(goc).need()
-    fl, mx = opt(args, "--file"), int(opt(args, "--max", "100"))
-    if not args:
-        sys.exit("LỖI: tim <GOC> <regex>")
-    rx = re.compile(args[0], re.I)
+    fl, mx, ma = opt(args, "--file"), int(opt(args, "--max", "100")), opt(args, "--ma")
+    if ma is not None:
+        rx = regex_ma(ma)
+        if not rx or args:
+            sys.exit(f"LỖI: tim <GOC> --ma <mã>: {ma!r} không phải mã (vd 51-500B, ST-01, AREA 53)")
+        print(f"Mã chuẩn: {ma_chuan(ma)}")
+    else:
+        if not args:
+            sys.exit("LỖI: tim <GOC> <regex> hoặc tim <GOC> --ma <mã>")
+        rx = re.compile(args[0], re.I)
+        if ma_chuan(args[0]):
+            print(f"XEM: đang tìm đúng chữ {args[0]!r}, sẽ sót cách viết khác (vd có dấu cách) — tìm mã thì dùng --ma")
+    gon = lambda x: re.sub(r"[\s_-]+", "", x).lower()  # AREA53 = AREA 53 = AREA_53
     res, _ = merge(p)
     texts, titles, _ = nap_trang(p, res)
     n = 0
     for fid in sorted(texts):
         fr = res["FILE_INDEX"][fid]
         ten = os.path.basename(s(fr.get("Trong zip")) or s(fr.get("Đường dẫn")))
-        if fl and fl.lower() not in ten.lower():
+        if fl and gon(fl) not in gon(ten):
             continue
         for i, t in enumerate(texts[fid], 1):
-            hits = sorted(set(m.group(0) for m in rx.finditer(t)))
+            hits = sorted(set(re.sub(r"\s+", " ", m.group(0)) for m in rx.finditer(t)))
             if hits:
                 n += 1
                 if n <= mx:
@@ -1125,6 +1292,243 @@ def cmd_thaydoi(goc):
     print(f"Link bản vẽ trỏ bản cũ (sau khi chạy dwg): {len(cu)}")
     td["anh_huong"] = {"SCOPE": sc, "MAT": mat, "TCQ_LOG": tcq}
     jdump(p.f("_thaydoi.json"), td)
+
+
+# ---------------------------------------------------------------- area, xuathien (sổ xuất hiện vật liệu)
+RX_SO_AREA = re.compile(r"\bAREA[\s_-]*0*(\d{1,3})(?!\d)", re.I)
+BO_AREA = ("FF&E", "Thảm")  # số Area của bộ IDD đánh khác hẳn (SOFITEL: IDD Area 51 = sảnh thang, FF&E AREA 51 = Standard King) nên không vào bảng
+
+
+def tach_cham_phay(v):
+    return [x.strip() for x in s(_txt(v)).split(";") if x.strip()]
+
+
+def cmd_area(goc):
+    """Bảng tiền tố mã -> tập phòng, riêng từng dự án. Máy dựng nháp từ KHU; ô user sửa ở sheet AREA thắng (AREA.user.json)."""
+    p = P(goc).need()
+    res, _ = merge(p)
+    gom = OrderedDict()
+    for k, r in res["KHU"].items():
+        bo = s(r.get("Bộ hồ sơ"))
+        m = RX_SO_AREA.search(k)
+        if bo in BO_AREA and m:
+            g = gom.setdefault(f"{int(m.group(1)):02d}", {"bo": defaultdict(list), "khu": [], "nguon": []})
+            g["bo"][bo] += tach_cham_phay(r.get("Mã phòng"))
+            g["khu"].append(k)
+            g["nguon"] += links_of(r.get("Nguồn"))[:1]
+    rows = []
+    for tt in sorted(gom):
+        g = gom[tt]
+        ph = list(dict.fromkeys(x for v in g["bo"].values() for x in v))
+        r = {"Tiền tố": tt, "Mã phòng": "; ".join(ph), "Bộ hồ sơ": "; ".join(g["bo"]), "Khu nguồn": "; ".join(g["khu"]), "Nguồn": g["nguon"]}
+        tap = {b: set(v) for b, v in g["bo"].items()}
+        if len(tap) > 1 and len({frozenset(v) for v in tap.values()}) > 1:
+            r["Ghi chú"] = "Các bộ hồ sơ ghi khác nhau: " + " · ".join(f"{b}: {len(v)} phòng" for b, v in tap.items())
+        rows.append(r)
+    write_tool(p, "AREA", "area", rows)
+    return rows
+
+
+def khu_cua_file(res):
+    """FID -> [Khu]. Tờ IDD theo DWG; file không có Số BV (FF&E, Thảm, Schedule) theo link Nguồn của sheet KHU.
+    Không đoán theo số Area trong tên file: cùng số nhưng khác bộ hồ sơ là khu khác nhau."""
+    fidx, dwg, khu = res["FILE_INDEX"], res["DWG"], res["KHU"]
+    out = defaultdict(list)
+    for fid, r in fidx.items():
+        k = s(dwg.get(s(r.get("Số BV")), {}).get("Khu (thư mục)"))
+        if k in khu:
+            out[fid].append(k)
+    bo_cua = {}
+    for bo in ("FF&E", "Schedule", "Thảm"):  # 1 file được dẫn ở nhiều bộ (sheet thảm dẫn file FF&E làm căn cứ): thuộc bộ đầu tiên
+        for k, r in khu.items():
+            if s(r.get("Bộ hồ sơ")) != bo:
+                continue
+            for l in links_of(r.get("Nguồn")):
+                f = l[1]
+                if f in fidx and not s(fidx[f].get("Số BV")) and bo_cua.setdefault(f, bo) == bo and k not in out[f]:
+                    out[f].append(k)
+    return out
+
+
+def ma_cua_dong(r, area):
+    """Mã VL/FF&E của 1 dòng SCOPE. Mã FF&E rug, rèm thường nằm ở Mục phụ; mã viết cách (51 - 500B) không có ở cột Mã spec/FF&E.
+    Mã FF&E đọc từ chữ chỉ nhận khi tiền tố có trong bảng AREA, tránh bắt nhầm kích thước (15-200)."""
+    out = [ma_chuan(m) for c in ("Mã VL", "Mã spec/FF&E") for m in split_list(r.get(c))]
+    for c in ("Mục phụ", "Mô tả BOQ"):
+        out += [x[0] for x in tach_ma(s(r.get(c))) if x[3] == "ffe" and x[0][:2] in area]
+    return list(dict.fromkeys(m for m in out if m))
+
+
+RX_NGU_VL = re.compile(r"marble|stone|granite|limestone|travertine|quartz|terrazzo|honed|veneer|timber|\bđá\b|\bgỗ\b", re.I)
+MA_FFE = r"\d{2}\s*[-–—]\s*\d{3}[A-Za-z]?(?:\.\d+)?"
+MA_VL = r"[A-Z]{2,3}\s*[-–—]\s*\d{2}[A-Z]?"
+RX_DN = {"DR": re.compile(rf"DRAWING REFERENCE:\s*({MA_VL})"), "SPEC": re.compile(rf"\bItem:\s*({MA_FFE})"), "MR": re.compile(rf"\bITEM\s+({MA_FFE})")}
+
+
+def loai_trang(t):
+    """Loại trang spec theo mẫu chữ cố định; không phải trang spec -> None."""
+    if "DRAWING REFERENCE:" in t:
+        return "DR"
+    dau = t.lstrip()
+    for k, v in (("SPECIFICATION", "SPEC"), ("MATERIAL REFERENCE", "MR"), ("ITEM SCHEDULE", "IS"), ("Image (s) provided", "ANH")):
+        if dau.startswith(k):
+            return v
+    return None
+
+
+def ma_dinh_nghia(t, loai):
+    """Mã mà trang này là trang spec chính của mã đó. Trang DRAWING REFERENCE có mã nằm chỗ khác trên trang
+    (lớp chữ PDF đảo thứ tự): chỉ nhận khi cả trang có đúng 1 mã VL, nhiều hơn thì không đoán."""
+    if loai not in RX_DN:
+        return set()
+    dn = {ma_chuan(x) for x in RX_DN[loai].findall(t)} - {None}
+    if loai == "DR" and not dn:
+        ca_trang = {x[0] for x in tach_ma(t) if x[3] == "gach"}
+        if len(ca_trang) == 1:
+            return ca_trang
+    return dn
+
+
+def cmd_xuathien(goc):
+    """Sổ 1 dòng = mã + nơi xuất hiện. Chỉ ghi nơi có nguồn bấm được (file + trang hoặc ô). Dòng nào không chắc thì có Cờ."""
+    p = P(goc).need()
+    res, _ = merge(p)
+    fidx, scope, mat = res["FILE_INDEX"], res["SCOPE"], res["MAT"]
+    texts, _, bv_pages = nap_trang(p, res)
+    dup, tong = trang_trung(texts)
+    bo = file_bo(res, texts) | set(tong)
+    khu_file = khu_cua_file(res)
+    rc = set((jload(p.f("_boq_map.json")) or {}).get("ma_phong", []))
+    area = res["AREA"]
+    tk = Counter()
+    # danh sách mã của dự án: mã ngoài danh sách là số điện thoại, kích thước, mã bưu điện
+    ds = {ma_chuan(m) for m in mat} - {None}
+    for r in scope.values():
+        ds.update(ma_cua_dong(r, area))
+    for r in res["TCQ_LOG"].values():
+        ds.update(x for x in map(ma_chuan, split_list(r.get("Mã VL"))) if x)
+    trang = []
+    for fid, pages in texts.items():
+        if fid in bo or s(fidx[fid].get("Vai trò")) == "Làm rõ":  # TCQ đọc từ TCQ_LOG; bản PDF trùng nội dung
+            continue
+        for i, t in enumerate(pages, 1):
+            lt = loai_trang(t)
+            dn = ma_dinh_nghia(t, lt)
+            if lt == "DR" and not dn:
+                tk["DR không đọc được mã"] += 1
+            ds |= dn
+            if lt == "IS":
+                ds.update(x[0] for x in tach_ma(t) if x[3] == "ffe")
+            if (fid, i) not in dup:
+                trang.append((fid, i, t, lt, dn))
+
+    def ngay_cua(fid):
+        return s(fidx.get(fid, {}).get("Ngày issue")) or s(fidx.get(fid, {}).get("Ngày đợt"))
+
+    def khu_cot(fid):
+        ks = khu_file.get(fid, [])
+        boo = dict.fromkeys(s(res["KHU"][k].get("Bộ hồ sơ")) for k in ks)
+        ph = dict.fromkeys(x for k in ks for x in tach_cham_phay(res["KHU"][k].get("Mã phòng")))
+        return "; ".join(boo), "; ".join(ks), "; ".join(ph)
+
+    rows = OrderedDict()
+
+    def them(khoa, **c):
+        c = {k: v for k, v in c.items() if v not in (None, "")}
+        rows.setdefault(khoa, dict(c, **{"Khóa": khoa}))
+
+    # 1. Chữ trên trang PDF
+    for fid, i, t, lt, dn in trang:
+        thay = {}
+        for ma, a, b, dang in tach_ma(t):
+            if ma not in ds:
+                continue
+            if dang == "lien" and ma not in dn:  # SW10 0XE, ST09 ...: không tin nếu chưa xem ngữ cảnh
+                tk["bỏ dạng viết liền"] += 1
+                continue
+            if ma in rc and ma not in dn and not RX_NGU_VL.search(t[max(0, a - 40):b + 40]):  # ST-01 là mã phòng ở đây, không phải mã đá
+                tk["bỏ vì là mã phòng"] += 1
+                continue
+            thay.setdefault(ma, (a, b, dang))
+        for ma, (a, b, dang) in thay.items():
+            if lt:
+                nguon, loai = "Spec", "Định nghĩa" if ma in dn else {"IS": "Danh mục", "ANH": "Ảnh"}.get(lt, "Nhắc tới")
+            else:
+                nguon, loai = ("Bản vẽ" if (fid, i) in bv_pages else "Khác"), "Nhắc tới"
+            boo, ks, ph = khu_cot(fid)
+            ten = os.path.basename(s(fidx[fid].get("Trong zip")) or s(fidx[fid].get("Đường dẫn")))
+            them(f"{ma}|{fid}|{i}", **{"Mã VL": ma, "Nguồn": nguon, "Loại trang": loai, "Bộ hồ sơ": boo, "Khu": ks, "Mã phòng": ph,
+                                      "File": [f"{ma} · {ten[:40]} p{i}", fid, i], "Trang": i, "Ngày": ngay_cua(fid),
+                                      "Chữ gốc": re.sub(r"\s+", " ", t[max(0, a - 30):b + 30]).strip(),
+                                      "Cờ": "Viết cách, chưa chắc" if dang == "cach" else ""})
+    # 2. Dòng BOQ; bản vẽ qua dòng BOQ vì tag trên bản vẽ là nét, không có trong chữ
+    fid_boq = next((k for k, r in fidx.items() if s(r.get("Đường dẫn")) == p.cfg["boq"].replace("\\", "/") and not s(r.get("Trong zip"))), None)
+    dong_bv = defaultdict(list)
+    for k, r in scope.items():
+        ma_dong = ma_cua_dong(r, area)
+        phong_dong = phong_of(r.get("Mã phòng"))
+        for ma in ma_dong:
+            co = ""
+            g = area.get(ma[:2]) if ma[:2].isdigit() else None
+            if g and phong_dong - phong_of(g.get("Mã phòng")):
+                co = "Lệch Area: " + ", ".join(sorted(phong_dong - phong_of(g.get("Mã phòng"))))
+                tk["ca lệch Area"] += 1
+            if fid_boq:
+                them(f"{ma}|BOQ|{k}", **{"Mã VL": ma, "Nguồn": "BOQ", "Loại trang": "Dòng BOQ", "Mã phòng": "; ".join(x.split(":")[0].strip() for x in s(r.get("Mã phòng")).split("|") if x.strip()),
+                                        "File": [f"{ma} · BOQ {k}", fid_boq, None, f"'{r['Sheet']}'!A{int(r['Dòng'])}"], "Dòng BOQ": k, "Ngày": ngay_cua(fid_boq), "Chữ gốc": s(r.get("Mô tả BOQ"))[:120], "Cờ": co})
+            for l in links_of(r.get("Bản vẽ hiệu lực")):
+                pg = l[2] if len(l) > 2 and l[2] else 1
+                if l[1] in fidx:
+                    khoa = f"{ma}|{l[1]}|{pg}"
+                    dong_bv[khoa].append(k)
+                    if khoa not in rows:
+                        boo, ks, ph = khu_cot(l[1])
+                        them(khoa, **{"Mã VL": ma, "Nguồn": "Bản vẽ", "Loại trang": "Nhắc tới", "Bộ hồ sơ": boo, "Khu": ks, "Mã phòng": ph,
+                                      "File": [f"{ma} · {l[0]}", l[1], pg], "Trang": pg, "Ngày": ngay_cua(l[1]), "Cờ": "Qua dòng BOQ, mã không có trong chữ trang"})
+    for khoa, ks in dong_bv.items():
+        if rows[khoa].get("Nguồn") == "Bản vẽ":
+            rows[khoa]["Dòng BOQ"] = "; ".join(list(dict.fromkeys(ks))[:4]) + (" …" if len(set(ks)) > 4 else "")
+    # 3. Câu TCQ
+    ch = tcq_chain(res["TCQ_LOG"])
+    for k, r in res["TCQ_LOG"].items():
+        l = links_of(r.get("Nguồn"))
+        if not l:
+            tk["TCQ không có nguồn, bỏ"] += 1
+            continue
+        chu = s(r.get("Câu hỏi (EN)")) + " " + s(r.get("Trả lời (EN)"))
+        ma_cau = [ma_chuan(m) for m in split_list(r.get("Mã VL"))]
+        for ma, a, b, dang in tach_ma(chu):
+            if ma in ds and dang != "lien" and (ma not in rc or RX_NGU_VL.search(chu[max(0, a - 40):b + 40])):
+                ma_cau.append(ma)
+        for ma in dict.fromkeys(m for m in ma_cau if m):
+            them(f"{ma}|{k}", **{"Mã VL": ma, "Nguồn": "TCQ", "Loại trang": "Câu TCQ", "Mã phòng": s(_txt(r.get("Mã phòng/Khu"))), "File": [f"{ma} · {k}"] + list(l[0][1:]),
+                                 "Ngày": s(r.get("Ngày"))[:10] if re.match(r"\d{4}-\d{2}-\d{2}", s(r.get("Ngày"))) else "", "Chữ gốc": k, "Cờ": "" if ch.get(k) == [k] else "Câu đã bị thay"})
+    # bản hiệu lực theo từng mã, không theo cả file
+    dn = defaultdict(list)
+    for r in rows.values():
+        if r.get("Loại trang") == "Định nghĩa":
+            dn[r["Mã VL"]].append(r)
+    for v in dn.values():
+        moi = max(s(r.get("Ngày")) for r in v)
+        for r in v:
+            r["Hiệu lực"] = "Mới nhất" if s(r.get("Ngày")) == moi else "Bản cũ"
+    # đối chiếu MAT: nguồn spec có đúng trang ghi mã không
+    xem = []
+    for m, r in mat.items():
+        rx = regex_ma(m)
+        for l in links_of(r.get("Nguồn spec")):
+            pg = l[2] if len(l) > 2 and l[2] else None
+            if rx and pg and l[1] in texts and pg <= len(texts[l[1]]) and not rx.search(texts[l[1]][pg - 1]):
+                xem.append(f"MAT {m}: Nguồn spec {l[1]} p{pg} không có chữ mã này")
+    co_ma = {m for r in scope.values() for m in ma_cua_dong(r, area)}
+    ko_spec = sorted(m for m in co_ma if m not in dn and not links_of(mat.get(m, {}).get("Nguồn spec")))
+    write_tool(p, "VL_XUATHIEN", "xuathien", list(rows.values()))
+    tk.update({"mã": len({r["Mã VL"] for r in rows.values()})})
+    jdump(p.f("_xuathien_tk.json"), {"dem": tk, "ko_spec": ko_spec, "xem": xem})
+    print("Theo nguồn:", dict(Counter(r["Nguồn"] for r in rows.values())), "·", dict(tk))
+    print(f"Mã trong BOQ chưa thấy trang spec: {len(ko_spec)} {ko_spec[:15]}")
+    for x in xem[:15]:
+        print("XEM", x)
 
 
 # ---------------------------------------------------------------- cot / loc
@@ -1250,6 +1654,36 @@ def run_check(p, den=None):
             if res["MAT"] and m not in res["MAT"]:
                 xem.append(f"SCOPE {k}: Mã VL '{m}' chưa có trong MAT")
     xem.extend(link_cu(res))
+    for k, r in res["VL_XUATHIEN"].items():
+        if not links_of(r.get("File")):
+            errs.append(f"VL_XUATHIEN {k}: không có nguồn")
+    cfg_ben = nap_ben(p)
+    ds_ben, gop_ben = set(cfg_ben.get("ds", [])), cfg_ben.get("gop", {})
+    co_mau = set()
+    for k, r in res["CAU_TAO"].items():
+        if not re.fullmatch(r"[^#\s]+#\d+", k):
+            errs.append(f"CAU_TAO: khóa '{k}' sai dạng, cần 'CT-01#1'")
+        if s(r.get("Thành phần")) or s(r.get("Bên thực hiện")):
+            co_mau.add(k.split("#")[0])
+            if not s(r.get("Bên thực hiện")):
+                xem.append(f"CAU_TAO {k}: chưa có Bên thực hiện")
+            for m in split_list(r.get("Mã VL")):
+                if res["MAT"] and m not in res["MAT"]:
+                    xem.append(f"CAU_TAO {k}: Mã VL '{m}' chưa có trong MAT")
+    if ds_ben:
+        la = Counter(b for r in list(scope.values()) + list(res["CAU_TAO"].values())
+                     for b in tach_ben(chuan_ben(r.get("Bên thực hiện"), gop_ben)) if b not in ds_ben)
+        for b, n in la.most_common():
+            xem.append(f"Bên '{b}' ({n} dòng) không có trong danh sách _ben.json")
+    for k, r in scope.items():
+        mct = s(r.get("Mã cấu tạo"))
+        if mct and mct not in co_mau:
+            xem.append(f"SCOPE {k}: Mã cấu tạo '{mct}' chưa có ở sheet CAU_TAO")
+        elif mct and src["SCOPE"][k].get("Bên thực hiện") == "user":
+            xem.append(f"SCOPE {k}: có Mã cấu tạo nên Bên thực hiện lấy từ CAU_TAO, chỗ sửa ở dòng này không có tác dụng")
+    cho = [k for k, r in scope.items() if r.get("Cờ phân loại") == "Chờ LLM" and not r.get("Mã cấp 3")]
+    if cho:
+        xem.append(f"SCOPE: {len(cho)} dòng chưa có Mã cấp 3 (chờ LLM, buoc/2b-phanloai.md) vd: {', '.join(cho[:6])}")
     for st in STEPS[:lim]:
         for sh, d in SHEETS.items():
             for c, x in d["cot"].items():
@@ -1388,13 +1822,15 @@ def pull_user(p):
             ws = wb[sheet]
             it = ws.iter_rows(values_only=True)
             hdr = [s(c) for c in next(it)]
+            thay = set()
             for r in it:
                 key = s(r[0])
                 if not key:
                     continue
+                thay.add(key)
                 old = rows.get(key)
                 for j, col in enumerate(hdr):
-                    if col not in SHEETS[sheet]["cot"] or "build" in SHEETS[sheet]["cot"][col]["buoc"] or j >= len(r):
+                    if col not in SHEETS[sheet]["cot"] or "build" in SHEETS[sheet]["cot"][col]["buoc"] or j >= len(r) or col in COT_PHANLOAI_TU_TINH:
                         continue
                     cur = s(r[j])
                     if old is None:
@@ -1402,6 +1838,11 @@ def pull_user(p):
                             note(sheet, key, col, r[j])
                     elif cur != s(old.get(col, "")):
                         note(sheet, key, col, r[j])
+            if sheet == "CAU_TAO":  # thư viện mẫu do tender tự khai nên được xóa dòng; sổ khác có dòng do tool sinh, không xóa
+                for key in set(rows) - thay:
+                    for col in ("Thành phần", "Mã VL", "Bên thực hiện", "Nguồn"):
+                        if s(rows[key].get(col)):
+                            note(sheet, key, col, None)
         lech = []
         for sh, info in snap.get("ct", {}).items():
             if sh not in wb.sheetnames:
@@ -1423,6 +1864,7 @@ def pull_user(p):
                     cur = r[j] if j < len(r) else None
                     if s(cur) != s(info["rows"][key].get(col, "")):
                         note("SCOPE", key, col, cur)
+        wb.close()  # read_only giữ file mở: không đóng thì build lại cùng ngày không ghi đè được file này (Windows)
         if lech:
             sys.exit(f"LỖI: hàng trong sheet BOQ của {path} bị dời (chèn/xóa hàng?) — chưa nhận sửa tay nào:\n  "
                      + "\n  ".join(lech[:10]) + ("\n  …" if len(lech) > 10 else "")
@@ -1433,8 +1875,86 @@ def pull_user(p):
     return n
 
 
+COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link spec")  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
+RX_NHIEU_BEN = re.compile(r"plywood|\bMDF\b|framework|metal frame|consisting of", re.I)
+TT_CON_LAM = ("Base", "VE", "Chờ")  # Loại trừ, Omit, Không áp dụng không giao cho bên nào
+
+
+def nap_ben(p):
+    """_data\\_ben.json riêng từng dự án: ds = danh sách bên, gop = chữ cũ -> tên trong ds, loai = Loại MAT -> bên, tam = danh sách chưa chốt."""
+    return jload(p.f("_ben.json")) or {}
+
+
+def tach_ben(v):
+    return [x.strip() for x in s(v).split(";") if x.strip()]
+
+
+def chuan_ben(raw, gop):
+    """Cả ô khớp trước (chữ cũ có thể chứa dấu ;), không thì đổi từng phần."""
+    raw = s(raw)
+    if raw in gop:
+        return gop[raw]
+    return "; ".join(dict.fromkeys(gop.get(x, x) for x in tach_ben(raw)))
+
+
+def ben_tu_mat(r, mat, bang_loai):
+    """Mã VL của dòng -> các bên khác nhau theo Loại trong MAT."""
+    return list(dict.fromkeys(bang_loai[s(mat[m].get("Loại"))] for m in split_list(r.get("Mã VL"))
+                              if m in mat and s(mat[m].get("Loại")) in bang_loai))
+
+
+def gan_link_spec(res):
+    """Link spec của dòng = trang spec từng mã: MAT Nguồn spec (đã qua người/LLM đọc, kể cả kết luận TCQ), không có thì trang Định nghĩa mới nhất của VL_XUATHIEN."""
+    dn = defaultdict(list)
+    for r in res["VL_XUATHIEN"].values():
+        if r.get("Loại trang") == "Định nghĩa" and r.get("Hiệu lực") == "Mới nhất":
+            dn[r["Mã VL"]].append(r["File"])
+    for r in res["SCOPE"].values():
+        out = []
+        for m in ma_cua_dong(r, res["AREA"]):
+            ls = links_of(res["MAT"].get(m, {}).get("Nguồn spec"))
+            if ls:
+                out += [[f"{m} · {l[0]}"] + list(l[1:]) for l in ls]
+            else:
+                out += dn.get(m, [])
+        if out:
+            r["Link spec"] = out
+
+
 def derive(p, res, snap):
     tcq, scope, dwg = res["TCQ_LOG"], res["SCOPE"], res["DWG"]
+    gan_link_spec(res)
+    for r in scope.values():
+        ma = BANG_MA.ma.get(s(r.get("Mã cấp 3"))) if BANG_MA else None
+        if ma:
+            r["Code ID"] = ma
+    cfg_ben = nap_ben(p)
+    gop, bang_loai = cfg_ben.get("gop", {}), cfg_ben.get("loai", {})
+    mau = defaultdict(list)
+    for k in list(res["CAU_TAO"]):
+        r = res["CAU_TAO"][k]
+        if not (s(r.get("Thành phần")) or s(r.get("Bên thực hiện"))):  # dòng tender đã xóa
+            del res["CAU_TAO"][k]
+            continue
+        r["Mã cấu tạo"] = k.split("#")[0]
+        if s(r.get("Bên thực hiện")):
+            r["Bên thực hiện"] = chuan_ben(r["Bên thực hiện"], gop)
+        mau[r["Mã cấu tạo"]].append(r)
+    for r in scope.values():
+        raw = s(r.get("Bên thực hiện"))
+        if raw:
+            r["Bên thực hiện"] = chuan_ben(raw, gop)
+        mct = s(r.get("Mã cấu tạo"))
+        if mct in mau:  # dòng nhiều bên: gộp từ mẫu, sửa mẫu 1 lần thì mọi dòng trỏ tới đều đổi
+            r["Bên thực hiện"] = "; ".join(dict.fromkeys(x for c in mau[mct] for x in tach_ben(c.get("Bên thực hiện"))))
+        co = [x for x in tach_ben(r.get("Cờ bên")) if x == "Nháp"]
+        if not mct and s(r.get("Trạng thái")) in TT_CON_LAM and (
+                RX_NHIEU_BEN.search(s(r.get("Mô tả BOQ"))) or "+" in raw or ";" in raw or len(ben_tu_mat(r, res["MAT"], bang_loai)) > 1):
+            co.append("Nhiều bên?")
+        if co:
+            r["Cờ bên"] = "; ".join(co)
+        else:
+            r.pop("Cờ bên", None)
     ch = tcq_chain(tcq)
     for k, r in tcq.items():
         r["Hiệu lực"] = "Hiệu lực" if ch[k] == [k] else ("Chuỗi bị vòng" if ch[k] is None else f"Bị thay → {'; '.join(ch[k])}")
@@ -1452,9 +1972,10 @@ def derive(p, res, snap):
             r["Rev/ngày/đợt"] = "; ".join(info)
     old = (snap or {}).get("reg", {}).get("SCOPE", {})
     for k, r in scope.items():
-        cur = {c: s(_txt(r.get(c))) for c in cols_of("SCOPE") if c != "Ngày cập nhật"}
+        cur = {c: s(_txt(r.get(c))) for c in cols_of("SCOPE") if c not in COT_KHONG_TINH_NGAY}
         o = old.get(k)
-        same = o and all(s(o.get(c, "")) == v for c, v in cur.items())
+        # cột snapshot chưa có là cột mới thêm vào form: không tính là dòng đổi, nếu không lần build đầu đổi ngày mọi dòng
+        same = o and all(s(o[c]) == v for c, v in cur.items() if c in o)
         r["Ngày cập nhật"] = s(o.get("Ngày cập nhật")) if same else TODAY.strftime("%Y-%m-%d")
 
 
@@ -1490,25 +2011,20 @@ def put(ws, row, col, v, p, fidx, kieu=None):
 
 def write_links(wb, p):
     """Sheet _LINKS đúng dạng add-in SRC_LINKS đọc: A Key(Sheet!Ô) B Sheet C Ô D Nhãn E File(tương đối) F Trang G Ô đích.
-    Các dòng cùng Key phải liền nhau. H/I = mở thẳng / về ô khi không có add-in."""
+    Các dòng cùng Key phải liền nhau. Không còn cột mở dự phòng: 2 hyperlink mỗi dòng là phần nặng nhất của file."""
     from openpyxl.styles import Font, PatternFill
     from openpyxl.utils import get_column_letter as L
     ws = wb.create_sheet("_LINKS")
-    hdr = [("Key", 26), ("Sheet", 20), ("Ô", 7), ("Nhãn", 55), ("File (tương đối)", 60), ("Trang", 7), ("Ô đích", 16),
-           ("Mở (dự phòng)", 9), ("Về ô", 7)]
+    hdr = [("Key", 26), ("Sheet", 20), ("Ô", 7), ("Nhãn", 55), ("File (tương đối)", 60), ("Trang", 7), ("Ô đích", 16)]
     for j, (c, w) in enumerate(hdr, 1):
         cell = ws.cell(row=1, column=j, value=c)
         cell.font, cell.fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
         ws.column_dimensions[L(j)].width = w
-    lk = Font(color="0563C1", underline="single")
     for i, (sh, coord, lab, f, pg, sub) in enumerate(p.links, 2):
-        for j, v in enumerate([f"{sh}!{coord}", sh, coord, lab, f, pg, sub, "Mở", "←"], 1):
+        for j, v in enumerate([f"{sh}!{coord}", sh, coord, lab, f, pg, sub], 1):
             ws.cell(row=i, column=j, value=v)
-        ws.cell(row=i, column=8).hyperlink = f"#{sub}" if f == p.self_name else f + (f"#{sub}" if sub else "")
-        ws.cell(row=i, column=9).hyperlink = f"#'{sh}'!{coord}"
-        ws.cell(row=i, column=8).font = ws.cell(row=i, column=9).font = lk
     ws.freeze_panes = "A2"
-    ws.auto_filter.ref = f"A1:I{max(len(p.links) + 1, 2)}"
+    ws.auto_filter.ref = f"A1:G{max(len(p.links) + 1, 2)}"
 
 
 def write_reg(wb, sheet, rows, p, fidx, snap_reg):
@@ -1516,11 +2032,13 @@ def write_reg(wb, sheet, rows, p, fidx, snap_reg):
     from openpyxl.utils import get_column_letter as L
     ws = wb.create_sheet(sheet)
     cols = cols_of(sheet) if sheet != "VIEC_MO" else ["ID"] + cols_of(sheet)
+    cols = [c for c in cols if c not in BO_COT_XLSX.get(sheet, ())]
     hdr_fill = PatternFill("solid", fgColor="1F4E78")
     for j, c in enumerate(cols, 1):
         cell = ws.cell(row=1, column=j, value=c)
         cell.font, cell.fill = Font(bold=True, color="FFFFFF"), hdr_fill
         cell.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.row_dimensions[1].height = CAO_TIEU_DE
         long = c.startswith(("Mô tả", "Câu hỏi", "Trả lời", "Nội dung", "Đường dẫn", "Trong zip", "Việc", "Ghi chú"))
         ws.column_dimensions[L(j)].width = 45 if long else 16
     kinds = SHEETS[sheet]["cot"]
@@ -1528,41 +2046,165 @@ def write_reg(wb, sheet, rows, p, fidx, snap_reg):
     for i, r in enumerate(rows, 2):
         rec = {}
         for j, c in enumerate(cols, 1):
-            cell = put(ws, i, j, r.get(c), p, fidx, kinds.get(c, {}).get("kieu"))
+            cell = put(ws, i, j, r.get(c), p, fidx, None if sheet in AN_DU_LIEU else kinds.get(c, {}).get("kieu"))
             cell.alignment = Alignment(wrap_text=True, vertical="top")
             rec[c] = s(cell.value)
+        ws.row_dimensions[i].height = CAO_HANG
         snap[rec[cols[0]]] = rec
     ws.freeze_panes = "B2"
     ws.auto_filter.ref = f"A1:{L(len(cols))}{max(len(rows) + 1, 2)}"
-    if SHEETS[sheet]["loai"] == "KHOA":
+    if sheet == "SCOPE" and BANG_MA:
+        cm, cc = cols.index("Mã cấp 3") + 1, cols.index("Code ID") + 1
+        dv = droplist_ma()
+        for i, r in enumerate(rows, 2):
+            o = ws.cell(row=i, column=cm)
+            if not can_ma(p, r) and not o.value:
+                continue
+            dv.add(o.coordinate)
+            ws.cell(row=i, column=cc, value=cong_thuc_code_id(o.coordinate))
+            snap[s(r.get(cols[0]))]["Code ID"] = ws.cell(row=i, column=cc).value
+            if s(r.get("Cờ phân loại")):
+                o.fill = PatternFill("solid", fgColor=MAU_CO)
+        gan_droplist(ws, dv)
+        ds_ben = nap_ben(p).get("ds")
+        if ds_ben:
+            cb, cct = cols.index("Bên thực hiện") + 1, cols.index("Mã cấu tạo") + 1
+            d1, d2 = droplist_ben(ds_ben), droplist_ct()
+            for i, r in enumerate(rows, 2):
+                o = ws.cell(row=i, column=cb)
+                if can_ma(p, r) or o.value:
+                    d1.add(o.coordinate)
+                    d2.add(ws.cell(row=i, column=cct).coordinate)
+                if s(r.get("Cờ bên")):
+                    o.fill = PatternFill("solid", fgColor=MAU_CO)
+            gan_droplist(ws, d1)
+            gan_droplist(ws, d2)
+    if sheet == "CAU_TAO" and nap_ben(p).get("ds"):
+        dcot = droplist_ben(nap_ben(p)["ds"])
+        l = L(cols.index("Bên thực hiện") + 1)
+        dcot.add(f"{l}2:{l}{HANG_CT}")
+        gan_droplist(ws, dcot)
+    if SHEETS[sheet]["loai"] == "KHOA" and sheet != "VL_XUATHIEN":  # sổ máy dựng lại mỗi lần build, không nhận sửa tay
         snap_reg[sheet] = snap
     return ws
 
 
-def add_boq_cols(ws, info, scope, p, fidx, scope_letters, chinh_thuc_only=False):
+AN_DU_LIEU = ("SCOPE", "DWG", "KHU", "AREA", "VL_XUATHIEN")  # kho dữ liệu: ẩn, không dựng link; JSON vẫn giữ đủ link, các sheet hiện mở được file và trang
+AN_CHAY_CODE = ("_LINKS", "_CODE")
+AN_KHI_TRONG = ("CAU_TAO", "PHAN_VIEC")
+BO_COT_XLSX = {"VL_XUATHIEN": ("Khóa", "Dòng BOQ", "Chữ gốc")}  # chỉ bỏ ở sheet cho nhẹ file; JSON vẫn có
+MUC_SHEET_AN = {"SCOPE": "Kho dữ liệu dòng BOQ; sửa Trạng thái, Nội dung cuối ở đây", "DWG": "Sổ số bản vẽ, bản hiệu lực", "KHU": "Khu → mã phòng",
+                "AREA": "Tiền tố mã → tập phòng; sửa Mã phòng ở đây", "VL_XUATHIEN": "Mã vật liệu xuất hiện ở đâu",
+                "CAU_TAO": "Mẫu cấu tạo dòng nhiều bên; hiện khi đã có mẫu", "PHAN_VIEC": "Phần việc theo bên; hiện khi đã có mẫu cấu tạo",
+                "_LINKS": "Đích link cho add-in SRC_LINKS", "_CODE": "Danh sách droplist, nghĩa Code ID"}
+CAO_HANG, CAO_TIEU_DE = 15, 30  # hàng cố định, chữ dài cắt trong ô, xem đủ bằng cách click; không để Excel tự giãn theo nội dung
+COT_PHANLOAI_TU_TINH = ("Nguồn phân loại", "Cờ phân loại", "Cờ bên")  # máy ghi lại mỗi lần build; sửa tay vô nghĩa nên pull_user không đọc
+HANG_CT = 500  # số hàng có sẵn droplist ở CAU_TAO, và số mẫu tối đa trong droplist Mã cấu tạo
+MAU_CO = "FFD966"  # ô Mã cấp 3 có Cờ phân loại: chỗ máy không chắc
+
+
+def cong_thuc_code_id(o):
+    """&"" để dòng KHÔNG RÕ (không có mã ở cột G) ra trống thay vì 0."""
+    return f'=IFERROR(INDEX(_CODE!$G:$G,MATCH({o},_CODE!$D:$D,0))&"","")'
+
+
+def droplist_ma():
+    from openpyxl.worksheet.datavalidation import DataValidation
+    n = len(BANG_MA.rows) + 2  # hàng tiêu đề + các mã + KHÔNG RÕ
+    return DataValidation(type="list", formula1=f"=_CODE!$D$2:$D${n}", allow_blank=True, showErrorMessage=True,
+                          errorTitle="Mã cấp 3", error="Chọn trong danh sách (sheet _CODE).")
+
+
+def droplist_ben(ds):
+    """Chỉ cảnh báo, không chặn: dòng nhiều bên chưa lập mẫu có thể gõ 'Nhà máy; NTP đá'."""
+    from openpyxl.worksheet.datavalidation import DataValidation
+    return DataValidation(type="list", formula1=f"=_CODE!$L$2:$L${len(ds) + 1}", allow_blank=True, showErrorMessage=True, errorStyle="warning",
+                          errorTitle="Bên thực hiện", error="Bên này không có trong danh sách của dự án (_ben.json). Vẫn giữ?")
+
+
+def droplist_ct():
+    from openpyxl.worksheet.datavalidation import DataValidation
+    return DataValidation(type="list", formula1=f"=_CODE!$N$2:$N${HANG_CT}", allow_blank=True, showErrorMessage=True, errorStyle="warning",
+                          errorTitle="Mã cấu tạo", error="Mẫu này chưa có ở sheet CAU_TAO.")
+
+
+def gan_droplist(ws, dv):
+    """Droplist không có ô nào thì không gắn: thẻ <dataValidations count="0"/> làm Excel từ chối mở cả file."""
+    if dv.sqref.ranges:
+        ws.add_data_validation(dv)
+
+
+def sheet_code(wb, ds_ben=(), ma_ct=()):
+    """Sheet _CODE: D = Mã cấp 3, G = Code ID, I = mô tả, cùng cột với Datawork.xlsx (plan mục 3)."""
+    from openpyxl.styles import Font, PatternFill
+    ws = wb.create_sheet("_CODE")
+    for c, t, w in (("C", "Mã cấp 2", 30), ("D", "Mã cấp 3", 42), ("G", "Code ID", 10), ("I", "Mô tả", 70)):
+        o = ws[f"{c}1"]
+        o.value, o.font, o.fill = t, Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
+        ws.column_dimensions[c].width = w
+    for i, r in enumerate(BANG_MA.rows + [{"cap3": code_id.KHONG_RO}], 2):
+        ws[f"C{i}"], ws[f"D{i}"], ws[f"G{i}"], ws[f"I{i}"] = r.get("cap2"), r["cap3"], r.get("ma"), r.get("mo_ta")
+    for c, t, ds in (("L", "Bên thực hiện", ds_ben), ("N", "Mã cấu tạo", ma_ct)):
+        o = ws[f"{c}1"]
+        o.value, o.font, o.fill = t, Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
+        ws.column_dimensions[c].width = 28
+        for i, v in enumerate(ds, 2):
+            ws[f"{c}{i}"] = v
+    ws.freeze_panes = "A2"
+    return ws
+
+
+def cat_khai_cot(ws, dau, cuoi):
+    """File gốc khai cột theo khoảng (M:O ẩn, P:XFD...). Cắt phần lấn vào dau..cuoi, giữ nguyên phần hai bên,
+    nếu không cột tool thêm bị ẩn theo khoảng của CĐT và trong file có 2 khai báo chồng nhau."""
+    from copy import copy
+    from openpyxl.utils import get_column_letter as L
+    from openpyxl.worksheet.dimensions import ColumnDimension
+    for k, d in list(ws.column_dimensions.items()):
+        lo = d.min or column_index(k)
+        hi = d.max or lo
+        if hi < dau or lo > cuoi:
+            continue
+        if hi > cuoi:
+            du = ColumnDimension(ws, index=L(cuoi + 1), min=cuoi + 1, max=hi, width=d.width, hidden=d.hidden, outlineLevel=d.outlineLevel, collapsed=d.collapsed)
+            du._style = copy(d._style)
+            ws.column_dimensions[L(cuoi + 1)] = du
+        if lo < dau:
+            d.min, d.max = lo, dau - 1
+        else:
+            del ws.column_dimensions[k]
+
+
+def add_boq_cols(ws, info, scope, p, fidx, scope_letters, chinh_thuc_only=False, res=None):
     from openpyxl.styles import Font, PatternFill, Alignment
     from openpyxl.utils import get_column_letter as L
+    cot = SHEETS["SCOPE"]["cot"]
     h = info["hang_tieu_de"]
     start = info["cot_cuoi"] + 2
-    ct = [c for c, x in SHEETS["SCOPE"]["cot"].items() if x.get("boq") == "chinh_thuc"]
-    nb = [] if chinh_thuc_only else [c for c, x in SHEETS["SCOPE"]["cot"].items() if x.get("boq") == "noi_bo"]
+    ct = [c for c, x in cot.items() if x.get("boq") == "chinh_thuc"]
+    nb = [] if chinh_thuc_only else [c for c, x in cot.items() if x.get("boq") == "noi_bo"] + [COT_SPEC_VL]
+    rong = dict(TONGHOP)
+    thu_tu = list(rong)
+    nb.sort(key=lambda c: thu_tu.index(c) if c in thu_tu else len(thu_tu))  # cùng thứ tự BOQ_TONGHOP; cột chỉ có ở đây xếp cuối
     green, grey = PatternFill("solid", fgColor="E2EFDA"), PatternFill("solid", fgColor="D9D9D9")
     letters = {}
+    cat_khai_cot(ws, start, start + len(ct + nb) - 1)
     for j, c in enumerate(ct + nb):
         col = start + j
         letters[c] = L(col)
         cell = ws.cell(row=h, column=col, value=c)
         cell.font, cell.fill = Font(bold=True), (green if c in ct else grey)
-        cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
-        ws.column_dimensions[L(col)].width = 40 if c.startswith(("Mô tả", "Nội dung", "Việc")) else 16
-        if c in nb:
-            ws.column_dimensions[L(col)].outlineLevel = 1
-            ws.column_dimensions[L(col)].hidden = True
+        cell.alignment = Alignment(vertical="center", horizontal="center")
+        ws.column_dimensions[L(col)].width = 30 if c == "Mã cấp 3" else rong.get(c) or (40 if c.startswith(("Mô tả", "Nội dung", "Việc")) else 16)
     if h > 1:
         ws.cell(row=h - 1, column=start, value="NHÀ THẦU" if chinh_thuc_only else "NHÀ THẦU – CHÍNH THỨC").font = Font(bold=True)
         if nb:
             ws.cell(row=h - 1, column=start + len(ct), value="NỘI BỘ – bỏ khi gửi CĐT (tra từ sheet SCOPE)").font = Font(bold=True, color="C00000")
     rows_snap = {}
+    dv = droplist_ma() if nb and BANG_MA else None
+    ds_ben = nap_ben(p).get("ds") if nb and BANG_MA else None
+    dv_ben, dv_ct = (droplist_ben(ds_ben), droplist_ct()) if ds_ben else (None, None)
+    hang_so = hang_cua_so(res) if nb else None
     for key, r in scope.items():
         if r.get("Sheet") != ws.title:
             continue
@@ -1570,17 +2212,48 @@ def add_boq_cols(ws, info, scope, p, fidx, scope_letters, chinh_thuc_only=False)
         ic = column_index(info["cot_item"])
         rec = {"_sig": row_sig([ws.cell(row=row, column=ic + j).value for j in range(1, 5)])}  # pull_user kiểm hàng bị dời
         for c in ct:
-            cell = put(ws, row, column_index(letters[c]), r.get(c), p, fidx)
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
+            cell = put(ws, row, column_index(letters[c]), r.get(c), p, fidx)  # không wrap: wrap làm hàng của CĐT tự giãn, mất format gốc
             rec[c] = s(cell.value)
         for c in nb:
-            if SHEETS["SCOPE"]["cot"][c]["kieu"] == "LINK":  # công thức tra không mang theo link → ghi thẳng
-                put(ws, row, column_index(letters[c]), r.get(c), p, fidx, "LINK").alignment = Alignment(wrap_text=True, vertical="top")
+            if c == COT_SPEC_VL:  # không có ở SCOPE nên không tra được; cột không wrap nên nối trên 1 dòng
+                vl, spec = spec_cua_dong(r, res["MAT"])
+                cell = ws.cell(row=row, column=column_index(letters[c]), value=" | ".join(spec) or None)
+                set_links(ws, cell, p, [link_item(p, l, fidx) for m in vl for l in links_of(res["MAT"][m].get("Nguồn spec"))])
+                continue
+            if cot[c].get("sua"):  # giá trị thật, không phải công thức: pull_user đọc ngược ô này
+                cell = put(ws, row, column_index(letters[c]), r.get(c), p, fidx)
+                rec[c] = s(cell.value)
+                if c == "Mã cấp 3" and (can_ma(p, r) or cell.value):
+                    if dv:
+                        dv.add(cell.coordinate)
+                    if s(r.get("Cờ phân loại")):
+                        cell.fill = PatternFill("solid", fgColor=MAU_CO)
+                if c == "Bên thực hiện":
+                    if s(r.get("Cờ bên")):
+                        cell.fill = PatternFill("solid", fgColor=MAU_CO)
+                    if dv_ben and (can_ma(p, r) or cell.value):
+                        dv_ben.add(cell.coordinate)
+                        dv_ct.add(f"{letters['Mã cấu tạo']}{row}")
+                continue
+            if c == "Code ID":
+                if dv and (can_ma(p, r) or s(r.get("Mã cấp 3"))):
+                    ws[f"{letters[c]}{row}"] = cong_thuc_code_id(f"{letters['Mã cấp 3']}{row}")
+                continue
+            if cot[c]["kieu"] == "LINK":  # công thức tra không mang theo link → ghi thẳng
+                put(ws, row, column_index(letters[c]), r.get(c), p, fidx, "LINK")
                 continue
             sl = scope_letters[c]
             ws[f"{letters[c]}{row}"] = f'=IFERROR(INDEX(SCOPE!${sl}:${sl},MATCH("{key}",SCOPE!$A:$A,0))&"","")'
+            if c in COT_LINK_SO:
+                so = COT_LINK_SO[c]
+                set_links(ws, ws[f"{letters[c]}{row}"], p, [(m, None, None, f"'{so}'!A{hang_so[so][m]}") for m in split_list(r.get(c)) if m in res[so]])
         rows_snap[key] = rec
-    return {"cols": {c: letters[c] for c in ct}, "item": info["cot_item"], "rows": rows_snap}
+    if dv:
+        gan_droplist(ws, dv)
+    if dv_ben:
+        gan_droplist(ws, dv_ben)
+        gan_droplist(ws, dv_ct)
+    return {"cols": {c: letters[c] for c in ct + [x for x in nb if x in cot and cot[x].get("sua")]}, "item": info["cot_item"], "rows": rows_snap}
 
 
 def row_sig(vals):
@@ -1597,9 +2270,26 @@ def column_index(letter):
 
 
 TONGHOP = [("Dòng BOQ gốc", 20), ("Item", 7), ("Vùng", 14), ("Nhóm", 14), ("Mô tả BOQ", 50), ("ĐV", 6), ("KL BOQ", 10),
-           ("Mã phòng", 28), ("Trạng thái", 11), ("Nhóm thực hiện", 11), ("NTP chi tiết", 14), ("Bản vẽ hiệu lực", 40),
-           ("Rev/ngày/đợt", 18), ("Mã VL", 12), ("Spec · VL", 50), ("Mã spec/FF&E", 14), ("Mã TCQ", 16),
+           ("Mã phòng", 28), ("Trạng thái", 11), ("Mã cấp 3", 26), ("Code ID", 9), ("Bên thực hiện", 16), ("Mã cấu tạo", 10), ("Bản vẽ hiệu lực", 40),
+           ("Rev/ngày/đợt", 18), ("Mã VL", 12), ("Spec · VL", 50), ("Link spec", 30), ("Mã spec/FF&E", 14), ("Mã TCQ", 16),
            ("Nội dung cuối (VN)", 45), ("Việc còn mở", 35), ("Mô tả NT – Base", 40)]
+COT_SPEC_VL = "Spec · VL"  # ghép từ MAT theo Mã VL của dòng, không phải cột SCOPE
+COT_LINK_SO = {"Mã VL": "MAT", "Mã TCQ": "TCQ_LOG"}  # bấm ô nhảy tới dòng ở sổ
+
+
+def hang_cua_so(res):
+    """Mã -> số hàng ở MAT, TCQ_LOG. write_reg ghi đúng thứ tự res, từ hàng 2."""
+    return {sh: {k: i for i, k in enumerate(res[sh], 2)} for sh in COT_LINK_SO.values()}
+
+
+def spec_cua_dong(r, mat):
+    """Mã VL của dòng có trong MAT, kèm chữ 'mã: mô tả [trạng thái nếu khác Theo spec]' từng mã."""
+    vl = [m for m in split_list(r.get("Mã VL")) if m in mat]
+    spec = []
+    for m in vl:
+        st = s(mat[m].get("Trạng thái cuối"))
+        spec.append(f"{m}: {s(mat[m].get('Mô tả'))}" + (f" [{st}]" if st and st != "Theo spec" else ""))
+    return vl, spec
 
 
 def boq_tonghop(wb, res, p, fidx):
@@ -1614,16 +2304,13 @@ def boq_tonghop(wb, res, p, fidx):
         cell.font, cell.fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
         cell.alignment = Alignment(wrap_text=True, vertical="center")
         ws.column_dimensions[L(j)].width = w
+    ws.row_dimensions[1].height = CAO_TIEU_DE
     mat, tcq = res["MAT"], res["TCQ_LOG"]
-    row_of = {sh: {k: i for i, k in enumerate(res[sh], 2)} for sh in ("MAT", "TCQ_LOG")}
+    row_of = hang_cua_so(res)
     for i, r in enumerate(res["SCOPE"].values(), 2):
-        vl = [m for m in split_list(r.get("Mã VL")) if m in mat]
+        ws.row_dimensions[i].height = CAO_HANG
+        vl, spec = spec_cua_dong(r, mat)
         tc = [m for m in split_list(r.get("Mã TCQ")) if m in tcq]
-        spec = []
-        for m in vl:
-            x = mat[m]
-            st = s(x.get("Trạng thái cuối"))
-            spec.append(f"{m}: {s(x.get('Mô tả'))}" + (f" [{st}]" if st and st != "Theo spec" else ""))
         for j, c in enumerate(cols, 1):
             if c == "Dòng BOQ gốc":
                 cell = ws.cell(row=i, column=j, value=s(r.get("Khóa")))
@@ -1639,10 +2326,55 @@ def boq_tonghop(wb, res, p, fidx):
                 set_links(ws, cell, p, [(m, None, None, f"'TCQ_LOG'!A{row_of['TCQ_LOG'][m]}") for m in tc])
             else:
                 cell = put(ws, i, j, r.get(c), p, fidx, SHEETS["SCOPE"]["cot"].get(c, {}).get("kieu"))
+                if c == "Mã cấp 3" and s(r.get("Cờ phân loại")):
+                    cell.fill = PatternFill("solid", fgColor=MAU_CO)
             cell.alignment = Alignment(wrap_text=True, vertical="top")
     ws.freeze_panes = "F2"
     ws.auto_filter.ref = f"A1:{L(len(cols))}{max(len(res['SCOPE']) + 1, 2)}"
     return ws
+
+
+def phan_cua_dong(r, mau):
+    """1 dòng SCOPE -> [(bên, phần việc, mã VL, nguồn tờ)], dòng chưa có bên -> [("", ...)]. Dùng chung cho PHAN_VIEC và goi."""
+    mct = s(r.get("Mã cấu tạo"))
+    if mct in mau:
+        return [(b, s(c.get("Thành phần")), s(c.get("Mã VL")), s(c.get("Nguồn"))) for c in mau[mct] for b in (tach_ben(c.get("Bên thực hiện")) or [""])]
+    bs = tach_ben(r.get("Bên thực hiện"))
+    if len(bs) > 1:
+        return [(b, "Một phần của dòng, xem mô tả", s(_txt(r.get("Mã VL"))), "") for b in bs]
+    return [(bs[0] if bs else "", "Cả dòng", s(_txt(r.get("Mã VL"))), "")]
+
+
+def mau_cau_tao(res):
+    mau = defaultdict(list)
+    for r in res["CAU_TAO"].values():
+        mau[s(r.get("Mã cấu tạo"))].append(r)
+    return mau
+
+
+def sheet_phan_viec(wb, res, p):
+    """1 dòng = dòng BOQ + phần việc + bên. Chỉ để xem và lọc: dựng lại mỗi lần build, không có trong _snapshot và pull_user."""
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter as L
+    ws = wb.create_sheet("PHAN_VIEC", 0)
+    cols = [("Bên thực hiện", 24), ("Dòng BOQ", 24), ("Item", 7), ("Mô tả BOQ", 55), ("Phần việc", 30), ("Mã VL", 14), ("Mã cấu tạo", 10),
+            ("ĐV", 6), ("KL BOQ", 10), ("Trạng thái", 11), ("Nguồn tờ", 22)]
+    for j, (c, w) in enumerate(cols, 1):
+        o = ws.cell(row=1, column=j, value=c)
+        o.font, o.fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
+        ws.column_dimensions[L(j)].width = w
+    mau, i = mau_cau_tao(res), 2
+    for k, r in res["SCOPE"].items():
+        if not (can_ma(p, r) or s(r.get("Bên thực hiện"))):
+            continue
+        for b, pv, vl, ng in phan_cua_dong(r, mau):
+            hang = [b, k, s(r.get("Item")), s(r.get("Mô tả BOQ")), pv, vl, s(r.get("Mã cấu tạo")), s(r.get("ĐV")), r.get("KL BOQ"), s(r.get("Trạng thái")), ng]
+            for j, v in enumerate(hang, 1):
+                ws.cell(row=i, column=j, value=v if v != "" else None).alignment = Alignment(wrap_text=True, vertical="top")
+            ws.row_dimensions[i].height = CAO_HANG
+            i += 1
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{L(len(cols))}{max(i - 1, 2)}"
 
 
 def dashboard(wb, res, errs, xem, p, n_user):
@@ -1669,18 +2401,44 @@ def dashboard(wb, res, errs, xem, p, n_user):
     line("Dòng BOQ", len(scope))
     for k, v in Counter(s(x.get("Trạng thái")) or "(chưa gán)" for x in scope.values()).most_common():
         line("  Trạng thái", k, v)
-    for k, v in Counter(s(x.get("Nhóm thực hiện")) or "(chưa gán)" for x in scope.values()).most_common():
-        line("  Nhóm thực hiện", k, v)
+    for k, v in Counter(s(x.get("Bên thực hiện")) or "(chưa gán)" for x in scope.values()).most_common():
+        line("  Bên thực hiện", k, v)
+    cfg_ben = nap_ben(p)
+    if cfg_ben.get("tam"):
+        line("  Danh sách bên", "TẠM", "Chưa chốt, thay ở _data\\_ben.json rồi build lại")
+    con_lam = [x for x in scope.values() if can_ma(p, x) and s(x.get("Trạng thái")) == "Base"]
+    line("Dòng Base chưa có bên", sum(1 for x in con_lam if not s(x.get("Bên thực hiện"))), "Dòng này không vào file goi nào")
+    line("Dòng còn cờ nhiều bên", sum(1 for x in scope.values() if "Nhiều bên?" in s(x.get("Cờ bên"))), "Tender chọn Mã cấu tạo nếu cần chia gói; sheet ẩn SCOPE, cột Cờ bên")
+    co_ma = [x for x in scope.values() if can_ma(p, x)]
+    line("Dòng cần Code ID", len(co_ma))
+    for k, v in Counter(s(x.get("Nguồn phân loại")) or "(chưa có nguồn)" for x in co_ma).most_common():
+        line("  Nguồn phân loại", k, v)
     line("Câu TCQ", len(tcq), f"bị thay: {sum(1 for x in tcq.values() if s(x.get('Hiệu lực')).startswith('Bị'))}")
     line("Mã VL (MAT)", len(res["MAT"]))
     line("Số BV (DWG)", len(res["DWG"]))
+    tk = jload(p.f("_xuathien_tk.json")) or {}
+    if res["VL_XUATHIEN"]:
+        line("Sổ xuất hiện VL", len(res["VL_XUATHIEN"]), f"{tk.get('dem', {}).get('mã', 0)} mã; tag trên bản vẽ là nét nên dòng Bản vẽ đi qua dòng BOQ và có cờ")
+        line("Mã trong BOQ chưa có trang spec", len(tk.get("ko_spec", [])), "; ".join(tk.get("ko_spec", [])[:30]))
+        line("Cặp mã–dòng lệch Area", tk.get("dem", {}).get("ca lệch Area", 0), "Phòng ở dòng BOQ không thuộc tiền tố mã (sheet ẩn AREA). Sheet ẩn VL_XUATHIEN, cột Cờ")
+    line("Dòng có mã nhưng không có Link spec", sum(1 for x in scope.values() if ma_cua_dong(x, res["AREA"]) and not x.get("Link spec")))
     line("Sửa tay user giữ lại", n_user)
+    r += 1
+    line("SHEET ẨN", "Chuột phải tab → Unhide; mỗi lần build ẩn lại", bold=True)
+    for k, v in MUC_SHEET_AN.items():
+        if k not in AN_KHI_TRONG or not res["CAU_TAO"]:
+            line("  " + k, "", v)
     r += 1
     line("CẦN XEM", bold=True)
     line("Loại", "Liên quan", "Nội dung", bold=True)
     keys = list(scope)
     for x in errs:
         line("LỖI kiểm", "", x)
+    co = Counter(s(x.get("Cờ phân loại")) for x in scope.values() if s(x.get("Cờ phân loại")))
+    if co:
+        line("Code ID highlight", f"{sum(co.values())} dòng", "Chỗ máy không chắc, ô Mã cấp 3 tô màu; lọc theo màu ở BOQ_TONGHOP", link="#'BOQ_TONGHOP'!A1")
+        for k, v in co.most_common():
+            line("  Cờ phân loại", k, v)
     for k, t in tcq.items():
         tt = s(t.get("Tình trạng trả lời"))
         if tt in ("Chưa trả lời", "Hoãn/Chờ") and s(t.get("Hiệu lực")) == "Hiệu lực":
@@ -1689,7 +2447,7 @@ def dashboard(wb, res, errs, xem, p, n_user):
     for k, x in scope.items():
         if s(x.get("Trạng thái")) == "Chờ" or s(x.get("Việc còn mở")):
             line("BOQ " + (s(x.get("Trạng thái")) or "mở"), k, s(x.get("Việc còn mở")) or s(x.get("Mô tả BOQ"))[:150],
-                 link=f"#'SCOPE'!A{keys.index(k) + 2}")
+                 link=f"#'BOQ_TONGHOP'!A{keys.index(k) + 2}")  # cùng thứ tự dòng với SCOPE; link tới sheet ẩn không nhảy
     for i, v in enumerate(res["VIEC_MO"]):
         line("Việc mở", s(v.get("Liên quan")), s(v.get("Nội dung")), link=f"#'VIEC_MO'!A{i + 2}")
     for k, f in res["FILE_INDEX"].items():
@@ -1697,9 +2455,11 @@ def dashboard(wb, res, errs, xem, p, n_user):
             line("Chưa có file", k, f"{s(f.get('Ghi chú'))} {s(f.get('Đường dẫn'))}")
     miss = sum(1 for x in scope.values() if not s(x.get("Trạng thái")))
     if miss:
-        line("BOQ chưa gán", f"{miss} dòng", "Trạng thái trống — lọc SCOPE cột Trạng thái")
+        line("BOQ chưa gán", f"{miss} dòng", "Trạng thái trống; lọc cột Trạng thái ở BOQ_TONGHOP")
     for x in xem[:40]:
         line("XEM", "", x)
+    for x in tk.get("xem", [])[:40]:
+        line("XEM spec", "", x)
     return ws
 
 
@@ -1727,6 +2487,15 @@ def cmd_build(goc, args):
         sys.exit("LỖI: chưa chạy boq")
     snap_old = jload(p.f("_snapshot.json"))
     n_user = pull_user(p) if not ra else 0
+    if not ra and os.path.exists(p.f("SCOPE.ben-tool.json")):  # nháp bên phải né ô user vừa sửa
+        cmd_ben(goc)
+    if not ra:  # sau khi kéo sửa tay: Nguồn/Cờ phân loại phải theo chỗ user vừa sửa, ô sửa vào nho_local
+        if os.path.exists(p.f("SCOPE.phanloai-tool.json")):
+            cmd_phanloai(goc, [])
+        else:
+            print("XEM: chưa chạy phanloai, cột Mã cấp 3 và Code ID sẽ trống")
+        cmd_area(goc)
+        cmd_xuathien(goc)
     errs, xem, res = run_check(p)
     derive(p, res, snap_old)
     fidx = res["FILE_INDEX"]
@@ -1752,14 +2521,22 @@ def cmd_build(goc, args):
     wb = openpyxl.load_workbook(src_boq)
     for sh, info in bmap["sheet"].items():
         if sh in wb.sheetnames:
-            snap["ct"][sh] = add_boq_cols(wb[sh], info, res["SCOPE"], p, fidx, scope_letters)
-    for sh in ("SCOPE", "TCQ_LOG", "MAT", "DWG", "KHU"):
+            snap["ct"][sh] = add_boq_cols(wb[sh], info, res["SCOPE"], p, fidx, scope_letters, res=res)
+    for sh in ("SCOPE", "TCQ_LOG", "MAT", "DWG", "KHU", "AREA", "VL_XUATHIEN", "CAU_TAO"):
         write_reg(wb, sh, list(res[sh].values()), p, fidx, snap["reg"])
     vm = [dict(v, ID=f"V{i:03d}") for i, v in enumerate(res["VIEC_MO"], 1)]
     write_reg(wb, "VIEC_MO", vm, p, fidx, snap["reg"])
+    sheet_phan_viec(wb, res, p)
     boq_tonghop(wb, res, p, fidx)
     dashboard(wb, res, errs, xem, p, n_user)
     write_links(wb, p)
+    if BANG_MA:
+        sheet_code(wb, nap_ben(p).get("ds") or (), sorted({s(r.get("Mã cấu tạo")) for r in res["CAU_TAO"].values()}))
+    for sh in AN_DU_LIEU + AN_CHAY_CODE + (() if res["CAU_TAO"] else AN_KHI_TRONG):
+        if sh in wb.sheetnames:
+            wb[sh].sheet_state = "hidden"
+    for sh in ("DASHBOARD", "BOQ_TONGHOP", "TCQ_LOG", "MAT", "VIEC_MO"):
+        wb[sh].sheet_properties.tabColor = "1F4E78"  # không tô tab sheet của CĐT, giữ format gốc
     wb.active = 0
     wb.save(out)
     tra_part_goc(src_boq, out)
@@ -1792,6 +2569,136 @@ def cmd_build(goc, args):
     print(f"{len(errs)} LỖI, {len(xem)} XEM (chi tiết ở sheet DASHBOARD)")
 
 
+# ---------------------------------------------------------------- ben, goi
+def cmd_ben(goc):
+    """Nháp Bên thực hiện cho dòng chưa có. Không suy từ Code ID (plan mục 6a); ô LLM/user đã ghi không đụng tới."""
+    p = P(goc).need()
+    bang_loai = nap_ben(p).get("loai")
+    if not bang_loai:
+        sys.exit(f"LỖI: chưa có bảng loai trong {p.f('_ben.json')} ({{\"ds\": [...], \"loai\": {{\"Đá\": \"NTP đá\"}}}})")
+    jdump(p.f("SCOPE.ben-tool.json"), {"rows": []})  # nháp cũ không được tính là 'đã có bên'
+    res, src = merge(p)
+    out, trong = [], 0
+    for k, r in res["SCOPE"].items():
+        if not can_ma(p, r) or s(r.get("Bên thực hiện")):
+            continue
+        bs = ben_tu_mat(r, res["MAT"], bang_loai)
+        if bs:
+            out.append({"Khóa": k, "Bên thực hiện": "; ".join(bs), "Cờ bên": "Nháp"})
+        else:
+            trong += 1
+    write_tool(p, "SCOPE", "ben", out)
+    print(f"Nháp {len(out)} dòng (luôn có cờ); {trong} dòng không suy được, để trống cho tender.")
+
+
+COT_GOI = [("Dòng BOQ", 24), ("Item BOQ", 8), ("Mô tả", 60), ("Phần việc của bên", 30), ("Mã VL", 14), ("Bản vẽ", 24), ("ĐV", 6),
+           ("KL BOQ (tham khảo)", 11), ("Ghi chú", 16), ("ĐV NTP", 8), ("KL NTP", 10), ("Đơn giá", 12)]
+RX_TCQ_REF = re.compile(r"[,;]?\s*\bTCQ\s*\d{1,2}(?:\s*-\s*\w+)?", re.I)
+
+
+def mo_ta_goi(r):
+    """Mô tả NT – Base nếu có (đã theo TCQ), không thì Mô tả BOQ. Bỏ mã TCQ vì đó là sổ nội bộ của tender với CĐT."""
+    t = s(r.get("Mô tả NT – Base")) or s(r.get("Mô tả BOQ"))
+    t = RX_TCQ_REF.sub("", t)
+    t = re.sub(r"\(\s*\)", "", t)
+    return re.sub(r"\s+([,;.)])", r"\1", re.sub(r"\(\s*[,;]\s*", "(", t)).strip()
+
+
+def soat_goi(path, ben, cac_ben):
+    """Đọc lại file đã ghi, tìm thông tin không được lộ. Trả (LỖI, XEM)."""
+    import openpyxl
+    wb = openpyxl.load_workbook(path)
+    loi, xem = [], []
+    if len(wb.sheetnames) != 1:
+        loi.append(f"có {len(wb.sheetnames)} sheet")
+    ws = wb.worksheets[0]
+    if ws._hyperlinks:
+        loi.append("có link")
+    hdr = next(i for i, r in enumerate(ws.iter_rows(values_only=True), 1) if r[0] == COT_GOI[0][0])
+    idx = {c: j for j, (c, _) in enumerate(COT_GOI)}
+    ma_noi_bo = {r["ma"] for r in BANG_MA.rows} | {r["cap3"] for r in BANG_MA.rows} if BANG_MA else set()
+    khac = [b for b in cac_ben if b != ben]
+    for i, r in enumerate(ws.iter_rows(min_row=hdr + 1, values_only=True), hdr + 1):
+        for j, v in enumerate(r):
+            t = s(v)
+            if not t:
+                continue
+            if t in ma_noi_bo:
+                loi.append(f"hàng {i}: Code ID '{t}'")
+            if re.search(r"\bTCQ\s*\d|10_TENDER|_data|[A-Z]:\\|https?://|\.pdf\b", t, re.I):
+                loi.append(f"hàng {i}: thông tin nội bộ '{t[:60]}'")
+            if j in (idx["Phần việc của bên"], idx["Ghi chú"]) and t in khac:
+                loi.append(f"hàng {i}: tên bên khác '{t}'")
+            if j == idx["Mô tả"]:
+                for b in khac:
+                    if len(b) >= 3 and re.search(rf"(?<!\w){re.escape(b)}(?!\w)", t):
+                        xem.append(f"hàng {i}: mô tả nhắc '{b}' (giữ nguyên chữ BOQ)")
+        for c in ("ĐV NTP", "KL NTP", "Đơn giá"):
+            if s(r[idx[c]]):
+                loi.append(f"hàng {i}: cột {c} phải để trống")
+    return loi, xem
+
+
+def cmd_goi(goc, args):
+    """File gửi 1 nhà thầu phụ: workbook mới, không chép từ BOQ_TRACK. Skill không tự gửi."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter as L
+    p = P(goc).need()
+    if not args:
+        sys.exit('LỖI: goi <GOC> "<bên>"')
+    ben = args[0].strip()
+    res = merge(p)[0]
+    derive(p, res, None)
+    mau = mau_cau_tao(res)
+    hang, cac_ben, xem = [], set(), []
+    for k, r in res["SCOPE"].items():
+        tt = s(r.get("Trạng thái"))
+        phan = phan_cua_dong(r, mau)
+        if tt in TT_CON_LAM:
+            cac_ben |= {x[0] for x in phan if x[0]}
+        if tt not in TT_CON_LAM:
+            continue
+        for b, pv, vl, _ in phan:
+            if b != ben:
+                continue
+            bvs = sorted({m for l in links_of(r.get("Bản vẽ hiệu lực")) for m in re.findall(RX_DWG, s(l[0]).upper())})
+            gc = {"VE": "VE", "Chờ": "Chờ xác nhận"}.get(tt)
+            hang.append([k, s(r.get("Item")), mo_ta_goi(r), pv, vl, "; ".join(bvs), s(r.get("ĐV")), r.get("KL BOQ"), gc, None, None, None])
+    if not hang:
+        sys.exit(f"LỖI: không có dòng nào của bên '{ben}'. Bên có dòng: {' | '.join(sorted(cac_ben))}")
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "GOI"
+    wb.properties.creator = ""
+    ws["A1"] = f"{p.cfg['du_an']} — phần việc của: {ben}"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = f"Ngày {TODAY:%d/%m/%Y}. KL BOQ chỉ để tham khảo; xin điền ĐV, KL, đơn giá của đơn vị vào 3 cột cuối."
+    for j, (c, w) in enumerate(COT_GOI, 1):
+        o = ws.cell(row=4, column=j, value=c)
+        o.font, o.fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F4E78")
+        o.alignment = Alignment(wrap_text=True, vertical="center")
+        ws.column_dimensions[L(j)].width = w
+    for i, h in enumerate(hang, 5):
+        for j, v in enumerate(h, 1):
+            ws.cell(row=i, column=j, value=v if v != "" else None).alignment = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "A5"
+    d = os.path.join(p.t, "04_out")
+    os.makedirs(d, exist_ok=True)
+    out = os.path.join(d, f"{p.cfg['du_an']}_GOI_{re.sub(r'[^\w. -]+', '_', ben).strip()}_{TODAY:%y%m%d}.xlsx")
+    if os.path.exists(os.path.join(d, "~$" + os.path.basename(out))):
+        sys.exit(f"LỖI: {out} đang mở trong Excel — đóng file rồi chạy lại.")
+    wb.save(out)
+    loi, xem = soat_goi(out, ben, cac_ben)
+    if loi:
+        os.remove(out)
+        sys.exit("LỖI: máy soát thấy thông tin không được gửi, đã xóa file:\n  " + "\n  ".join(loi[:20]))
+    print(f"Đã ghi {out}: {len(hang)} dòng. Máy soát: không có giá, Code ID, mã TCQ, link, đường dẫn nội bộ.")
+    for x in xem[:30]:
+        print("XEM", x)
+    print("Tender kiểm file trước khi gửi; skill không tự gửi.")
+
+
 # ---------------------------------------------------------------- main
 def main(a):
     if not a:
@@ -1804,11 +2711,13 @@ def main(a):
         sys.exit(LENH)
     goc, rest = rest[0], rest[1:]
     fn = {"init": lambda: cmd_init(goc, rest), "kiemke": lambda: cmd_kiemke(goc), "boq": lambda: cmd_boq(goc),
+          "phanloai": lambda: cmd_phanloai(goc, rest), "ben": lambda: cmd_ben(goc), "goi": lambda: cmd_goi(goc, rest),
           "tcq": lambda: cmd_tcq(goc), "dwg": lambda: cmd_dwg(goc), "mat": lambda: cmd_mat(goc),
           "doichieu": lambda: cmd_doichieu(goc), "zip": lambda: cmd_zip(goc, rest[0], rest[1:]),
           "loc": lambda: cmd_loc(goc, rest[0], rest[1:]), "check": lambda: cmd_check(goc, rest),
           "build": lambda: cmd_build(goc, rest), "trang": lambda: cmd_trang(goc), "tim": lambda: cmd_tim(goc, rest),
-          "ungvien": lambda: cmd_ungvien(goc, rest), "thaydoi": lambda: cmd_thaydoi(goc)}.get(c)
+          "ungvien": lambda: cmd_ungvien(goc, rest), "thaydoi": lambda: cmd_thaydoi(goc),
+          "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc)}.get(c)
     if not fn:
         sys.exit(LENH)
     fn()

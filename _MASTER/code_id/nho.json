@@ -1,0 +1,2049 @@
+{
+ "_ghi_chu": "Mẫu chữ → mã dùng chung; chỉ người quản lý sửa, ghi bằng nap_codeid.py ghi.",
+ "mo_ta": [
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "take out all existing floor / wall / ceiling finishes",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "take down all internal brick walls",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "remove all existing built-in furniture",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "remove all existing sanitaryware and cap off services",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "remove all existing sockets, light fixtures etc and cap off services",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "remove existing fcu and cap off services",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "coring holes in slab for new plumbing works",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "debris disposal",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "thermal and moisture control",
+   "mo_ta": "to bathroom floor",
+   "ma": "WET.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "thermal and moisture control",
+   "mo_ta": "to bathroom walls, full height",
+   "ma": "WET.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "thermal and moisture control",
+   "mo_ta": "to terrace",
+   "ma": "WET.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "new guestroom entrance door, fire rated; overall size #x#mmh; finished in timber veneer (wd-#) and rattan (sp-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-co-ty-# to #.",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "replace fixed window by fixed glass & single leaf door; overall size #x#mmh; to garden room",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# door peep hole with cover",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# security chain",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# floor mounted door stopper",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# butt hinges",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# sliding door fitting",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# recessed handle with privacy lock",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# glass hinge",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# sanitary handle",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# engineered timber flooring; to foyer & bedroom border",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# engineered flooring; herringbone pattern installation; to bedroom",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble border tiling; to bathroom",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble tiling; herringbone pattern installation; to bathroom",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "planter box #x#x#mmh",
+   "ma": "WET.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "planter screen #x#mmh",
+   "ma": "WET.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "swing door, overall size #x#mmh",
+   "ma": "WET.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# stone threshold, #-#mm width",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# wooden threshold, #mm width",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# book match stone; marble in honed finish; to shower",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble in honed finish; to bathroom",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# stone moulding, #x#mm; to bathroom",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# walnut veneer finishes; refer detail # on drawing id-mk-ty-# for more detail; to foyer",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mirror wall; overall size #x#mmh; consisting of clear mirror (mr-#) laid on plywood/mdf with metal border (mt-#), including framework as required and all necessary material to complete; refer drawing no. id-gr-ty-# for more detail; to foyer",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# timber skirting, #mm high",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# metal skirting, #mm high",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "to bedroom",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box (ceiling coffer), overall size #x#mmh, including painting finish. refer to detail # on drawing no. id-gr-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "bulkhead, #mmh, including painting finish, excluding air grille & its decoration. refer to detail # on drawing no. id-gr-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "curtain & lighting box, overall size #/#x#mmh, including painting finish. refer to detail # on drawing no. id-gr-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "ceiling step up with timber trim, #-#x#mmh. refer to detail # on drawing no. id-gr-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "to bathroom",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box, #x#mmh, including painting finish. refer to detail # on drawing no. id-gr-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box, overall size #x#mmh, including painting finish. refer to detail # on drawing no. id-gr-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "external paint; to garden terrace / balcony",
+   "ma": "PT.EM",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# non-woven backed vinyl wallpaper; including timber (wd-#) & metal (mt-#) trimming, #mm high; to headboard area",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# non-woven backed vinyl wallpaper; refer detail # on drawing id-gr-ty-# for more detail",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "pt-# ceiling paint in vinyl matte finish; to foyer & bedroom",
+   "ma": "PT.EM",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "pt-# ceiling paint in anti-mould acrylic matte finish; to bathroom",
+   "ma": "PT.EM",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "timber slatting to air grille and at top of wardrobe; refer detail #, # on drawing id-gr-ty-# for more detail",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# #mm l shape metal trim to flooring divider. refer to detail #, #, # on drawing id-gr-ty-#",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "watercloset - wall mounted, including:",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# basin faucet",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# undercounter basin",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# p-trap",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# robe/ hook",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# toilet paper holder",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# bidet",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "shower set, including:",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# square floor trap",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# linear floor trap",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# magnifying mirror",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# bathtub faucet",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# - wall faucet",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# - bath tub",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "double leaves door; overall size #x#mmh; finished in timber veneer (wd-#) and rattan (sp-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-co-ty-#.",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "single leaf door, overall size #x#mmh",
+   "ma": "DO.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "double leaves door, overall size #x#mmh",
+   "ma": "DO.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "replace corridor window and repair edges",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# concealed hinge",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# security bolt",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# wooden threshold, #mm width, including acoustic underlay",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# walnut veneer finish",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# wooden trim, #x#mm; to timber wall",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble in honed finish, grey color",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "pt-# painted wooden skirting, #mm high",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "to corridor",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box, overall size #x#mmh, including painting finishes. refer to detail # on drawing id-co-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "timber trim, #-#x#mm. refer to detail # on drawing no. on drawing id-co-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-#, to guestroom entrance, #mm width",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# non-woven backed vinyl wallpaper",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "pt-# ceiling paint in vinyl matte finish",
+   "ma": "PT.EM",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# #mm l shape metal trim between timber & carpet flooring. refer to detail # on drawing id-co-ty-#",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "riser timber door, overall size #x#mmh, finished in wallcovering (wc-#); door hardwares are measured separately elsewhere. complete with all required material as specified and detailed on drawing no. id-ll-ty-#",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "riser timber door, overall size #x#mmh, finished in clear mirror (mr-#); door hardwares are measured separately elsewhere. complete with all required material as specified and detailed on drawing no. id-ll-ty-#",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# & st-# marble limestone tiling; diamond grid pattern",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble border, #mm width",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble limestone",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# stone threshold, #mm width",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble in honed finish, grey color; #mm thk",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# medium bronze metal; to elevator door surround",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mr-# mirror wall",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "to lift lobby",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "curved lighting box (ceiling coffer), overall size #x#mmh, including painting finish. refer to detail # on drawing no. id-ll-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "corner screen; overall size (#+#)x#x#mmh; finished with wallcovering (wc-#) applied over wooden backing and metal border (mt-#); including supporting frame and all necessary fittings & fixings to complete the works. refer to detail as shown on drawings from no id-ll-ty-# and specification.",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# #mm l shape metal trim to flooring divider. refer to detail # on drawing id-ll-ty-#",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble limestone border, #-#mm width",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mr-# etched mirror glass",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# stone skirting, #mmh",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "to lift car",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "curved drop off, #mmh, including painting finish. refer to elevation #, # on drawing no. id-ll-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box, overall size #x#mmh, including painting finish. refer to detail #, on drawing no. id-ll-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# #mm metal trim to wall divider. refer to detail # on drawing id-ll-ty-#",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "handrail, made of medium bronze metal (mt-#), finished in leather (fb-#); as specified",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "demolitions & alterations",
+   "mo_ta": "debris proposal",
+   "ma": "STR.REN",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "masonry work",
+   "mo_ta": "to bathtub & wall over #mm width",
+   "ma": "WET.BR",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "thermal and moisture control",
+   "mo_ta": "to terrace / balcony",
+   "ma": "WET.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "interconnecting door, double doors, overall size #x#mmh; finished in timber veneer (wd-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-js-#-#; to ps-#a & js-#",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "timber single leaf door, overall size #x#mmh; finished in timber veneer (wd-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-js-#-#; to js bathroom",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "timber sliding door with above wooden panel #mmh, overall size #x#mmh; finished in timber veneer (wd-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-js-#-#; to js wardrobe",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "double leaves timber door with top wooden panel #mmh, overall size #x#mmh; finished in timber veneer (wd-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-ps-ty-#; to ps# bedroom",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "double leaves timber door, overall size #x#mmh; finished in timber veneer (wd-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-ps-ty-#; to ps#/#a bedroom",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "timber single leaf door, overall size #x#mmh; finished in timber veneer (wd-#); door hardware is measured separately elsewhere. complete with all required material as specified and detailed on drawings from no. id-ps-ty-#; to powder room",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "timber frame for opening, overall size #x#mmh",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "bathroom shower screen",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "glass partition, overall size #x#mmh, square glass (gl-#) and polished chrome metal (mt-#) frame. complete with all required materials as specified and detail # on drawing id-gr-ty-#; to bathroom",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "new fixed glass partition with single leaf door (#x#mm), included hardwares; overall size #x#mmh; to js balcony",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "replace fixed glass & sliding door; overall size #x#mmh; to balcony",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "folding window & hardwares, square glass (gl-#) with metal frame (mt-#); overall size #x#mmh. complete with all required material as specified and detailed on drawings no. id-ps-ty-#; to ps# bathroom",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "glass window & hardwares; overall size #x#mmh; to js bedroom",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "glass window & hardwares; overall size #x#mmh; to js bathroom",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "curved window, overall size #x#mmh",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# door handle",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "ir-# lock set",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble tiling; weave pattern installation; to bathroom",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# wooden threshold, #-#mm width",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble in honed finish; weave pattern installation",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# to bathtub area",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# walnut veneer finishes; refer detail # on drawing id-ps-ty-# for more detail; to foyer",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mr-# clear mirror laid on plywood/mdf; including framework as required and all necessary material to complete.",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mr-# clear mirror laid on plywood/mdf, consisting of #nr openable side panel with wallpaper (wc-#) on plywood/mdf inside (#x#mmh) & fixed panel in the middle (#x#mmh); including framework as required and all necessary material to complete. refer drawing no. id-ps-ty-# for more detail",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "cnc cutting on painted wooden screen (pt-#)",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "pt-# painted wooden screen",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mr-# mirror wall screen",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# metal skirting; #mm high",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box (ceiling coffer), overall size #x#mmh, including painting finish. refer to detail # on drawing no. id-ps-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "bulkhead, #mmh, including painting finish, excluding air grille & its decoration. refer to detail # on drawing no. id-ps-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "curtain & lighting box, overall size #-#x#mmh, including painting finish. refer to detail # on drawing no. id-ps-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "ceiling step up with timber trim, #-#x#mmh. refer to detail # on drawing no. id-ps-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "curtain box, overall size #x#mmh; including painting finish.",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box, #x#mmh, including painting finish. refer to detail # on drawing no. id-ps-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "lighting box, overall size #x#mmh, including painting finish. refer to detail # on drawing no. id-ps-ty-#",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "curtain box, overall size #x#mmh, including painting finish",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-#, to bedroom entrance",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# non-woven backed vinyl wallpaper; refer detail # on drawing id-gr-ty-# & id-js-#-# for more detail",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# wallcovering; including metal inlay (mt-#), #mm high; to headboard area",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# wallcovering; refer detail # on drawing id-ps-ty-# for more detail",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wc-# non-woven backed vinyl wallpaper; including metal (mt-#) trimming, #mm high; to headboard area",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# timber slatting screen, #nr slats #x#x#mmh",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "timber slatting to air grille and at top of wardrobe",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "mt-# #mm l shape metal trim to flooring divider. refer to detail #, #, # on drawing id-ps-ty-#",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# bathtub; built-in type",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# bathtub; freestanding type",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# faucet in powder room",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# basin in powder room",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# robe hook",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# deck mounted faucet",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "mo_ta": "sw-# wall faucet",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "mo_ta": "replace guestroom window and repair edges, overall size #x#mmh",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wooden threshold, #mm width, including acoustic underlay",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "painted wooden trim, #-#x#mm; to wall",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# wooden trim, #-#x#mm; to wall",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble in honed finish",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "painted (pt-#) wooden skirting, #mm high",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "st-# marble limestone tiling",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "mo_ta": "wd-# to corridor; refer detail # on drawing no id-ll-ty-#",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "wc-# custom wallpaper; to wardrobe",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "st-# marble in honed finish; to wardrobe",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "vanity counter, overall size #x#x#mmh & mirror mr-#, overall size #x#mmh",
+   "ma": "FUR.WC",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "minibar hanger shelf, overall size #x#x#mm, consisting of light bronze metal frame (mt-#) and flora glass tray (gl-#), including led strip lighting, and all necessary materials to complete the works. refer to detail as shown on drawing no. id-gr-ty-#~# and specification",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "shower bench, overall size #x#x#mmh; consisting of wooden & supporting frame, finished in honed stone (st-#). refer to detail as shown on drawing no. id-gr-ty-# and specification",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "bathtub frame; overall size #x#x#mmh; consisting of horned mable (st-#) laid on water resistant plywoo/mdf on the top & front, and supporting frame. refer to detail as shown on drawing no. id-gr-ty-#",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# rectangle table, #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# round table, d#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# out door table, d#x#mmh; to balcony",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# pendant light @bedside table",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall scone light @bedside table",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall sconce light @sofa",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# bathroom wall light @vanity",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# table lamp",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# outdoor floor lamp; to balcony",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# pedestal, #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall sconce",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# ceiling mounted light",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "signage",
+   "mo_ta": "guestroom signage, size #x#mm",
+   "ma": "DE.SI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# console, #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# side table, d#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# armchair",
+   "ma": "LO.CH",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# art work; to lift car",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "fins portal; overall size #x#x#mmh; consisting of #nr standing glass partition (#x#mmh) crafted from ribbed glass (mr-#) and metal frame (mt-#). complete with all accessories, fittings & fixings as specified. refer to detail as shown on drawing no. id-js-#-# and specification",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "l-shape, overall size (#+#)x#x#mmh",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "wc-# wallcovering; to wardrobe",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "wc-# wallcovering; to cabinet",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "st-# marble in honed finish; to cabinet",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "iron niche; overall size #x#x#mmh",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "vanity counter, overall size #x#-#x#mmh & # nr hanging mirror mr-#, overall size #x#mmh",
+   "ma": "FUR.WC",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "vanity counter, overall size #x#x#mmh & mirror mr-#, overall size #x#mmh. refer detail on drawing no. id-ps-ty-#~#",
+   "ma": "FUR.WC",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "vanity counter, overall size #x#x#mmh & mirror mr-#, overall size #x#mmh; refer detail on drawing no. id-ps-ty-#~#; to powder room",
+   "ma": "FUR.WC",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "mo_ta": "bathtub frame; overall size #x#x#mmh; consisting of horned mable (st-#) laid on water resistant plywoo/mdf on the top & front, and supporting frame. refer to detail as shown on drawing no. id-ps-ty-#",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# hand tufted rug, overall size #x#mm",
+   "ma": "LO.RUG",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# console, overall size #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# pedestal, overall size #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# rectangle table, overall size #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# round table, overall size d#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# coffee table, overall size d#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# bedside table; overall size #x#x#mmh",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# table lamp @console",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall sconce # @bedside table",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall sconce # @sofa",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# table lamp @minibar",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# picture light",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# table lamp @living room",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# bedside pendant lamp",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# bedside table lamp",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# dressing table lamp",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall sconce @sofa",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# wall mirror, #x#mmh",
+   "ma": "DE.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "mo_ta": "#-# picture wall light",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  }
+ ],
+ "dau_muc": [
+  {
+   "nhom": "masonry work",
+   "dau_muc": "internal brick / block wall",
+   "tien_to": "",
+   "ma": "WET.BR",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "thermal and moisture control",
+   "dau_muc": "coverings & linings; including all necessary primers; as specified.",
+   "tien_to": "",
+   "ma": "WET.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "timber doors",
+   "tien_to": "SP",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "glazing",
+   "tien_to": "",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "replace guestroom window and repair edges:",
+   "tien_to": "",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to entrance door, as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to sliding bathroom door, as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to shower door, as specified",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "floor finishes",
+   "tien_to": "WD",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "floor finishes",
+   "tien_to": "ST",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "allowance for planter:",
+   "tien_to": "",
+   "ma": "WET.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "threshold",
+   "tien_to": "ST",
+   "ma": "FF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "threshold",
+   "tien_to": "WD",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall finishes",
+   "tien_to": "ST",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall finishes",
+   "tien_to": "WD",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall finishes",
+   "tien_to": "MR",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "skirting",
+   "tien_to": "WD",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "skirting",
+   "tien_to": "MT",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "ceiling finishes",
+   "tien_to": "",
+   "ma": "CF.GY",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall decoration;",
+   "tien_to": "",
+   "ma": "PT.EM",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall decoration;",
+   "tien_to": "MT",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall decoration;",
+   "tien_to": "WC",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "ceiling decoration;",
+   "tien_to": "PT",
+   "ma": "PT.EM",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "ceiling decoration;",
+   "tien_to": "",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "floor divider; as specified",
+   "tien_to": "MT",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "dau_muc": "sw-# flush control",
+   "tien_to": "SW",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "dau_muc": "sw-# flush control",
+   "tien_to": "",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "sanitaryware",
+   "dau_muc": "sw-# thermostat",
+   "tien_to": "SW",
+   "ma": "EQP.SA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "timber door",
+   "tien_to": "SP",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "existing riser door, re-finished door panel in wallpaper (wc-#). refer details on drawing id-co-ty-#",
+   "tien_to": "",
+   "ma": "DO.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "window",
+   "tien_to": "",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to double door; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "replace hardwares to riser door; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "timber veneer on plywood/mdf; including all necessary materials to complete the works; as specified",
+   "tien_to": "WD",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "timber veneer on plywood/mdf; including all necessary materials to complete the works; as specified",
+   "tien_to": "ST",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "skirting",
+   "tien_to": "PT",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "ceiling finishes",
+   "tien_to": "WD",
+   "ma": "CF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "sundries",
+   "tien_to": "MT",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "hardwares to riser door; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall finishes",
+   "tien_to": "MT",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "skirting",
+   "tien_to": "ST",
+   "ma": "WF.ST",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall divider; as specified",
+   "tien_to": "MT",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "handrail; to lift car",
+   "tien_to": "FB",
+   "ma": "WF.MT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "timber doors",
+   "tien_to": "WD",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "timber doors",
+   "tien_to": "",
+   "ma": "DO.WD",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "bathroom glass door and screen:",
+   "tien_to": "",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "bathroom glass door and screen:",
+   "tien_to": "GL",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "window",
+   "tien_to": "GL",
+   "ma": "AL.GL",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to interconnecting door; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to interconnecting door; as specified:",
+   "tien_to": "",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to js bathroom door; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to js bathroom door; as specified:",
+   "tien_to": "",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to js sliding door @wardrobe; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to double leaves door @ps# bedroom; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to double leaves door @ps# bedroom; as specified:",
+   "tien_to": "",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to double leaves door @ps#/#a bedroom; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to double leaves door @ps#/#a bedroom; as specified:",
+   "tien_to": "",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to single leaf door @powder room; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to single leaf door @powder room; as specified:",
+   "tien_to": "",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to sliding glass door @js bathroom; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to glass door @js shower & wc; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to glass slidng door @sk# bathroom; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to glass slidng door @ps# bathroom; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to glass slidng door @ps-#/#a bathroom; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "to glass door @ps, sk shower & wc; as specified:",
+   "tien_to": "IR",
+   "ma": "HW.DO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "column decoration; refer drawing no. id-ps-ty-# for more detail; to ps#",
+   "tien_to": "PT",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "column decoration; refer drawing no. id-ps-ty-# for more detail; to ps#",
+   "tien_to": "MR",
+   "ma": "WF.MI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wall decoration;",
+   "tien_to": "WD",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "threshold",
+   "tien_to": "",
+   "ma": "FF.WF",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wallpaper laid on plywood/mdf; including all necessary materials to complete the works; as specified",
+   "tien_to": "WC",
+   "ma": "WF.WP",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "finishes",
+   "dau_muc": "wallpaper laid on plywood/mdf; including all necessary materials to complete the works; as specified",
+   "tien_to": "",
+   "ma": "WF.WO",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "doors & windows",
+   "dau_muc": "existing boh door, re-finished door panel to match wd-#",
+   "tien_to": "",
+   "ma": "DO.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "patition / screen",
+   "tien_to": "",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "headboard",
+   "tien_to": "",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "wardrobe",
+   "tien_to": "",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "wardrobe",
+   "tien_to": "WC",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "wardrobe",
+   "tien_to": "ST",
+   "ma": "FUR.WA",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "minibar",
+   "tien_to": "",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "vanity",
+   "tien_to": "MR",
+   "ma": "FUR.WC",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "tables / shelves",
+   "tien_to": "",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "tables / shelves",
+   "tien_to": "GL",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "bench",
+   "tien_to": "ST",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "bathtub",
+   "tien_to": "ST",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "#-# floor rug",
+   "tien_to": "",
+   "ma": "LO.RUG",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "table;",
+   "tien_to": "F4",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "id lighting;",
+   "tien_to": "F7",
+   "ma": "DE.LI",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorized blackout roller blind:",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# manual sheer drapery:",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorised blackout drapery",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# manual sheer drapery",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorised sheer drapery",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorized blackout roller blind",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "patition / screen",
+   "tien_to": "MR",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "cabinet",
+   "tien_to": "",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "cabinet",
+   "tien_to": "WC",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "built-in furniture",
+   "dau_muc": "cabinet",
+   "tien_to": "ST",
+   "ma": "FUR.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "rug;",
+   "tien_to": "F2",
+   "ma": "LO.RUG",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "#-# hand tufted rug; to living room",
+   "tien_to": "",
+   "ma": "LO.RUG",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "#-# hand tufted rug; to bedroom",
+   "tien_to": "",
+   "ma": "LO.RUG",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "#-# bedside table:",
+   "tien_to": "",
+   "ma": "LO.TB",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "loose furniture",
+   "dau_muc": "others;",
+   "tien_to": "F8",
+   "ma": "DE.OT",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorized sheer drapery:",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorized blackout drapery:",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  },
+  {
+   "nhom": "curtain / blind",
+   "dau_muc": "#-# motorised operated blind:",
+   "tien_to": "",
+   "ma": "DE.CU",
+   "du_an": "SSP"
+  }
+ ]
+}

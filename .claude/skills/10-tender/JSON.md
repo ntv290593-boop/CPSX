@@ -17,13 +17,18 @@ Bạn chỉ ghi **file JSON** (và file `.md` khi bước của bạn nói rõ).
 | DWG | KHÓA | `Số BV` | mỗi số bản vẽ, bản hiệu lực |
 | KHU | KHÓA | `Khu` | thư mục/khu của từng bộ hồ sơ → mã phòng |
 | MAT | KHÓA | `Mã VL` | mỗi mã vật liệu, trạng thái cuối |
+| CAU_TAO | KHÓA | `Khóa mẫu` = `CT-01#1` | thư viện mẫu cấu tạo cho dòng nhiều bên; chỉ tender khai trong xlsx, LLM không ghi |
+| AREA | KHÓA | `Tiền tố` = `51` | tiền tố mã → tập phòng; tool dựng từ KHU, user sửa ở sheet AREA, LLM không ghi |
+| VL_XUATHIEN | KHÓA | `Khóa` = `<mã>\|<FID>\|<trang>` | mã xuất hiện ở đâu; tool dựng lại mỗi lần build, chỉ để xem, không nhận sửa tay |
 | VIEC_MO | NỐI | — | việc còn mở, câu cần hỏi |
+
+Riêng `Mã cấp 3`, `Nguồn phân loại`, `Cờ phân loại` của SCOPE chỉ tool `phanloai` ghi. LLM trả lời qua `_data\_phanloai_llm.json` (`buoc/2b-phanloai.md`); user sửa `Mã cấp 3` bằng droplist ở sheet BOQ hoặc SCOPE. `Code ID`, `Link spec` do `build` tính. `Bên thực hiện` ở `SCOPE.ben.json` hoặc user sửa ở sheet BOQ/SCOPE; không bước LLM nào ghi cột này.
 
 ## Dạng file
 ```json
 {"rows": [
   {"Mã TCQ": "TCQ04-22", "Chủ đề": "Phạm vi", "Bị thay bởi": "TCQ05-24", "Nội dung cuối (VN)": "Đã bị TCQ05-24 thay: 50-501 omit"},
-  {"_loc": {"Sheet": "^0\\.Summary$"}, "Trạng thái": "Không áp dụng", "Nhóm thực hiện": "Chung"}
+  {"_loc": {"Sheet": "^0\\.Summary$"}, "Trạng thái": "Không áp dụng"}
 ]}
 ```
 - Sheet KHÓA: mỗi dòng có cột khóa, chỉ ghi các cột của bạn; tool ghép theo khóa. Với SCOPE / TCQ_LOG / DWG **không được thêm khóa mới** (khóa phải có trong nháp tool — xem bằng `loc`).

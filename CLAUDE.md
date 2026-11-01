@@ -8,6 +8,7 @@
 - Không mở dự án khác (kể cả trong `_TEST`, `01. DOOR`) để lấy số liệu. Muốn tham chiếu thì hỏi người dùng trước.
 - Memory nhắc dự án khác với `ACTIVE.md` thì coi là cũ, kiểm tra lại trước khi dùng.
 - `_ARCHIVE` là lưu trữ, bị chặn đọc.
+- Ngoại lệ: `_MASTER\code_id` (bảng mã, luật, bộ nhớ Code ID) dùng chung mọi dự án. Bộ nhớ chỉ chứa mẫu chữ → mã, số đã thay bằng `#`, không có khối lượng, giá, mã phòng. Dòng lấy từ dự án khác luôn được highlight.
 
 ## Flowchart
 - Flowchart các skill nằm ở `DOCS\Flowchart\` (xem `README.md` ở đó).

@@ -6,6 +6,7 @@ DOCS\scan-toi-uu\bench.py (01-scan) và `td.py ungvien --do` (10-tender) trướ
   title_guess(page, tok)      số tờ + tên tờ trong khung tên (góc phải-dưới)
   loai_to(tên tờ)             danh_muc / thong_ke / mep / mat_bang / hoan_thien / chi_tiet / mat_dung / legend / khac
   toks, ncode, _fold          tách từ (bỏ dấu, stopword), chuẩn hóa mã (LF-04 = lf4)
+  ma_chuan, regex_ma, tach_ma mã VL/FF&E/khu theo mọi cách viết (51 - 500B = 51-500B)
   doc_pdf(path)               -> [{text, so, ten, lop}] mỗi trang
   trang_trung(texts)          trang trùng giữa các file (bỏ ngày), file tổng
   chi_muc(texts, titles)      túi từ / mã mỗi trang + df, cdf, avgdl + danh sách đảo
@@ -97,6 +98,56 @@ def ncode(s):
     s = re.sub(r"^id[\s._-]+", "", _fold(s).strip())
     m = re.fullmatch(r"([a-z]{1,4})[\s._-]*0*(\d{1,3})", s)
     return f"{m.group(1)}{m.group(2)}" if m else None
+
+
+def ma_chuan(s):
+    """Dạng chuẩn của mã vật liệu / FF&E / khu, không phải mã thì None. Khác ncode: giữ được mã FF&E có 3 số + hậu tố.
+    51 - 500B -> 51-500B · 52 - 500.1 -> 52-500.1 (mã con, khác mã cha) · ST 01, st01, ST-1 -> ST-01 · AREA53, Area_53 -> AREA 53."""
+    s = str(s or "").strip()
+    m = re.fullmatch(r"(\d{2})(?:\s*[-–—]\s*|\s+)(\d{3})([A-Za-z]?)(\.\d+)?", s)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}{m.group(3).upper()}{m.group(4) or ''}"
+    m = re.fullmatch(r"area[\s_-]*(\d{1,3})", s, re.I)
+    if m:
+        return f"AREA {m.group(1).zfill(2)}"
+    m = re.fullmatch(r"([A-Za-z]{2,3})[\s._–—-]*(\d{1,3})([A-Za-z]?)", s)
+    if m:
+        return f"{m.group(1).upper()}-{m.group(2).zfill(2)}{m.group(3).upper()}"
+    return None
+
+
+def regex_ma(ma):
+    """Regex tìm 1 mã trong chữ PDF theo mọi cách viết; mã không hợp lệ thì None. Đo trên cache SOFITEL 31/10:
+    - FF&E viết `51 - 500B` nhiều gấp 5 lần `51-500B`, nên cho cách và xuống dòng quanh gạch.
+    - FF&E không có gạch thì không khớp: `44 207`, `50 000` là số điện thoại, số tiền (923 lần).
+    - Mã con `52 - 500.1` không tính vào mã cha `52-500`.
+    - VL chỉ khớp chữ hoa, không qua dòng: `of 02`, `to 17` là chữ thường trong câu."""
+    c = ma_chuan(ma)
+    if not c:
+        return None
+    if c.startswith("AREA "):
+        return re.compile(rf"(?<![A-Za-z0-9])AREA[\s_-]*0*{int(c[5:])}(?!\d)", re.I)
+    goc, duoi = c.split("-")
+    if goc.isdigit():
+        m = re.fullmatch(r"(\d{3})([A-Z]?)(\.\d+)?", duoi)
+        hau = f"[{m.group(2)}{m.group(2).lower()}]" if m.group(2) else ""
+        con = re.escape(m.group(3)) if m.group(3) else r"(?!\.\d)"
+        return re.compile(rf"(?<![\w-]){goc}\s*[-–—]\s*{m.group(1)}{hau}{con}(?![\w-])")
+    return re.compile(rf"(?<![\w-]){goc}[ \t]*[-–—._]?[ \t]*{duoi}(?![\w-])")
+
+
+RX_TACH_FFE = re.compile(r"(?<![\w.-])\d{2}\s*[-–—]\s*\d{3}[A-Za-z]?(?:\.\d+)?(?![\w-])")
+RX_TACH_VL = re.compile(r"(?<![\w-])([A-Z]{2,3})([ \t]*[-–—][ \t]*|[ \t]+|)(\d{2}[A-Z]?)(?![\w-])")
+
+
+def tach_ma(t):
+    """Mọi mã trong 1 đoạn chữ -> [(mã chuẩn, đầu, cuối, dạng)]. dạng: ffe | gach (ST-01) | cach (ST 01) | lien (ST01).
+    Người gọi tự lọc theo danh sách mã của dự án. Dạng lien hay bắt nhầm (SW10 là mã bưu điện, ST09 là mã màu vải)."""
+    out = [(ma_chuan(m.group(0)), m.start(), m.end(), "ffe") for m in RX_TACH_FFE.finditer(t)]
+    for m in RX_TACH_VL.finditer(t):
+        sep = m.group(2)
+        out.append((f"{m.group(1)}-{m.group(3)}", m.start(), m.end(), "lien" if not sep else ("cach" if not sep.strip() else "gach")))
+    return sorted(out, key=lambda x: x[1])
 
 
 def _bm25(ix, q, c, k1=1.2, b=0.75):

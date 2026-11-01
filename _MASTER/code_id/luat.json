@@ -1,0 +1,15 @@
+{
+ "_ghi_chu": "Luật Code ID (plan mục 3). Thứ tự = ưu tiên, dòng đầu tiên khớp thì dừng. Mọi mục trong dk phải khớp; mỗi dk khớp khi 1 trong các cột khớp rx (không phân biệt hoa thường). Chỉ chữ → mã, không số liệu dự án. Tiền tố 5x-yyy là cách đánh số FF&E của SOFITEL, nên ở dự án mới máy highlight mọi dòng theo luật cho tới khi user duyệt (phanloai --duyet-luat). FF&E đọc cả Mục phụ vì mã rug và rèm nằm ở đầu mục, không ở dòng con.",
+ "rows": [
+  {"ten": "IR-", "ma": "HW.DO", "dk": [{"cot": ["Mã VL", "Mô tả BOQ"], "rx": "^IR-"}]},
+  {"ten": "SW-", "ma": "EQP.SA", "dk": [{"cot": ["Mã VL", "Mô tả BOQ"], "rx": "^SW-"}]},
+  {"ten": "SANITARYWARE", "ma": "EQP.SA", "dk": [{"cot": ["Nhóm"], "rx": "SANITARYWARE"}]},
+  {"ten": "DEMOLITIONS", "ma": "STR.REN", "dk": [{"cot": ["Nhóm"], "rx": "DEMOLITION"}]},
+  {"ten": "MASONRY", "ma": "WET.BR", "dk": [{"cot": ["Nhóm"], "rx": "MASONRY"}]},
+  {"ten": "THERMAL AND MOISTURE", "ma": "WET.WP", "dk": [{"cot": ["Nhóm"], "rx": "THERMAL AND MOISTURE"}]},
+  {"ten": "FF&E 5x-2xx wall to wall", "ma": "FF.CP", "dk": [{"cot": ["Mô tả BOQ", "Mục phụ"], "rx": "^\\s*5\\d\\s*-\\s*2\\d{2}"}, {"cot": ["Mô tả BOQ", "Mục phụ"], "rx": "wall[- ]to[- ]wall"}]},
+  {"ten": "FF&E 5x-2xx", "ma": "LO.RUG", "dk": [{"cot": ["Mô tả BOQ", "Mục phụ"], "rx": "^\\s*5\\d\\s*-\\s*2\\d{2}"}]},
+  {"ten": "FF&E 5x-3xx", "ma": "DE.CU", "dk": [{"cot": ["Mô tả BOQ", "Mục phụ"], "rx": "^\\s*5\\d\\s*-\\s*3\\d{2}"}]},
+  {"ten": "FF&E 5x-7xx", "ma": "DE.LI", "dk": [{"cot": ["Mô tả BOQ", "Mục phụ"], "rx": "^\\s*5\\d\\s*-\\s*7\\d{2}"}]}
+ ]
+}

@@ -6,7 +6,8 @@
 ## Làm
 1. Đọc `<GOC>\10_TENDER\README.md`. Tool `kiemke` đã chạy (điều phối chạy). Xem kết quả:
    - `py -I "<TOOL>" loc <GOC> FILE_INDEX "Vai trò=" --cot ID,Đường dẫn,Trong zip --max 400` — file chưa có vai trò.
-   - Tool đã đoán: Mail (.msg), Làm rõ (file TCQ), Tham khảo (as-built, schedule, nội quy, annex), Ngoài scope (zip MEP/LIGHTING), Bản cũ/Trùng (DWG trùng PDF cùng ngày issue). Đoán sai → ghi đè.
+   - Thư mục trong khóa `bo_thu_muc` (`_data\_cauhinh.json`) không được quét, không có trong FILE_INDEX. Thấy thư mục lạ không phải hồ sơ thầu (form, file học, dữ liệu dự án khác) → hỏi user, không tự thêm. Tool in `XEM: bo_thu_muc …` → báo user.
+   - Tool đã đoán: Mail (.msg), Scope (`PVCV` trong tên file), Làm rõ (file TCQ), Tham khảo (as-built, schedule, nội quy, annex), Ngoài scope (zip MEP/LIGHTING), Bản cũ/Trùng (DWG trùng PDF cùng ngày issue). Đoán sai → ghi đè.
 2. Đọc **mail của từng đợt** (`py -I "D:\COSTING EXCEL\SKILL\01-scan\tool\pd.py" mail "<file.msg>"`) — mail nói đợt đó gửi gì, thay gì, link nào chưa đính kèm.
 3. Gán `Vai trò` cho mọi file, ưu tiên dòng `_loc` theo thư mục:
    ```json
@@ -18,6 +19,7 @@
    | Chính | bộ thiết kế phát hành gốc dùng để chào giá (IDD, FF&E, Finishes Schedule, BOQ CĐT, HSMT) |
    | Bổ sung/Thay thế | đợt sau phát hành bổ sung hoặc thay một phần bộ chính (addendum, bản vẽ/spec cập nhật) → ghi `Thay thế cho` |
    | Làm rõ | TCQ, bản dịch nội bộ |
+   | Scope | file phân chia phạm vi công việc (PVCV), CĐT hoặc tender lập |
    | Tham khảo | as-built, VE list, tiến độ, nội quy, logistic, rendering |
    | Ngoài scope | thuộc gói khác (MEP, lighting…), annex hợp đồng mẫu |
    | Bản cũ/Trùng | bản bị đợt sau thay, file trùng, DWG đã có PDF |

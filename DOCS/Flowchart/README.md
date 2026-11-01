@@ -7,9 +7,8 @@ Thư mục này giữ sơ đồ luồng của từng skill. **Mỗi lần đổi
 | File | Skill | Nguồn code |
 |---|---|---|
 | [01-scan_flowchart.md](01-scan_flowchart.md) | 01-scan (quét hồ sơ thầu → PROJECT_DATA) | `SKILL/01-scan/` (SKILL.md, `buoc/`, `tool/pd.py`) |
+| [10-tender_flowchart.md](10-tender_flowchart.md) | 10-tender (quét hồ sơ mời thầu → BOQ_TRACK) | `SKILL/10-tender/` (SKILL.md, `buoc/`, `tool/td.py`) |
 | [CHANGELOG.md](CHANGELOG.md) | Nhật ký thay đổi flowchart | — |
-
-Skill chưa có flowchart: `10-tender` (thêm `10-tender_flowchart.md` khi cần, dùng mẫu bên dưới).
 
 ## Quy tắc cập nhật
 

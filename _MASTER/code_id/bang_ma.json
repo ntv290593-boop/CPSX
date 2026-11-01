@@ -1,0 +1,572 @@
+{
+ "_ghi_chu": "Chép từ Datawork.xlsx cột D (cap3), G (ma), I (mo_ta); chạy lại: nap_codeid.py bang. Không sửa tay.",
+ "rows": [
+  {
+   "cap3": "Công tác bê tông",
+   "ma": "STR.CW",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Công tác bê tông / Concrete work, concrete",
+   "dong": 3
+  },
+  {
+   "cap3": "Công tác ván khuôn",
+   "ma": "STR.FW",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Công tác ván khuôn / Formwork",
+   "dong": 4
+  },
+  {
+   "cap3": "Công tác cốt thép",
+   "ma": "STR.RW",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Công tác cốt thép / Reinforcement work, rebar, reinforcement",
+   "dong": 5
+  },
+  {
+   "cap3": "Công tác kết cấu thép",
+   "ma": "STR.ST",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Công tác kết cấu thép / Steel structure, structural steel, steel work",
+   "dong": 6
+  },
+  {
+   "cap3": "Kết cấu gỗ",
+   "ma": "STR.WO",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Kết cấu gỗ / Timber structure, wooden structure, wood work",
+   "dong": 7
+  },
+  {
+   "cap3": "Renovation",
+   "ma": "STR.REN",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Cải tạo, sửa chữa / Renovation, refurbishment",
+   "dong": 8
+  },
+  {
+   "cap3": "Kết cấu Khác",
+   "ma": "STR.OT",
+   "cap2": "CÔNG TÁC KẾT CẤU",
+   "mo_ta": "Kết cấu Khác / Other structural works",
+   "dong": 9
+  },
+  {
+   "cap3": "Cán nền",
+   "ma": "WET.SC",
+   "cap2": "HOÀN THIỆN THÔ",
+   "mo_ta": "Cán nền / Screeding, screed, floor screed",
+   "dong": 11
+  },
+  {
+   "cap3": "Chống thấm cho kiến trúc",
+   "ma": "WET.WP",
+   "cap2": "HOÀN THIỆN THÔ",
+   "mo_ta": "Chống thấm / Waterproofing work, waterproofing, waterproof membrane",
+   "dong": 12
+  },
+  {
+   "cap3": "Công tác xây",
+   "ma": "WET.BR",
+   "cap2": "HOÀN THIỆN THÔ",
+   "mo_ta": "Xây tô, công tác xây / Masonry works, masonry, brickwork, brick wall",
+   "dong": 13
+  },
+  {
+   "cap3": "Công tác trát",
+   "ma": "WET.PL",
+   "cap2": "HOÀN THIỆN THÔ",
+   "mo_ta": "Trát / Plastering, plaster, rendering",
+   "dong": 14
+  },
+  {
+   "cap3": "Vách thạch cao",
+   "ma": "WET.GY",
+   "cap2": "HOÀN THIỆN THÔ",
+   "mo_ta": "Vách thạch cao / Gypsum board partition, gypsum wall, drywall",
+   "dong": 15
+  },
+  {
+   "cap3": "Hoàn thiện thô Khác",
+   "ma": "WET.OT",
+   "cap2": "HOÀN THIỆN THÔ",
+   "mo_ta": "",
+   "dong": 16
+  },
+  {
+   "cap3": "Sơn nước",
+   "ma": "PT.EM",
+   "cap2": "CÔNG TÁC SƠN",
+   "mo_ta": "Sơn nước, công tác sơn / Emulsion paint, emulsion painting, painting",
+   "dong": 18
+  },
+  {
+   "cap3": "Sơn hiệu ứng",
+   "ma": "PT.TE",
+   "cap2": "CÔNG TÁC SƠN",
+   "mo_ta": "Sơn hiệu ứng / Texture paint, Stucco paint, special paint",
+   "dong": 19
+  },
+  {
+   "cap3": "Sơn Epoxy",
+   "ma": "PT.EP",
+   "cap2": "CÔNG TÁC SƠN",
+   "mo_ta": "Sơn Epoxy / Epoxy paint, epoxy painting",
+   "dong": 20
+  },
+  {
+   "cap3": "Sơn Khác",
+   "ma": "PT.OT",
+   "cap2": "CÔNG TÁC SƠN",
+   "mo_ta": "Sơn khác / Other paint, other painting",
+   "dong": 21
+  },
+  {
+   "cap3": "Hoàn thiện tường gạch",
+   "ma": "WF.TL",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường gạch, ốp tường gạch / Wall tiling, tiling, tile, TL-",
+   "dong": 23
+  },
+  {
+   "cap3": "Hoàn thiện tường đá",
+   "ma": "WF.ST",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường đá, ốp đá, công tác ốp đá / Stone cladding, granite, stone, marble, solid surface",
+   "dong": 24
+  },
+  {
+   "cap3": "Hoàn thiện tường ốp gỗ, vải",
+   "ma": "WF.WO",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường ốp gỗ, vải / Wood wall panel, timber cladding, fabric wall panel, upholstered panel, timber, timber veneer, veneer, wood veneer, solid wood",
+   "dong": 25
+  },
+  {
+   "cap3": "Hoàn thiện tường ốp kính, gương,…",
+   "ma": "WF.MI",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường ốp kính, gương,… / Glass wall cladding, mirror, mirror wall",
+   "dong": 26
+  },
+  {
+   "cap3": "Hoàn thiện tường ốp kim loại",
+   "ma": "WF.MT",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường ốp kim loại / Metal wall cladding, metal panel, stainless steel cladding, metal trim, trim, skirting, metal skirting, hairline",
+   "dong": 27
+  },
+  {
+   "cap3": "Hoàn thiện tường dán giấy",
+   "ma": "WF.WP",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường dán giấy / Wallpaper, wallcovering, wall covering, vinyl wallcovering",
+   "dong": 28
+  },
+  {
+   "cap3": "Hoàn thiện tường khác",
+   "ma": "WF.OT",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TƯỜNG",
+   "mo_ta": "Hoàn thiện tường khác / Other wall finishes",
+   "dong": 29
+  },
+  {
+   "cap3": "Hoàn thiện sàn gạch",
+   "ma": "FF.TL",
+   "cap2": "CÔNG TÁC HOÀN THIỆN NỀN",
+   "mo_ta": "Hoàn thiện sàn gạch / Floor tiling, floor tile",
+   "dong": 31
+  },
+  {
+   "cap3": "Hoàn thiện sàn đá",
+   "ma": "FF.ST",
+   "cap2": "CÔNG TÁC HOÀN THIỆN NỀN",
+   "mo_ta": "Hoàn thiện sàn đá / Stone flooring, marble floor, granite floor",
+   "dong": 32
+  },
+  {
+   "cap3": "Hoàn thiện sàn gỗ",
+   "ma": "FF.WF",
+   "cap2": "CÔNG TÁC HOÀN THIỆN NỀN",
+   "mo_ta": "Hoàn thiện sàn gỗ / Timber flooring, wood flooring, engineered wood floor",
+   "dong": 33
+  },
+  {
+   "cap3": "Hoàn thiện sàn thảm, vinyl",
+   "ma": "FF.CP",
+   "cap2": "CÔNG TÁC HOÀN THIỆN NỀN",
+   "mo_ta": "Hoàn thiện sàn thảm, vinyl / Carpet, vinyl flooring, LVT",
+   "dong": 34
+  },
+  {
+   "cap3": "Hoàn thiện sàn khác",
+   "ma": "FF.OT",
+   "cap2": "CÔNG TÁC HOÀN THIỆN NỀN",
+   "mo_ta": "Hoàn thiện sàn khác, sàn cách âm / Other floor finishes, acoustic",
+   "dong": 35
+  },
+  {
+   "cap3": "Trần thạch cao",
+   "ma": "CF.GY",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TRẦN",
+   "mo_ta": "Trần thạch cao / Gypsum ceiling, gypsum board ceiling, suspended ceiling, gypsum board, access panel, curtain box, lighting box",
+   "dong": 37
+  },
+  {
+   "cap3": "Trần ốp gỗ, vải",
+   "ma": "CF.WO",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TRẦN",
+   "mo_ta": "Trần ốp gỗ, vải / Wood ceiling, timber ceiling, fabric ceiling",
+   "dong": 38
+  },
+  {
+   "cap3": "Trần ốp ốp kính, gương",
+   "ma": "CF.MI",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TRẦN",
+   "mo_ta": "Trần ốp kính, gương / Glass ceiling, mirror ceiling",
+   "dong": 39
+  },
+  {
+   "cap3": "Trần xuyên sáng",
+   "ma": "CF.TR",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TRẦN",
+   "mo_ta": "Trần xuyên sáng / Translucent ceiling, stretch ceiling",
+   "dong": 40
+  },
+  {
+   "cap3": "Trần nhôm, kim loại",
+   "ma": "CF.MT",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TRẦN",
+   "mo_ta": "Trần nhôm, kim loại / Aluminium ceiling, metal ceiling",
+   "dong": 41
+  },
+  {
+   "cap3": "Trần khác",
+   "ma": "CF.OT",
+   "cap2": "CÔNG TÁC HOÀN THIỆN TRẦN",
+   "mo_ta": "Trần khác / Other ceiling finishes",
+   "dong": 42
+  },
+  {
+   "cap3": "Công tác cửa gỗ",
+   "ma": "DO.WD",
+   "cap2": "CÔNG TÁC CỬA",
+   "mo_ta": "Công tác cửa gỗ / Timber door, wooden door, wood door, swing door, sliding door",
+   "dong": 44
+  },
+  {
+   "cap3": "Công tác cửa kim loại (sắt, inox)",
+   "ma": "DO.MT",
+   "cap2": "CÔNG TÁC CỬA",
+   "mo_ta": "Công tác cửa kim loại (sắt, inox) / Metal door, steel door, stainless steel door",
+   "dong": 45
+  },
+  {
+   "cap3": "Công tác vách ngăn đi động, vách vệ sinh",
+   "ma": "DO.PA",
+   "cap2": "CÔNG TÁC CỬA",
+   "mo_ta": "Vách ngăn di động, vách vệ sinh / Operable wall, movable partition, folding partition, toilet partition, cubicle",
+   "dong": 46
+  },
+  {
+   "cap3": "Công tác cửa khác",
+   "ma": "DO.OT",
+   "cap2": "CÔNG TÁC CỬA",
+   "mo_ta": "Công tác cửa khác / Other door, access door, fire door",
+   "dong": 47
+  },
+  {
+   "cap3": "Cửa",
+   "ma": "HW.DO",
+   "cap2": "HẠNG MỤC PHỤ KIỆN",
+   "mo_ta": "Phụ kiện cửa / Door hardware, ironmongery, door lock, door closer, door handle",
+   "dong": 49
+  },
+  {
+   "cap3": "Đồ nội thất",
+   "ma": "HW.FU",
+   "cap2": "HẠNG MỤC PHỤ KIỆN",
+   "mo_ta": "Phụ kiện đồ nội thất / Furniture hardware, cabinet hardware",
+   "dong": 50
+  },
+  {
+   "cap3": "Phụ kiện Khác",
+   "ma": "HW.OT",
+   "cap2": "HẠNG MỤC PHỤ KIỆN",
+   "mo_ta": "Phụ kiện khác / Other hardware, accessories",
+   "dong": 51
+  },
+  {
+   "cap3": "Façade",
+   "ma": "AL.FA",
+   "cap2": "CÔNG TÁC NHÔM KÍNH",
+   "mo_ta": "Mặt dựng / Façade, facade, curtain wall",
+   "dong": 53
+  },
+  {
+   "cap3": "Vách, cửa kính / nhôm kính",
+   "ma": "AL.GL",
+   "cap2": "CÔNG TÁC NHÔM KÍNH",
+   "mo_ta": "Vách, cửa kính / nhôm kính / Glass partition, glass door, aluminium glass door, shower screen",
+   "dong": 54
+  },
+  {
+   "cap3": "Nhôm kínhKhác",
+   "ma": "AL.OT",
+   "cap2": "CÔNG TÁC NHÔM KÍNH",
+   "mo_ta": "Nhôm kính khác / Other aluminium & glass works",
+   "dong": 55
+  },
+  {
+   "cap3": "Hardscape",
+   "ma": "LS. HA",
+   "cap2": "CÔNG TÁC CẢNH QUAN",
+   "mo_ta": "Cảnh quan cứng / Hardscape, paving",
+   "dong": 57
+  },
+  {
+   "cap3": "Softscape",
+   "ma": "LS.SO",
+   "cap2": "CÔNG TÁC CẢNH QUAN",
+   "mo_ta": "Cảnh quan mềm, cây xanh / Softscape, planting, plants",
+   "dong": 58
+  },
+  {
+   "cap3": "Cảnh quan Khác",
+   "ma": "LS.OT",
+   "cap2": "CÔNG TÁC CẢNH QUAN",
+   "mo_ta": "Cảnh quan Khác / Other landscape works",
+   "dong": 59
+  },
+  {
+   "cap3": "Loose mua sẵn",
+   "ma": "LO.OS",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Loose mua sẵn / Outsourced loose furniture, ready-made furniture",
+   "dong": 61
+  },
+  {
+   "cap3": "Loose sản xuất - Sofa",
+   "ma": "LO.SO",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Sofa, ghế dài / Sofa, settee, bench sofa",
+   "dong": 62
+  },
+  {
+   "cap3": "Loose sản xuất - Bàn",
+   "ma": "LO.TB",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Bàn ăn, bàm làm việc, bàn tròn, bàn sofa, bàn bên / Dining table, Working  Desk/table, table, side table,  console",
+   "dong": 63
+  },
+  {
+   "cap3": "Loose sản xuất - Ghế",
+   "ma": "LO.CH",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Ghế, ghế bành, đôn ngồi / Chair, arm chair, stool, ottoman, bench",
+   "dong": 64
+  },
+  {
+   "cap3": "Loose sản xuất - Giường",
+   "ma": "LO.BE",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Giường / Bed frame, bed base",
+   "dong": 65
+  },
+  {
+   "cap3": "Loose sản xuất - Tủ rời, Tủ đầu giường",
+   "ma": "LO.CA",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Tủ, tủ đầu giường / Cabinet, side table, sideboard, nightstand, bedside table, beside table, chest of drawers",
+   "dong": 66
+  },
+  {
+   "cap3": "Loose sản xuất - Thiết bị, Đồ chơi trẻ em",
+   "ma": "LO.EP",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Thiết bị, Đồ chơi trẻ em / Equipment, kids toys, children toys, playground",
+   "dong": 67
+  },
+  {
+   "cap3": "Loose sản xuất - Khác",
+   "ma": "LO.OT",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Loose sản xuất - Khác / Other loose furniture",
+   "dong": 68
+  },
+  {
+   "cap3": "Rug",
+   "ma": "LO.RUG",
+   "cap2": "NỘI THẤT RỜI",
+   "mo_ta": "Thảm rời / Rug, carpet rug",
+   "dong": 69
+  },
+  {
+   "cap3": "Tủ bếp",
+   "ma": "FUR.KC",
+   "cap2": "NỘI THẤT LIỀN TƯỜNG",
+   "mo_ta": "Tủ bếp trên, tủ bếp dưới, tủ dựng tủ lạnh, Đảo bếp / Upper Kitchen cabinet, lower kitchen cabinet, Kitchen counter/island, Fridge cabinet",
+   "dong": 71
+  },
+  {
+   "cap3": "Tủ áo",
+   "ma": "FUR.WA",
+   "cap2": "NỘI THẤT LIỀN TƯỜNG",
+   "mo_ta": "Tủ áo / Wardrobe",
+   "dong": 72
+  },
+  {
+   "cap3": "Tủ vanity, gương",
+   "ma": "FUR.WC",
+   "cap2": "NỘI THẤT LIỀN TƯỜNG",
+   "mo_ta": "Tủ vanity, gương / Vanity/ vanity counter, lavabo, vanity mirror, mirror cabinet",
+   "dong": 73
+  },
+  {
+   "cap3": "Nội thất liền tường khác",
+   "ma": "FUR.OT",
+   "cap2": "NỘI THẤT LIỀN TƯỜNG",
+   "mo_ta": "Nội thất liền tường khác / Other built-in furniture, joinery",
+   "dong": 74
+  },
+  {
+   "cap3": "Thiết bị vệ sinh",
+   "ma": "EQP.SA",
+   "cap2": "THIẾT BỊ",
+   "mo_ta": "Thiết bị vệ sinh / Sanitary ware, sanitary fixtures, bathtub, bath tub, basin, toilet, shower",
+   "dong": 76
+  },
+  {
+   "cap3": "Thiết bị bếp",
+   "ma": "EQP.KI",
+   "cap2": "THIẾT BỊ",
+   "mo_ta": "Thiết bị bếp / Kitchen appliances, kitchen equipment",
+   "dong": 77
+  },
+  {
+   "cap3": "Thiết bị gym",
+   "ma": "EQP.GY",
+   "cap2": "THIẾT BỊ",
+   "mo_ta": "Thiết bị gym / Gym equipment, fitness equipment",
+   "dong": 78
+  },
+  {
+   "cap3": "Hệ thống Smarthome",
+   "ma": "EQP.SM",
+   "cap2": "THIẾT BỊ",
+   "mo_ta": "Hệ thống Smarthome / Smart home system",
+   "dong": 79
+  },
+  {
+   "cap3": "Thiết bị khác",
+   "ma": "EQP.OT",
+   "cap2": "THIẾT BỊ",
+   "mo_ta": "Thiết bị khác / Other equipment",
+   "dong": 80
+  },
+  {
+   "cap3": "Đồ trang trí, nghệ thuật",
+   "ma": "DE.ART",
+   "cap2": "HẠNG MỤC TRANG TRÍ",
+   "mo_ta": "Đồ trang trí, nghệ thuật / Artwork, decorative items, decor, accessories",
+   "dong": 82
+  },
+  {
+   "cap3": "Đèn trang trí",
+   "ma": "DE.LI",
+   "cap2": "HẠNG MỤC TRANG TRÍ",
+   "mo_ta": "Đèn trang trí / Decorative lighting, pendant lamp, floor lamp, table lamp, wall lamp",
+   "dong": 83
+  },
+  {
+   "cap3": "Rèm cửa",
+   "ma": "DE.CU",
+   "cap2": "HẠNG MỤC TRANG TRÍ",
+   "mo_ta": "Rèm cửa / Curtain, blind, roller blind, sheer, automation system, curtain track, curtain motor",
+   "dong": 84
+  },
+  {
+   "cap3": "Biển hiệu",
+   "ma": "DE.SI",
+   "cap2": "HẠNG MỤC TRANG TRÍ",
+   "mo_ta": "Biển hiệu / Signage, sign",
+   "dong": 85
+  },
+  {
+   "cap3": "Trang trí Khác",
+   "ma": "DE.OT",
+   "cap2": "HẠNG MỤC TRANG TRÍ",
+   "mo_ta": "Trang trí Khác / Other decoration",
+   "dong": 86
+  },
+  {
+   "cap3": "Hệ thống điện",
+   "ma": "MEP.EL",
+   "cap2": "HỆ THỐNG MEP",
+   "mo_ta": "Hệ thống điện / Electrical system, electrical works",
+   "dong": 88
+  },
+  {
+   "cap3": "Cấp thoát nước",
+   "ma": "MEP.PL",
+   "cap2": "HỆ THỐNG MEP",
+   "mo_ta": "Cấp thoát nước / Plumbing, water supply and drainage",
+   "dong": 89
+  },
+  {
+   "cap3": "Thống gió & Điều hòa không khí",
+   "ma": "MEP.HVA",
+   "cap2": "HỆ THỐNG MEP",
+   "mo_ta": "Thống gió & Điều hòa không khí / Ventilation & air conditioning, HVAC, ACMV",
+   "dong": 90
+  },
+  {
+   "cap3": "Phòng cháy chữa cháy",
+   "ma": "MEP.FI",
+   "cap2": "HỆ THỐNG MEP",
+   "mo_ta": "Phòng cháy chữa cháy / Fire protection, fire fighting",
+   "dong": 91
+  },
+  {
+   "cap3": "MEP Khác",
+   "ma": "MEP.OT",
+   "cap2": "HỆ THỐNG MEP",
+   "mo_ta": "MEP Khác / Other MEP works",
+   "dong": 92
+  },
+  {
+   "cap3": "Thiết kế Cơ Điện nội thất",
+   "ma": "DS.ME",
+   "cap2": "THIẾT KẾ NỘI THẤT",
+   "mo_ta": "Thiết kế Cơ Điện nội thất / Interior MEP design",
+   "dong": 94
+  },
+  {
+   "cap3": "Thiết kế Cảnh quan nội thất",
+   "ma": "DS.LA",
+   "cap2": "THIẾT KẾ NỘI THẤT",
+   "mo_ta": "Thiết kế Cảnh quan nội thất / Interior landscape design",
+   "dong": 95
+  },
+  {
+   "cap3": "Thiết kế Chiếu sáng nội thất",
+   "ma": "DS.LI",
+   "cap2": "THIẾT KẾ NỘI THẤT",
+   "mo_ta": "Thiết kế Chiếu sáng nội thất / Interior lighting design",
+   "dong": 96
+  },
+  {
+   "cap3": "Thiết kế Biển hiệu nội thất",
+   "ma": "DS.SI",
+   "cap2": "THIẾT KẾ NỘI THẤT",
+   "mo_ta": "Thiết kế Biển hiệu nội thất / Interior signage design",
+   "dong": 97
+  },
+  {
+   "cap3": "Thiết kế Graphic và Artwork nội thất",
+   "ma": "DS.GA",
+   "cap2": "THIẾT KẾ NỘI THẤT",
+   "mo_ta": "Thiết kế Graphic và Artwork nội thất / Graphic & artwork design",
+   "dong": 98
+  }
+ ]
+}
