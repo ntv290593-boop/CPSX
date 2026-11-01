@@ -366,7 +366,8 @@ def ban_sao_du_lieu(tmp):
     data_that = os.path.join(GOC_SOFITEL, "10_TENDER", "_data")
     goc = os.path.join(tmp, "SOFITEL_copy")
     data = os.path.join(goc, "10_TENDER", "_data")
-    shutil.copytree(data_that, data, ignore=shutil.ignore_patterns("_zip"))
+    # bỏ _dmvt*: có _dmvt.json thì build dựng cả DMVT bằng Excel; phép kiểm cần DMVT tự chép file cấu hình
+    shutil.copytree(data_that, data, ignore=shutil.ignore_patterns("_zip", "_dmvt*"))
     cau_hinh = os.path.join(data, "_cauhinh.json")
     with open(cau_hinh, encoding="utf-8") as fh:
         cfg = json.load(fh)
@@ -1999,6 +2000,353 @@ def gd4_sofitel_so_xuat_hien_va_link_spec(tmp):
     assert not lech, f"hàng BOQ khác chiều cao so với file gốc: {lech}"
     assert chu_ky_thu_muc(data_that) == truoc, "_data thật đã bị ghi"
     print(f"      SOFITEL: hàng BOQ giữ đúng chiều cao gốc; VL_XUATHIEN {len(rows)} dòng, {n_link} link spec, kiểm trang {n_trang}/{n_link} đúng, {len(trong)}/{len(co_ma)} dòng có mã chưa có link spec")
+
+
+# ---------------------------------------------------------------- GĐ5: DMVT
+def nap_dmvt():
+    tool = os.path.join(ROOT, "SKILL", "10-tender", "tool")
+    if tool not in sys.path:
+        sys.path.insert(0, tool)
+    import dmvt
+    import dmvt_xlsx
+    return dmvt, dmvt_xlsx
+
+
+def res_mau():
+    return {"AREA": {"51": {"Mã phòng": "SK-01; SK-02"}, "52": {"Mã phòng": "GK-01"}},
+            "MAT": {"WD-05": {"Trạng thái cuối": "Omit", "Nội dung cuối (VN)": "WD-05 bỏ (TCQ9-9)"},
+                    "ST-07": {"Trạng thái cuối": "Đổi theo TCQ", "Nội dung cuối (VN)": "Đổi mẫu (TCQ9-8)"},
+                    "GL-03": {"Trạng thái cuối": "VE", "Nội dung cuối (VN)": "Dùng acrylic"},
+                    "PT-01": {"Trạng thái cuối": "Theo spec"}, "MR-05": {"Trạng thái cuối": "Không thấy spec", "Mô tả": "Kính gân"}},
+            "SCOPE": {"S!1": {"Mã VL": "PT-01", "Mã phòng": "SK-01:2 | GK-01:1"}, "S!2": {"Mã VL": "WD-05", "Mã phòng": "SK-02:1"}},
+            "TCQ_LOG": {"TCQ9-1": {"Mã VL": "51-500A", "Bị thay bởi": ""}, "TCQ9-2": {"Mã VL": "51-500B", "Bị thay bởi": "TCQ9-3"}, "TCQ9-3": {"Mã VL": "", "Bị thay bởi": ""}}}
+
+
+def nguon_dr(ma, mo_ta="Vật liệu mẫu"):
+    return {"loai": "DR", "fid": "F1", "trang": 1, "ngay": "2026-01-01", "bo": "FINISHES", "mo_ta": mo_ta, "ref": ["Mẫu A"], "finish": ["Mờ"], "ncc": "NCC A", "vi_tri": "As shown", "note": ""}
+
+
+@kiem(5, "mau")
+def gd5_ap_trang_thai_mat(tmp):
+    """Mã đã Omit hoặc đã đổi không được hiện như spec gốc; FF&E chưa có ở MAT có cờ, không suy (plan mục 5, 8a)."""
+    dmvt, _ = nap_dmvt()
+    res = res_mau()
+    moi = {m: nguon_dr(m) for m in ("WD-05", "ST-07", "GL-03", "PT-01")}
+    moi["51-500A"] = {"loai": "MR", "fid": "F2", "trang": 1, "ngay": "2026-01-01", "bo": "FF&E", "tieu_de": "Sofa - Fabric", "kv": [["Design No", "Mau"], ["Colour", "1"]]}
+    moi["51-501A"] = {"loai": "MR", "fid": "F2", "trang": 2, "ngay": "2026-01-01", "bo": "FF&E", "tieu_de": "Stool - OMITTED", "kv": [["Design No", "Da"], ["Colour", "2"]]}
+    moi["51-500B"] = {"loai": "MR", "fid": "F2", "trang": 3, "ngay": "2026-01-01", "bo": "FF&E", "tieu_de": "Sofa - Cushion", "kv": [["Design No", "X"], ["Colour", "3"]]}
+    d = lambda m: dmvt.viet_dong([m], moi, res, {}, [])
+    x = d("WD-05")
+    assert x["Omit"] and "Omit" in x["Cờ"] and "OMITTED" in x["Remarks"] and x["Material"], x
+    x = d("ST-07")
+    assert not x["Omit"] and "Đổi theo TCQ" in x["Cờ"] and "Đổi mẫu" in x["Remarks"] and "Mẫu A" in x["Description"], "phải giữ nội dung spec, ghi kết luận vào Remarks"
+    x = d("GL-03")
+    assert "VE" in x["Cờ"] and "acrylic" in x["Remarks"]
+    x = d("PT-01")
+    assert not x["Remarks"] and "Omit" not in x["Cờ"]
+    assert x["Area"] == "GK-01\nSK-01" or set(x["Area"].split()) == {"GK-01", "SK-01"}, x["Area"]
+    assert "Area theo dòng BOQ" in x["Cờ"]
+    x = d("51-500A")
+    assert "Chưa qua MAT" in x["Cờ"] and "TCQ nhắc mã" in x["Cờ"] and "TCQ9-1" in x["Remarks"] and "Area theo tiền tố" in x["Cờ"]
+    x = d("51-500B")
+    assert "TCQ nhắc mã" not in x["Cờ"], "câu TCQ đã bị thay thì không tính"
+    x = d("51-501A")
+    assert x["Omit"], "spec ghi thẳng OMITTED thì giữ dòng và tô xám"
+    x = dmvt.viet_dong(["MR-05"], moi, res, {}, [])
+    assert "Không thấy spec" in x["Cờ"] and x["Material"] == "Kính gân"
+
+
+@kiem(5, "mau")
+def gd5_doc_khoi_va_gop_design_colour(tmp):
+    dmvt, _ = nap_dmvt()
+    t = "MATERIAL REFERENCE\nArea:\n51\nITEM\n51 - 300A\nDate: 30/01/2026\nRevised: \nBlind - Fabric\nDesign No:\nMercuro\nColour:\n44\nContent:\nPolyester\nWidth:\n255 cm\nRepeat:\n-\nSupplier:\nSilent - SG\nTel:\n+65 1\nFax:\nContact:\nPauline\nE-Mail:\np@x.sg\nITEM\n51 - 500A\nDate: 30/01/2026\nRevised: 05/06/2026 A\nSofa - Fabric\nDesign No:\nRuskin\nColour:\n7757/58\nSupplier:\nRomo\n"
+    k = dmvt.ma_khoi_mr(t)
+    assert [m for m, _ in k] == ["51-300A", "51-500A"], k
+    td_, kv = dmvt.doc_khoi_mr(*k[0])
+    assert td_ == "Blind - Fabric", td_
+    assert dmvt.thong_so(kv) == "Design No: Mercuro\nColour: 44\nContent: Polyester\nWidth: 255 cm", dmvt.thong_so(kv)
+    assert dmvt.lien_he(kv) == "Silent - SG\nContact: Pauline\nTel: +65 1\nE: p@x.sg", dmvt.lien_he(kv)
+    sp = dmvt.doc_spec("SPECIFICATION\nItem:\n51 - 200\nDate:\n30/01/2026\nDescription: \nRug\nSupplier:\nRoyal\nRef:\nCustom\nContent:\n80% Wool\nSPECIAL INSTRUCTIONS:\nGlass top 6mm")
+    assert sp["ma"] == "51-200" and sp["mo_ta"] == "Rug" and "Glass top" in sp["si"], sp
+    assert dmvt.doc_spec("SPECIFICATION\nManufacturer to provide...\nItem\n51 - 707") is None, "trang tiếp theo của spec không phải trang định nghĩa"
+
+
+@kiem(5, "mau")
+def gd5_chon_anh_uu_tien_anh_chup_va_hash(tmp):
+    from PIL import Image, ImageDraw
+    import random
+    dmvt, _ = nap_dmvt()
+    net = Image.new("RGB", (800, 800), "white")
+    ImageDraw.Draw(net).line((0, 0, 800, 800), fill="black", width=3)
+    rnd = random.Random(1)
+    chup = Image.new("RGB", (200, 200))
+    chup.putdata([(rnd.randrange(255), rnd.randrange(255), rnd.randrange(255)) for _ in range(40000)])
+    ung = [{"img": net}, {"img": chup}]
+    assert dmvt.chon_mot(ung) == 1, "ưu tiên ảnh chụp dù bản vẽ lớn hơn (quyết định 12)"
+    assert dmvt.chon_mot(ung, "lon_nhat") == 0
+    assert dmvt.chon_mot([]) is None
+    nen = Image.new("RGB", (400, 400), "white")
+    ImageDraw.Draw(nen).rectangle((50, 50, 200, 300), fill="black")
+    assert dmvt.lech(dmvt.phash(nen), dmvt.phash(nen.resize((230, 230)))) <= dmvt.HASH_LECH, "khác độ phân giải vẫn phải trúng"
+    assert dmvt.lech(dmvt.phash(nen), dmvt.phash(nen.transpose(Image.ROTATE_90))) > dmvt.HASH_LECH
+
+
+def dong_may(ma, **o):
+    d = {"C": "SK-01", "D": "Mô tả", "E": "Vị trí", "F": "Spec", "G": "NCC", "I": ""}
+    d.update(o)
+    return {"Khóa": " / ".join(ma), "Mã": ma, "o": d, "Cờ": [], "Cờ ảnh": [], "Mục": "I", "Tên mục": "M", "Omit": False, "Ảnh": "a.png"}
+
+
+def dong_cu(ma, hang=8, anh=None, sau=None, duoi=None, **o):
+    d = {"C": "SK-01", "D": "Mô tả", "E": "Vị trí", "F": "Spec", "G": "NCC", "I": ""}
+    d.update(o)
+    return {"hang": hang, "loai": "ma", "tap": frozenset(ma), "ai": dict(d, A=1, B="\n".join(ma)), "sau": sau or {}, "duoi": duoi or [], "cao": 160, "anh": anh}
+
+
+def snap_cua(ma, anh=b"", **o):
+    d = {"C": "SK-01", "D": "Mô tả", "E": "Vị trí", "F": "Spec", "G": "NCC", "I": "", "_ma": ma}
+    d.update(o)
+    import hashlib as h
+    d["anh"] = h.md5(anh).hexdigest() if anh else ""
+    return {" / ".join(ma): d}
+
+
+@kiem(5, "mau")
+def gd5_giu_o_sua_tay_va_bao_spec_moi(tmp):
+    _, x = nap_dmvt()
+    A = ["51-300A"]
+    # không ai sửa: lấy chữ máy mới
+    ra, tk = x.gop_sua_tay([dong_may(A, F="Spec mới")], [dong_cu(A)], snap_cua(A))
+    assert ra[0]["o"]["F"] == "Spec mới" and not ra[0]["spec_moi"], ra[0]
+    # người sửa, spec không đổi: giữ, không báo
+    ra, tk = x.gop_sua_tay([dong_may(A)], [dong_cu(A, F="Người sửa")], snap_cua(A))
+    assert ra[0]["o"]["F"] == "Người sửa" and not ra[0]["spec_moi"] and tk["ô sửa tay giữ"] == 1
+    # người sửa, spec đổi: giữ chữ người, báo spec mới, không đè
+    ra, tk = x.gop_sua_tay([dong_may(A, F="Spec mới")], [dong_cu(A, F="Người sửa")], snap_cua(A))
+    assert ra[0]["o"]["F"] == "Người sửa" and ra[0]["spec_moi"] == ["F: Spec mới"], ra[0]
+    # J trở đi, dòng không mã đi theo dòng có mã phía trên
+    ra, tk = x.gop_sua_tay([dong_may(A)], [dong_cu(A, sau={10: "91 days", 39: "cột tender thêm"}, duoi=[{"ai": {"C": "Ray trượt"}, "sau": {}, "cao": 50, "anh": None}])], snap_cua(A))
+    assert ra[0]["sau"] == {10: "91 days", 39: "cột tender thêm"} and ra[0]["duoi"][0]["ai"]["C"] == "Ray trượt", ra[0]
+    # thứ tự mã người gõ ở cột B không làm mất khớp
+    ra, tk = x.gop_sua_tay([dong_may(["51-1", "52-1"], F="m")], [dong_cu(["52-1", "51-1"], F="tay")], {"51-1 / 52-1": snap_cua(["51-1", "52-1"])["51-1 / 52-1"]})
+    assert ra[0]["o"]["F"] == "tay", ra[0]
+
+
+@kiem(5, "mau")
+def gd5_sua_tay_song_qua_nhieu_lan_build(tmp):
+    """Mốc snapshot phải là chữ máy: ghi chữ người vào mốc thì build lần 2 tưởng chưa ai sửa và đè mất."""
+    _, x = nap_dmvt()
+    A = ["51-300A"]
+    goc, nguoi = (b"anh may", "png"), (b"anh nguoi", "jpg")
+    snap = {" / ".join(A): dict(snap_cua(A, anh=goc[0])[A[0]], hash="h1")}
+    cu = [dong_cu(A, F="Người sửa", anh=nguoi)]
+    for vong in range(3):
+        may = dong_may(A, F="Spec mới")
+        may["Hash ảnh"] = "h2"
+        ra, tk = x.gop_sua_tay([may], cu, snap)
+        r = ra[0]
+        assert r["o"]["F"] == "Người sửa", f"vòng {vong}: mất chữ người"
+        assert r["anh_cu"] == nguoi, f"vòng {vong}: mất ảnh người"
+        assert r["spec_moi"] == ["F: Spec mới", "H: ảnh trong spec đã đổi"], f"vòng {vong}: báo spec mới phải còn tới khi người xử lý: {r['spec_moi']}"
+        sn = x.moc_snapshot(r)
+        assert sn["F"] == "Spec" and sn["anh"] == snap[A[0]]["anh"] and sn["hash"] == "h1", sn
+        snap = {A[0]: sn}
+    # người gõ đúng chữ spec mới: thôi báo
+    ra, tk = x.gop_sua_tay([dong_may(A, F="Spec mới")], [dong_cu(A, F="Spec mới")], {A[0]: snap_cua(A)[A[0]]})
+    assert not ra[0]["spec_moi"], ra[0]["spec_moi"]
+
+
+@kiem(5, "mau")
+def gd5_giu_anh_nguoi_thay(tmp):
+    _, x = nap_dmvt()
+    A = ["51-300A"]
+    goc, moi = (b"anh may", "png"), (b"anh nguoi", "jpg")
+    ra, tk = x.gop_sua_tay([dong_may(A)], [dong_cu(A, anh=goc)], snap_cua(A, anh=goc[0]))
+    assert ra[0]["anh_cu"] is None, "ảnh không đổi thì dùng ảnh máy cắt"
+    ra, tk = x.gop_sua_tay([dong_may(A)], [dong_cu(A, anh=moi)], snap_cua(A, anh=goc[0]))
+    assert ra[0]["anh_cu"] == moi and tk["ảnh sửa tay giữ"] == 1, ra[0]
+    ra, tk = x.gop_sua_tay([dong_may(A)], [dong_cu(A)], snap_cua(A, anh=goc[0]))
+    assert ra[0]["anh_cu"] == ("xoa",), "người xóa ảnh thì build lại không chèn lại"
+
+
+@kiem(5, "mau")
+def gd5_excel_nen_lai_anh_khong_tinh_la_sua(tmp):
+    """Excel nén lại ảnh khi lưu nên bytes đổi dù không ai sửa; tính nhầm thì ảnh bị đóng băng, spec đổi cũng không cập nhật."""
+    import io
+    from PIL import Image, ImageDraw
+    _, x = nap_dmvt()
+
+    def anh(mau, q):
+        im = Image.new("RGB", (300, 300), mau)
+        ImageDraw.Draw(im).ellipse((60, 60, 240, 240), fill=(40, 90, 160))
+        b = io.BytesIO()
+        im.save(b, "JPEG", quality=q)
+        return b.getvalue()
+    goc, nen, khac = anh((200, 180, 160), 95), anh((200, 180, 160), 60), anh((30, 160, 60), 95)
+    assert goc != nen
+    A = ["51-300A"]
+    sn = dict(snap_cua(A)[A[0]], anh=x.dau_anh(goc))
+    ra, _ = x.gop_sua_tay([dong_may(A)], [dong_cu(A, anh=(nen, "jpg"))], {A[0]: sn})
+    assert ra[0]["anh_cu"] is None, "nén lại không phải sửa tay"
+    ra, _ = x.gop_sua_tay([dong_may(A)], [dong_cu(A, anh=(khac, "jpg"))], {A[0]: sn})
+    assert ra[0]["anh_cu"] == (khac, "jpg"), "ảnh khác thật phải được giữ"
+
+
+@kiem(5, "mau")
+def gd5_tach_gop_tap_ma_co_co_khong_tu_chuyen(tmp):
+    _, x = nap_dmvt()
+    cu = [dong_cu(["51-1", "52-1"], F="tay", sau={10: "91 days"})]
+    snap = snap_cua(["51-1", "52-1"])
+    ra, tk = x.gop_sua_tay([dong_may(["51-1"], F="m1"), dong_may(["52-1"], F="m2")], cu, snap)
+    moi = {r["Khóa"]: r for r in ra}
+    assert moi["51-1"]["o"]["F"] == "m1" and not moi["51-1"]["sau"], "tách mã: không tự chuyển sửa tay"
+    assert any("Tập mã đổi" in c for c in moi["51-1"]["Cờ"]) and any("Tập mã đổi" in c for c in moi["52-1"]["Cờ"]), moi
+    giu = [r for r in ra if r["Tên mục"].startswith("DÒNG CŨ")]
+    assert len(giu) == 1 and giu[0]["sau"] == {10: "91 days"}, "công người phải còn ở dòng cũ giữ lại"
+    # gộp
+    ra, tk = x.gop_sua_tay([dong_may(["51-1", "52-1"])], [dong_cu(["51-1"]), dong_cu(["52-1"], hang=9)], {**snap_cua(["51-1"]), **snap_cua(["52-1"])})
+    assert any("Tập mã đổi" in c for c in ra[0]["Cờ"]), ra[0]
+    assert tk["dòng cũ bỏ"] == 2, "dòng cũ không có công người thì bỏ"
+
+
+@kiem(5, "mau")
+def gd5_dong_cu_mat_ma_va_dong_user_them(tmp):
+    _, x = nap_dmvt()
+    ra, tk = x.gop_sua_tay([dong_may(["51-1"])], [dong_cu(["51-1"]), dong_cu(["59-9"], hang=9), dong_cu(["58-8"], hang=10, sau={10: "x"}), dong_cu(["57-7"], hang=11)],
+                           {**snap_cua(["51-1"]), **snap_cua(["59-9"]), **snap_cua(["58-8"])})
+    k = {r["Khóa"]: r for r in ra}
+    assert "59-9" not in k, "máy ghi, không ai sửa, không còn trong spec: bỏ"
+    assert k["58-8"]["Cờ"] == ["Không còn trong spec"] and k["58-8"]["sau"] == {10: "x"}
+    assert k["57-7"]["Cờ"] == ["Dòng user thêm"]
+
+
+@kiem(5, "mau")
+def gd5_form_sach_khong_co_du_lieu_du_an(tmp):
+    f = os.path.join(ROOT, "SKILL", "10-tender", "form", "DMVT_form.xlsx")
+    with zipfile.ZipFile(f) as z:
+        ten = z.namelist()
+        assert not [n for n in ten if "/media/" in n or "comments" in n], "form còn ảnh hoặc comment"
+        chu = z.read("xl/sharedStrings.xml").decode("utf-8") + z.read("xl/workbook.xml").decode("utf-8")
+    for x in ("SOFITEL", "Sofitel", "KAWAJUN", "Royal Thai", "CHECK VE"):
+        assert x not in chu, x
+    assert os.path.getsize(f) < 100_000
+    with open(os.path.join(ROOT, ".gitignore"), encoding="utf-8") as fh:
+        assert "!SKILL/10-tender/form/DMVT_form.xlsx" in fh.read(), "form phải lên git"
+
+
+@kiem(5, "sofitel")
+def gd5_sofitel_bao_toan_build_lai_va_link(tmp):
+    """Vòng thật trên bản sao: build, người sửa bằng Excel, build lại; Omit tô xám, TCQ có Remarks; ảnh nằm đúng ô; Link vật tư tới đúng dòng."""
+    import glob
+    import openpyxl
+    dmvt, x = nap_dmvt()
+    data_that = os.path.join(GOC_SOFITEL, "10_TENDER", "_data")
+    truoc = chu_ky_thu_muc(data_that)
+    goc, cd = ban_sao_gd3(tmp, nho=True)
+    data = os.path.join(goc, "10_TENDER", "_data")
+    for t in ("_dmvt.json", "_dmvt_llm.json"):
+        shutil.copy2(os.path.join(data_that, t), data)
+    td_ok("dmvt", goc)
+    f = glob.glob(os.path.join(goc, "10_TENDER", "03_boq", "*_DMVT_*.xlsx"))[0]
+    wb = openpyxl.load_workbook(f)
+    ws = wb["DMVT"]
+    hang = {}
+    for h in range(8, ws.max_row + 1):
+        for m in x.tap_ma(ws.cell(h, 2).value):
+            hang[m] = h
+    # trạng thái MAT trên file thật
+    for m, co in (("WD-05", "Omit"), ("ST-09", "Omit"), ("ST-07", "Đổi theo TCQ"), ("WD-01", "Đổi theo TCQ"), ("GL-03", "VE")):
+        assert co in str(ws.cell(hang[m], 34).value), (m, ws.cell(hang[m], 34).value)
+        assert ws.cell(hang[m], 9).value, f"{m} thiếu Remarks"
+    assert str(ws.cell(hang["WD-05"], 1).fill.fgColor.rgb).endswith("D9D9D9"), "Omit phải tô xám"
+    assert str(ws.cell(hang["PT-01"], 1).fill.fgColor.rgb) in ("00000000", "None") or not ws.cell(hang["PT-01"], 1).fill.fill_type
+    assert "Omit" in str(ws.cell(hang["51-501A"], 34).value), "mã spec ghi OMITTED"
+    assert set(wb.sheetnames) == {"DMVT", "_SOI_ANH", "_LINKS"} and wb.sheetnames[0] == "DMVT" and wb["_LINKS"].sheet_state == "hidden", wb.sheetnames
+    # _LINKS: đích có thật, trang có chữ mã
+    ws_l = wb["_LINKS"]
+    so = 0
+    for r in ws_l.iter_rows(min_row=2, values_only=True):
+        assert os.path.exists(os.path.normpath(os.path.join(os.path.dirname(f), r[4]))), r
+        so += 1
+    assert so > 150, so
+    n_anh = len(x.anh_trong_file(f))
+    wb.close()
+    # người sửa bằng Excel
+    xl = mo_excel()
+    assert xl, "cần Excel"
+    h_f, h_a, h_i = hang["ST-07"], hang["PT-01"], hang["IR-07"]
+    anh_nguoi = os.path.join(tmp, "nguoi.png")
+    from PIL import Image
+    Image.new("RGB", (120, 90), (200, 30, 30)).save(anh_nguoi)
+    try:
+        excel_mo_khong_loi(xl, f)
+        wb = xl.Workbooks.Open(f)
+        w = wb.Worksheets("DMVT")
+        w.Cells(h_f, 6).Value = "SỬA TAY F"
+        w.Cells(h_f, 10).Value = "91 days"
+        w.Cells(h_a, 12).Value = "ghi chú giá"
+        w.Rows(h_i + 1).Insert()
+        w.Cells(h_i + 1, 3).Value = "Ray trượt cửa WC"
+        for i in range(1, w.Shapes.Count + 1):
+            sh = w.Shapes.Item(i)
+            if sh.Type == 13 and sh.TopLeftCell.Row == h_a:
+                sh.Delete()
+                break
+        c = w.Cells(h_a, 8)
+        p = w.Shapes.AddPicture(anh_nguoi, False, True, c.Left + 2, c.Top + 2, 60, 45)
+        p.Placement = 1
+        wb.Saved = False
+        wb.Save()
+        wb.Close(False)
+    finally:
+        xl.Quit()
+    os.utime(f)
+    out = td_ok("dmvt", goc)
+    wb = openpyxl.load_workbook(f)
+    ws = wb["DMVT"]
+    hang = {}
+    for h in range(8, ws.max_row + 1):
+        for m in x.tap_ma(ws.cell(h, 2).value):
+            hang[m] = h
+    assert ws.cell(hang["ST-07"], 6).value == "SỬA TAY F" and ws.cell(hang["ST-07"], 10).value == "91 days"
+    assert ws.cell(hang["PT-01"], 12).value == "ghi chú giá"
+    assert ws.cell(hang["IR-07"] + 1, 3).value == "Ray trượt cửa WC", "dòng không mã phải đi theo dòng có mã phía trên"
+    anh = x.anh_trong_file(f)
+    im = Image.open(__import__("io").BytesIO(anh[hang["PT-01"]][0])).convert("RGB")
+    assert im.getpixel((5, 5))[0] > 150 and im.getpixel((5, 5))[1] < 80, "ảnh người thay phải còn"
+    assert len(anh) == n_anh, (len(anh), n_anh)
+    wb.close()
+    assert "'ô sửa tay giữ': 1" in out and "'ảnh sửa tay giữ': 1" in out, f"chỉ sửa 1 ô, 1 ảnh, nếu nhiều hơn là nhận nhầm: {out}"
+    # build lại lần nữa: không có gì trôi
+    out2 = td_ok("dmvt", goc)
+    assert "'ô sửa tay giữ': 1" in out2 and "'ảnh sửa tay giữ': 1" in out2, out2
+    wb = openpyxl.load_workbook(f)
+    ws = wb["DMVT"]
+    assert ws.cell(hang["ST-07"], 6).value == "SỬA TAY F"
+    assert ws.cell(hang["IR-07"] + 1, 3).value == "Ray trượt cửa WC"
+    im = Image.open(__import__("io").BytesIO(x.anh_trong_file(f)[hang["PT-01"]][0])).convert("RGB")
+    assert im.getpixel((5, 5))[0] > 150 and im.getpixel((5, 5))[1] < 80, "ảnh người thay mất ở lần build thứ 2"
+    wb.close()
+    # Link vật tư: BOQ_TRACK trỏ đúng dòng DMVT
+    td_ok("build", goc, "--khong-dmvt")
+    t = glob.glob(os.path.join(goc, "10_TENDER", "03_boq", "*_BOQ_TRACK_*.xlsx"))
+    t = max(t, key=os.path.getmtime)
+    wb = openpyxl.load_workbook(t)
+    wl = wb["_LINKS"]
+    wd = openpyxl.load_workbook(f)["DMVT"]
+    kq = n = 0
+    for r in wl.iter_rows(min_row=2, values_only=True):
+        if r[6] and "'DMVT'!A" in str(r[6]) and r[1] != "SCOPE":
+            n += 1
+            assert os.path.normcase(os.path.normpath(os.path.join(os.path.dirname(t), r[4]))) == os.path.normcase(os.path.normpath(f)), r
+            ma = str(r[3]).split(" · ")[0]
+            h = int(str(r[6]).split("!A")[1])
+            assert ma in x.tap_ma(wd.cell(h, 2).value), (r, wd.cell(h, 2).value)
+            kq += 1
+    assert kq > 300, kq
+    wb.close()
+    assert chu_ky_thu_muc(data_that) == truoc, "_data thật đã bị ghi"
+    print(f"      SOFITEL: {len(hang)} mã; giữ sửa tay qua 2 lần build; {kq} link vật tư trỏ đúng dòng")
 
 
 # ---------------------------------------------------------------- chạy

@@ -44,9 +44,10 @@ LENH = """Lệnh:
   check <GOC> [--den <buoc>]
   area <GOC>                    AREA.area-tool.json: tiền tố mã -> tập phòng, nháp từ KHU (chỉ Bộ hồ sơ FF&E, Thảm); sửa ở sheet AREA
   xuathien <GOC>                VL_XUATHIEN.xuathien-tool.json: mã VL xuất hiện ở đâu (BOQ, spec, bản vẽ, TCQ) + khu + file + trang; build tự chạy
+  dmvt <GOC> [--chi-boc] [--ra <dir>]  03_boq\\<DA>_DMVT_<yymmdd>.xlsx: bóc A:I + ảnh từ trang spec, áp Trạng thái cuối MAT, giữ sửa tay (cần Excel); --chi-boc: chỉ ra _data\\_dmvt_boc.json
   ben <GOC>                     nháp Bên thực hiện cho dòng chưa có: Mã VL -> Loại (MAT) -> bên theo _data\\_ben.json, luôn gắn cờ
   goi <GOC> "<bên>"             04_out\\<DA>_GOI_<bên>_<yymmdd>.xlsx gửi nhà thầu phụ, chỉ phần việc của bên đó (chạy sau build); máy soát trước khi lưu
-  build <GOC> [--ra <dir>]      kéo sửa tay + chạy lại phanloai rồi dựng 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; --ra: chỉ ghi file ra thư mục đó, không kéo sửa tay, không đổi _data"""
+  build <GOC> [--ra <dir>] [--khong-dmvt]  kéo sửa tay + chạy lại phanloai + dựng DMVT (nếu có _data\\_dmvt.json) rồi dựng 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; --ra: chỉ ghi file ra thư mục đó, không kéo sửa tay, không đổi _data"""
 
 BO_TEN = re.compile(r"^(~\$|\.~)|^(plot\.log|thumbs\.db|desktop\.ini)$", re.I)
 BO_DUOI = {".dwl", ".dwl2", ".bak", ".log", ".tmp", ".lck"}
@@ -321,12 +322,17 @@ def unzip(p, fid, row, ra=None):
     return out
 
 
+DICH_TENDER = "10_TENDER:"
+
+
 def link_item(p, link, fidx):
     """Link JSON [nhãn, FID, trang, ô đích] → (nhãn, file, trang, ô đích). File trong zip → bản giải nén;
     có p.base (thư mục file xlsx) → đường dẫn tương đối. Không mở được → file None."""
     f = link[1]
     row = fidx.get(f)
-    if row:
+    if f.startswith(DICH_TENDER):  # file do skill dựng trong 10_TENDER (DMVT), không có trong FILE_INDEX
+        path = os.path.join(p.t, f[len(DICH_TENDER):])
+    elif row:
         rel = s(row.get("Đường dẫn"))
         if rel.startswith("http"):
             return link[0], rel, None, None
@@ -1875,7 +1881,7 @@ def pull_user(p):
     return n
 
 
-COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link vật liệu")  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
+COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link vật liệu", "Link vật tư")  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
 RX_NHIEU_BEN = re.compile(r"plywood|\bMDF\b|framework|metal frame|consisting of", re.I)
 TT_CON_LAM = ("Base", "VE", "Chờ")  # Loại trừ, Omit, Không áp dụng không giao cho bên nào
 
@@ -1948,6 +1954,21 @@ def gan_link_vat_lieu(res):
             r["Link vật liệu"] = out
 
 
+def gan_link_vat_tu(p, res):
+    """Link vật tư = dòng DMVT của từng mã, dựng lại mỗi lần build vì số hàng đổi. Chưa dựng DMVT thì cột trống."""
+    m = jload(p.f("_dmvt_hang.json"))
+    if not m or not os.path.exists(os.path.join(p.t, m["file"])):
+        return
+    for r in res["SCOPE"].values():
+        ls = {}
+        for ma in ma_cua_dong(r, res["AREA"]):
+            h = m["hang"].get(ma)
+            if h:
+                ls.setdefault(h, [f"{ma} · DMVT hàng {h}", DICH_TENDER + m["file"], None, f"'DMVT'!A{h}"])
+        if ls:
+            r["Link vật tư"] = list(ls.values())
+
+
 def ban_ve_hien(r):
     return r["_bv_hien"] if "_bv_hien" in r else r.get("Bản vẽ hiệu lực")
 
@@ -1955,6 +1976,7 @@ def ban_ve_hien(r):
 def derive(p, res, snap):
     tcq, scope, dwg = res["TCQ_LOG"], res["SCOPE"], res["DWG"]
     gan_link_vat_lieu(res)
+    gan_link_vat_tu(p, res)
     for r in scope.values():
         ma = BANG_MA.ma.get(s(r.get("Mã cấp 3"))) if BANG_MA else None
         if ma:
@@ -2303,7 +2325,7 @@ def column_index(letter):
 
 TONGHOP = [("Dòng BOQ gốc", 20), ("Item", 7), ("Vùng", 14), ("Nhóm", 14), ("Mô tả BOQ", 50), ("ĐV", 6), ("KL BOQ", 10),
            ("Mã phòng", 28), ("Trạng thái", 11), ("Mã cấp 3", 26), ("Code ID", 9), ("Bên thực hiện", 16), ("Mã cấu tạo", 10), ("Bản vẽ hiệu lực", 40),
-           ("Rev/ngày/đợt", 18), ("Link vật liệu", 50), ("Mã TCQ", 16),
+           ("Rev/ngày/đợt", 18), ("Link vật liệu", 50), ("Link vật tư", 20), ("Mã TCQ", 16),
            ("Nội dung cuối (VN)", 45), ("Việc còn mở", 35), ("Mô tả NT – Base", 40)]
 COT_LINK_SO = {"Mã TCQ": "TCQ_LOG"}  # bấm ô nhảy tới dòng ở sổ
 
@@ -2534,6 +2556,11 @@ def cmd_build(goc, args):
             print("XEM: chưa chạy phanloai, cột Mã cấp 3 và Code ID sẽ trống")
         cmd_area(goc)
         cmd_xuathien(goc)
+        if os.path.exists(p.f("_dmvt.json")) and "--khong-dmvt" not in args:
+            try:
+                cmd_dmvt(goc, [])
+            except Exception as e:  # không có Excel: BOQ_TRACK vẫn dựng được, link trỏ bản DMVT gần nhất
+                print(f"XEM: không dựng được DMVT ({str(e)[:200]}); Link vật tư trỏ bản DMVT gần nhất nếu có")
     errs, xem, res = run_check(p)
     derive(p, res, snap_old)
     fidx = res["FILE_INDEX"]
@@ -2737,6 +2764,15 @@ def cmd_goi(goc, args):
     print("Tender kiểm file trước khi gửi; skill không tự gửi.")
 
 
+# ---------------------------------------------------------------- dmvt (code ở dmvt.py, dmvt_xlsx.py)
+def cmd_dmvt(goc, args):
+    sys.modules.setdefault("td", sys.modules[__name__])  # dmvt.py import lại td: dùng chung 1 bản khi chạy td.py trực tiếp
+    if HERE not in sys.path:  # py -I không có thư mục script trong sys.path
+        sys.path.insert(0, HERE)
+    import dmvt
+    return dmvt.main(goc, args)
+
+
 # ---------------------------------------------------------------- main
 def main(a):
     if not a:
@@ -2755,7 +2791,7 @@ def main(a):
           "loc": lambda: cmd_loc(goc, rest[0], rest[1:]), "check": lambda: cmd_check(goc, rest),
           "build": lambda: cmd_build(goc, rest), "trang": lambda: cmd_trang(goc), "tim": lambda: cmd_tim(goc, rest),
           "ungvien": lambda: cmd_ungvien(goc, rest), "thaydoi": lambda: cmd_thaydoi(goc),
-          "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc)}.get(c)
+          "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc), "dmvt": lambda: cmd_dmvt(goc, rest)}.get(c)
     if not fn:
         sys.exit(LENH)
     fn()

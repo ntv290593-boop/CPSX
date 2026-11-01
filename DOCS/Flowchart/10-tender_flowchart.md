@@ -1,10 +1,10 @@
 # Flowchart skill 10-tender
 
 > Cập nhật lần cuối: 2026-11-01 · Theo code: `SKILL/10-tender/` (SKILL.md, `buoc/*.md`, `tool/td.py`)
-> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link spec` (GĐ4) đã làm. GĐ5–6 của `DOCS/PLAN_TENDER-CODEID-DMVT_2026-10-31.md` (DMVT, gộp pd.py) chưa làm. Main Lobby (BOQ thứ 2) chưa làm.
+> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) đã làm. GĐ6 của `DOCS/PLAN_TENDER-CODEID-DMVT_2026-10-31.md` (gộp pd.py) chưa làm. Main Lobby (BOQ thứ 2) chưa làm.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
-Sơ đồ gồm 7 phần: luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu.
+Sơ đồ gồm 8 phần: luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu, danh mục vật tư.
 
 # 0. LUỒNG TỔNG (phiên điều phối)
 
@@ -49,12 +49,16 @@ Sơ đồ gồm 7 phần: luồng tổng, kiểm kê, chạy lại khi có đợ
          7 doichieu  mỗi 1–2 sheet BOQ 1 subagent (sau 3, 5, 6)
             │
             ▼
-         8 build
+         8 dmvt  bóc A:I + ảnh, LLM dịch, chọn ảnh ca khó (mục 8; cần 5 mat)
             │
-            ├─► 03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx
+            ▼
+         9 build  (có _dmvt.json thì dựng DMVT trước để có số hàng)
+            │
+            ├─► 03_boq\<DA>_DMVT_<yymmdd>.xlsx
+            ├─► 03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (cột Link vật tư trỏ dòng DMVT)
             ├─► 01_index\FILE_INDEX.xlsx
             ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx (không tự gửi)
-            └─► 9 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
+            └─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
 ```
 
 # 1. KIỂM KÊ (td.py kiemke)
@@ -259,3 +263,46 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
      DASHBOARD đếm dòng FF&E không có link sản phẩm
    1 trang chỉ 1 link
 ```
+
+# 8. DANH MỤC VẬT TƯ (td.py dmvt → dmvt.py, dmvt_xlsx.py)
+
+```
+ _dmvt.json (tiêu đề, tiền tố FF&E, item_spec, mục I, II…, chon_anh)   MAT, AREA, SCOPE, TCQ_LOG, VL_XUATHIEN
+        │                                                                     │
+        ▼                                                                     │
+ Quét trang spec, bản mới nhất THEO TỪNG MÃ                                   │
+   MATERIAL REFERENCE → từng khối ITEM (khối này thắng trang SPEC của cùng mã)│
+   DRAWING REFERENCE  → đọc cột theo đường kẻ bảng                            │
+   SPECIFICATION      → mã khớp item_spec, bỏ Fabrication/Installation        │
+        │                                                                     │
+        ▼                                                                     │
+ Gộp dòng: FF&E theo Design + Colour (cùng mã màu, khác vài chữ: gộp, có cờ)  │
+           phụ kiện theo nhà cung cấp; mã khác 1 dòng/mã;                     │
+           mã có ở MAT, không có spec: vẫn có dòng, có cờ                     │
+        │                                                                     │
+        ▼                                                                     ▼
+ Trạng thái, Area ◄─ Omit: tô xám. Đổi theo TCQ/VE: giữ spec, Remarks + cờ.
+                     Chưa có ở MAT: cờ, không suy. Area luôn có cờ.
+        │
+        ▼
+ Ảnh: khối ITEM / vùng Sample Swatch / trang minh họa (ca khó)
+      nhiều ảnh: ảnh chụp trước rồi lớn nhất; dòng có cờ vào _SOI_ANH
+        │
+        ├─► --chi-boc: _dmvt_boc.json, _dmvt_anh\  ──► bước 8: LLM ghi _dmvt_llm.json
+        │
+        ▼
+ Bản DMVT trước + _dmvt_snapshot.json → gop_sua_tay
+   ô A:I / ảnh khác snapshot: giữ; spec đổi: ghi Spec mới khác, không đè
+   J:AF, từ AK: giữ. Dòng không mã: đi theo dòng có mã phía trên
+   tập mã đổi: cờ, không tự chuyển; dòng cũ có công người: mục DÒNG CŨ GIỮ LẠI
+        │
+        ▼
+ Excel COM từ form\DMVT_form.xlsx: ghi file tạm, chèn ảnh sau cùng, mở lại kiểm
+   mỗi ảnh gọn trong 1 ô cột H, đủ số ảnh ── sai ──► LỖI, file cũ giữ nguyên
+        │ đúng
+        ▼
+ 03_boq\<DA>_DMVT_<yymmdd>.xlsx (sheet DMVT, _SOI_ANH, _LINKS ẩn)
+ _dmvt_snapshot.json, _dmvt_hang.json (mã → hàng) ──► build: cột Link vật tư
+ Không tự gửi. Nhắc xóa: cột từ AG, _LINKS, _SOI_ANH; xem L, AB:AC.
+```
+

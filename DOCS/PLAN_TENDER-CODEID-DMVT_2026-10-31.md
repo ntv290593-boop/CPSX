@@ -1,6 +1,6 @@
 # PLAN — Skill 10-tender: Code ID, DMVT, gộp 01-scan (2026-10-31)
 
-Trạng thái: đã chốt qua grill với user 31/10, đã review và đo lại cùng ngày (quyết định 2, 9 đổi, 10 giữ nguyên, thêm 14–16). **GĐ0 và GĐ1 xong 31/10** (`bo_thu_muc`, `ma_chuan`/`regex_ma` trong `_core`, `tim --ma`, vai trò `Scope`; kiểm bằng `kiemthu.py`; chưa commit, `kiemke` thật chưa chạy lại; PVCV mới thử bằng file giả, SOFITEL chưa có file thật). **GĐ2 xong phần code và đo 31/10 (mục 2a), `nho.json` chờ user duyệt `NHO_DUYET.xlsx`.** Chưa chạy `phanloai` trên `_data` thật. **GĐ3 và GĐ3b xong 31/10 (mục 2b, 2c), `build` thật đã chạy, danh sách bên đang TẠM chờ user gửi. GĐ4 xong 01/11 (mục 2d), `build` thật đã chạy. Từ GĐ5 trở đi chưa làm.**
+Trạng thái: đã chốt qua grill với user 31/10, đã review và đo lại cùng ngày (quyết định 2, 9 đổi, 10 giữ nguyên, thêm 14–16). **GĐ0 và GĐ1 xong 31/10** (`bo_thu_muc`, `ma_chuan`/`regex_ma` trong `_core`, `tim --ma`, vai trò `Scope`; kiểm bằng `kiemthu.py`; chưa commit, `kiemke` thật chưa chạy lại; PVCV mới thử bằng file giả, SOFITEL chưa có file thật). **GĐ2 xong phần code và đo 31/10 (mục 2a), `nho.json` chờ user duyệt `NHO_DUYET.xlsx`.** Chưa chạy `phanloai` trên `_data` thật. **GĐ3 và GĐ3b xong 31/10 (mục 2b, 2c), `build` thật đã chạy, danh sách bên đang TẠM chờ user gửi. GĐ4 xong 01/11 (mục 2d), `build` thật đã chạy. GĐ5 xong 01/11 (mục 2e), `build` thật đã chạy, user chốt. Nhóm mục Finishes, Sanitary vẫn tạm. GĐ6 chưa làm.**
 Dự án đo: SOFITEL (`ACTIVE.md`). File Sarene (PVCV) và hidden sheet Sheraton trong `YYMMDD_DUAN_List of material.xlsx` chỉ là form, không lấy số liệu.
 
 ## 1. Quyết định đã chốt
@@ -165,6 +165,51 @@ Giới hạn: cùng một BOQ, cùng người lập. **Chưa đo trên BOQ dự 
 - Link tới sheet ẩn không nhảy và không báo gì (đã thử bằng Excel), nên link `DASHBOARD` đổi sang `BOQ_TONGHOP`. Sheet CĐT không tô màu tab, giữ format gốc.
 - User yêu cầu sheet BOQ chi tiết có cột như `BOQ_TONGHOP`: bỏ nhóm cột ẩn, thêm `Vùng`, `Nhóm`, `Mã phòng`, `Spec · VL`, xếp cùng thứ tự `BOQ_TONGHOP`; `Mã VL`, `Mã TCQ` bấm được. Đổi cách viết ở mục 3 (cột nội bộ khác ẩn) và danh sách cột ở mục 6. Tự quyết: không lặp `Dòng BOQ gốc`, `Item`, `Mô tả BOQ`, `ĐV`, `KL BOQ` vì đã có trên chính hàng đó; giữ `Loại thay đổi`, `Ngày cập nhật` ở cuối. Tìm thêm lỗi: file gốc khai ẩn M:O ở `4. Provisional sum`, lấn vào cột tool thêm, ở cả bản `_CDT`; đã cắt khai báo lấn. Bản build thử trong thư mục tạm: 22 cột/sheet ở 6 sheet, 0 cột ẩn, 0 hàng lệch chiều cao, 13.032 ô so với `BOQ_TONGHOP` khác 0; file từ 1.532 KB lên 1.614 KB, `_LINKS` từ 9.077 lên 9.827 dòng.
 - User yêu cầu gộp `Mã VL`, `Spec · VL`, `Link spec`, `Mã spec/FF&E` thành 1 cột `Link vật liệu` trỏ trang gốc, không qua sheet MAT; dòng FF&E: link sản phẩm ở cột bản vẽ, spec ở `Link vật liệu`. Đã xem mẫu `51-500` (F0046): p60 là SPECIFICATION, p62–63 là bản vẽ sản phẩm có kích thước. Thay đổi này thay cho danh sách cột ở mục 6. Tự quyết: áp cho cả `BOQ_TONGHOP`; sản phẩm = trang `Ảnh` cùng tập với trang Định nghĩa mới nhất; tờ có Số BV giữ ở cột bản vẽ, trang tập FF&E bước `banve` đã ghi chuyển sang `Link vật liệu`; 1 trang 1 link; ô hiện `mã: mô tả [trạng thái]` để không mất nội dung `Spec · VL`; `Bản vẽ hiệu lực` gốc và `Mã VL` ở SCOPE giữ nguyên. Đo: 455/457 dòng có mã có `Link vật liệu` (thiếu 2 dòng `90-601`), 150/155 dòng FF&E có link sản phẩm (thiếu 5: 4 Loại trừ, 1 Base `50-501`).
+
+## 2e. Kết quả GĐ5 (01/11)
+
+**File thật** `03_boq\SSP_DMVT_261101.xlsx` (8,7 MB; 158 dòng, 154 ảnh), `SSP_BOQ_TRACK_261101.xlsx`, `_CDT`: 0 LỖI, 0 XEM, 724 dòng giữ `Ngày cập nhật` 2026-10-28, Excel mở cả 3 file không báo sửa lỗi. `kiemthu.py --mau` 62/62. `--sofitel`: GĐ0–4 đạt 11/11 ở lần chạy đủ bộ; GĐ5 đạt khi chạy riêng sau khi sửa lỗi, chưa chạy lại đủ bộ cùng lúc (sau lần đó chỉ `dmvt_xlsx.py` và phần kiểm đổi).
+
+**So với `DMVT BASE (1)`** (`do_dmvt.py`):
+
+| Mục | Kết quả |
+|---|---|
+| Dòng form có dòng máy | 57/57; khớp đúng tập mã 56/57 (`50-201` máy tách riêng, form gộp với lót thảm khác) |
+| Phủ chữ của form | F 89%, G 89%, D 57%, E 55% (D, E thấp vì form viết tay tiếng Việt) |
+| Ảnh form có trong ứng viên của đúng dòng | **47/57, đúng mốc** |
+| Đúng ảnh máy chọn | **37/57** |
+| Dòng máy thêm ngoài form (trừ Finishes, Sanitary) | 14 (da, da PU, vải chụp đèn, mã OMITTED…), giữ theo quyết định 7 |
+
+**User chốt 01/11:** `DMVT BASE (1)` là file DMVT cuối, tender đã tự chèn thêm ảnh từ ngoài hồ sơ, nên máy không thể thấy hết. Tiêu chí GĐ5 chỉ cần lấy được thông tin khi quét hồ sơ mời thầu và chạy được. Vì vậy các chỗ lệch ảnh và thiếu thông tin so với file này không tính là chưa đạt; cột J:AF không cần chép từ file này.
+
+**Mốc ảnh, ghi lại để tham khảo:** dựng lại phép đo 31/10 thì mốc 47 là average hash 16×16 so với **mọi ứng viên**, tức đo khả năng cắt được ảnh, không đo ảnh được chọn. 10 ảnh IR lệch vì quyết định 12 ưu tiên ảnh chụp, còn form lấy bản vẽ. Hai điều này mâu thuẫn; đang giữ quyết định 12. `"chon_anh": "lon_nhat"` trong `_dmvt.json` đổi được; chưa chạy thật với tùy chọn này.
+
+**20 ảnh không trúng:** 10 IR (có cờ), 5 ca thảm, lót, ray rèm (form là phần cắt từ trang, máy lấy cả trang; có cờ), 5 vải trơn (giống từng điểm ảnh, hash nhiễu). **Điều kiện "mọi ảnh không trúng có cờ" chưa đạt đúng chữ:** 4/5 dòng vải trơn không có cờ (hàng form 20, 21, 28, 30). Đã xem bằng mắt là đúng ảnh. Không thêm cờ vì dự án mới không có form để so, cờ này không nói lên rủi ro.
+
+**Cờ:** 76/158 dòng có cờ ảnh (56 `Nhiều ảnh, máy chọn`), nên `_SOI_ANH` chưa hẳn là ngoại lệ. Trạng thái: 5 Omit (`ST-09`, `WD-05`, `WD-06`, `51-501A`, `52-501A`), 7 Đổi theo TCQ, 1 VE. 10 dòng FF&E có TCQ nhắc mã nhưng MAT chưa có kết luận. 13 mã không phải FF&E chưa có ở MAT: `FB-04`, `IR-06`, `IR-15`, `IR-17`, `IR-18`, `IR-19`, `MT-07`, `PT-06`, `SP-05`, `ST-10`, `SW-23`, `SW-25`, `WC-09`. 4 dòng không có ảnh: `51-501A`, `52-501A`, `53-304`, `MR-05`.
+
+**Link vật tư:** 808/808 link trỏ đúng dòng có mã đó, file đích có thật. Chạy thủ tục `SL_OpenRow` của add-in thật: mở DMVT tới đúng ô `A95` (`SP-01`). Chưa có người bấm chuột.
+
+**Finishes, Sanitary kiểm mẫu:** 10 dòng (WD-01, WC-07, SP-02, ST-10, MT-05, GL-02, SW-24, SW-11, SW-23, WC-09) đọc đúng cột, ảnh đúng khối. `SP-02`, `WC-09` ra ảnh phối cảnh, có cờ. `SW-23` và `SW-24` cùng ghi model `40800001`, cần xem lại với thiết kế.
+
+**Lỗi tìm ra khi kiểm, đã sửa, có phép kiểm:**
+- Snapshot ghi chữ người như chữ máy: sửa tay sống qua build đầu, mất ở build thứ 2. Mốc nay luôn là giá trị máy.
+- Excel nén lại ảnh khi lưu nên md5 đổi dù không ai sửa (`FB-04`): ảnh bị tính là người thay và đóng băng. Đổi sang so điểm ảnh 16×16, lệch ≤ 1%.
+- Mã có khối `MATERIAL REFERENCE` nhưng có trang SPEC mới hơn sẽ mất dòng; khối MR nay thắng.
+- `Refer to Supplier` không được coi là mã màu khi gộp. Colour thật của nhóm đèn là `ZH-49B`, nên 10 mã đó vẫn gộp 1 dòng.
+
+**Tự quyết, khác với plan, do user chưa xét:**
+- Nhóm mục tạm: VII Finishes, VIII Sanitary, giữ X Ironmongery; `No` đánh liên tục, không nhảy từ 38 lên 61. Sửa ở `_data\_dmvt.json`.
+- Bỏ AREA01 (Main Lobby) khỏi DMVT qua `tien_to_ffe` 50–54, vì mục 9 để Main Lobby làm riêng.
+- Cột máy: AG `Spec mới khác`, AH `Cờ`, AI `Link spec`, AJ `Link bản vẽ`; mỗi ô tối đa 30 link.
+- Mã FF&E chưa có ở MAT luôn có cờ `Chưa qua MAT` (đúng chữ plan); thêm cờ `TCQ nhắc mã` để phân biệt dòng đáng xem. Spec ghi thẳng OMITTED cũng tô xám.
+- Dòng cũ có công người mà tập mã đã đổi được giữ ở mục `DÒNG CŨ GIỮ LẠI, CẦN XEM`, không bỏ.
+- Bản dịch lần này do phiên chính viết (`_dmvt_llm.json`), chưa ai duyệt. `MR-05` chưa dịch vì mô tả đã là tiếng Việt, nên còn 1 cờ `Chưa dịch`.
+
+**Chưa làm:**
+- Đọc tag ca `Lệch Area` trên mặt bằng (17 cặp, việc LLM của mục 4). Cột C vẫn theo tiền tố, luôn có cờ.
+- Vật liệu chỉ có ở SPECIAL INSTRUCTIONS: có đọc chữ, chưa tách thành dòng.
+- J:AF của `DMVT BASE (1)` (leadtime, ĐVT, giá) chưa đưa vào, để phép đo độc lập; file ra đang trống các cột đó.
 
 ## 3. Phân loại Code ID (máy trước)
 

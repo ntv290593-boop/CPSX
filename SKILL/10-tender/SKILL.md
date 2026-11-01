@@ -1,6 +1,6 @@
 ---
 name: 10-tender
-description: Quét hồ sơ mời thầu cho PHÒNG TENDER (toàn gói, không lọc phạm vi nhà máy) của dự án ghi ở ACTIVE.md — theo dõi thay đổi cuối cùng qua các đợt TCQ/Addendum (vật liệu, bản vẽ, phạm vi), ra <GOC>\10_TENDER\03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (BOQ CĐT + cột nhà thầu + cột nội bộ + sổ TCQ_LOG/MAT/DWG/KHU/SCOPE) và bản gửi CĐT. Dùng khi user nói "scan tender", "quét HSMT", "tender", "cập nhật TCQ", "có TCQ mới", "làm BOQ tender", "build lại tender".
+description: Quét hồ sơ mời thầu cho PHÒNG TENDER (toàn gói, không lọc phạm vi nhà máy) của dự án ghi ở ACTIVE.md — theo dõi thay đổi cuối cùng qua các đợt TCQ/Addendum (vật liệu, bản vẽ, phạm vi), ra <GOC>\10_TENDER\03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (BOQ CĐT + cột nhà thầu + cột nội bộ + sổ TCQ_LOG/MAT/DWG/KHU/SCOPE), <DA>_DMVT_<yymmdd>.xlsx (danh mục vật tư có ảnh) và bản gửi CĐT. Dùng khi user nói "scan tender", "quét HSMT", "tender", "cập nhật TCQ", "có TCQ mới", "làm BOQ tender", "build lại tender", "làm DMVT", "danh mục vật tư".
 ---
 
 # 10-tender — ĐIỀU PHỐI
@@ -27,8 +27,9 @@ Khác `01-scan`: quét **toàn gói**, gắn nhãn chứ không bỏ dòng; KHÔ
 | 6 | banve | `trang` (nếu chưa) | `buoc/6-banve.md` | mỗi nhóm mã phòng/khu 1 subagent, song song; file `SCOPE.banve-<n>.json` | 4, 5 |
 | 7 | doichieu | `doichieu` | `buoc/7-doichieu.md` | mỗi 1–2 sheet BOQ 1 subagent; file `SCOPE.doichieu-<n>.json` | 3, 5, 6 |
 | 7b | ben | `ben` (dự án mới, sau khi có `_data\_ben.json`) | (mục 1a) | bạn; tender duyệt | 5 |
-| 8 | build | `build` | (mục 3) | bạn | 7 |
-| 9 | goi | `goi <GOC> "<bên>"` | (mục 1a) | bạn, khi tender cần | 8 |
+| 8 | dmvt | `dmvt <GOC> --chi-boc` | `buoc/8-dmvt.md` | bạn hoặc 1 subagent; ghi `_dmvt_llm.json` | 5 |
+| 9 | build | `build` (tự dựng DMVT trước) | (mục 3) | bạn | 7, 8 |
+| 10 | goi | `goi <GOC> "<bên>"` | (mục 1a) | bạn, khi tender cần | 8 |
 
 Prompt giao việc (thay `<…>`; không thêm số liệu hay suy đoán của bạn vào prompt):
 ```
@@ -56,6 +57,16 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 - Cột `Link vật liệu` (ở sheet BOQ và BOQ_TONGHOP): trỏ thẳng trang gốc, không qua sheet MAT. `MAT.Nguồn spec` nếu có, không thì trang Định nghĩa mới nhất của mã. Mở bằng add-in SRC_LINKS. Dòng FF&E: trang spec ở cột này, trang ảnh sản phẩm ở cột `Bản vẽ hiệu lực` (lấy từ cùng tập với trang Định nghĩa mới nhất).
 - DASHBOARD đếm mã chưa có trang spec, dòng có mã chưa có link, cặp lệch Area. `MAT.Nguồn spec` trỏ trang không có chữ mã thì ra dòng `XEM spec`. Đo cột Area: `DOCS\scan-toi-uu\tender-test\do_area.py`.
 
+## 1c. Danh mục vật tư (DMVT)
+- Dự án cần DMVT: tạo `_data\_dmvt.json` (tiêu đề, tiền tố FF&E, mẫu mã lấy từ trang SPEC, mục I, II…), chạy `dmvt --chi-boc`, làm bước 8, rồi `build`. Có `_dmvt.json` thì `build` dựng DMVT trước để `Link vật tư` có số hàng; `build --khong-dmvt` bỏ qua. Cần Excel; không có Excel thì báo XEM và BOQ_TRACK vẫn ra.
+- Máy bóc A:I theo loại trang: `MATERIAL REFERENCE` theo từng khối `ITEM`, `DRAWING REFERENCE` theo đường kẻ cột, `SPECIFICATION` cho mã khớp `item_spec` (SOFITEL: rug, phụ kiện rèm). Bản mới nhất **theo từng mã**, không theo cả file. FF&E gộp theo Design + Colour; phụ kiện gộp theo nhà cung cấp; mã khác 1 dòng/mã. Mã có ở MAT mà không có trang spec vẫn có dòng, có cờ.
+- **Chỉ áp kết luận từ MAT:** Omit giữ dòng, tô xám; Đổi theo TCQ/VE giữ nội dung spec, ghi kết luận vào cột I, có cờ. Mã FF&E chưa có ở MAT có cờ `Chưa qua MAT`, không suy; có câu TCQ còn hiệu lực nhắc tới thì thêm `TCQ nhắc mã`. Spec ghi thẳng OMITTED cũng tô xám.
+- **Ảnh:** ảnh gốc theo xref, thuộc khối khi tâm nằm giữa 2 tiêu đề `ITEM` hoặc trong vùng `Sample Swatch`. Nhiều ảnh: ảnh chụp trước, rồi lớn nhất (`"chon_anh": "lon_nhat"` trong `_dmvt.json` để lấy lớn nhất). Mọi dòng có cờ ảnh vào sheet `_SOI_ANH`.
+- **File:** `03_boq\<DA>_DMVT_<yymmdd>.xlsx`, dựng từ `form\DMVT_form.xlsx` bằng Excel COM (không lưu bằng openpyxl). Máy ghi A:I, AG `Spec mới khác`, AH `Cờ`, AI `Link spec`, AJ `Link bản vẽ`. J:AF và từ AK trở đi là của tender. Mỗi ô link tối đa 30 đích.
+- **Build lại giữ sửa tay** (so `_dmvt_snapshot.json`): ô A:I, ảnh khác snapshot được giữ; spec mới khác thì ghi `Spec mới khác`, không đè. Dòng không mã đi theo dòng có mã phía trên. Tập mã đổi: có cờ, không tự chuyển sửa tay; dòng cũ có công người nằm ở mục `DÒNG CŨ GIỮ LẠI, CẦN XEM`. Không xóa `_dmvt_snapshot.json`.
+- **Trước khi gửi CĐT tender tự xóa:** các cột từ AG, sheet `_LINKS`, `_SOI_ANH`; xem thêm L và AB:AC (giá). Skill nhắc đủ các mục này khi báo kết quả, không gửi thay.
+- Đo lại: `DOCS\scan-toi-uu\tender-test\do_dmvt.py`. Đổi form: `lam_form_dmvt.py`.
+
 ## 2. Sau mỗi bước
 1. `py -I "<TOOL>" check <GOC> --den <buoc>`.
 2. Có LỖI thuộc bước vừa làm → gửi nguyên danh sách cho subagent đó (SendMessage) sửa JSON của nó. Tối đa 2 vòng; còn lỗi → ghi vào báo cáo, làm tiếp. (LỖI "thiếu cột" của bước SAU là bình thường.)
@@ -66,12 +77,13 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 ## 3. Kết thúc
 - `py -I "<TOOL>" build <GOC>` → `03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx` (bản cùng ngày tự sao `_backup`), `01_index\FILE_INDEX.xlsx`, `04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx` (BOQ gốc + chỉ 3 cột chính thức).
 - BOQ_TRACK có sheet **BOQ_TONGHOP** (sau DASHBOARD): 1 dòng = 1 dòng BOQ CĐT, nhìn ngang mô tả – phạm vi – bản vẽ hiệu lực – Link vật liệu – TCQ; ô nào cũng bấm được (dòng BOQ gốc, tờ PDF, file spec, TCQ_LOG). Chỉ để xem — dựng lại mỗi lần build, sửa ở SCOPE/MAT/TCQ_LOG.
+- `Link vật tư` (sheet BOQ, BOQ_TONGHOP): trỏ dòng DMVT của từng mã, dựng lại mỗi lần build, mở bằng add-in SRC_LINKS. Chuyển file thì giữ BOQ_TRACK và DMVT cùng thư mục `03_boq`.
 - Sheet BOQ chi tiết của CĐT có các cột của BOQ_TONGHOP theo cùng thứ tự, không ẩn cột nào, thêm `Loại thay đổi`, `Ngày cập nhật`. Không lặp `Item`, `Mô tả BOQ`, `ĐV`, `KL BOQ`, `Dòng BOQ gốc`, vì đã có trên chính hàng đó. Bản `_CDT` chỉ có 3 cột chính thức.
 - **Sheet hiện:** `DASHBOARD`, `BOQ_TONGHOP`, sheet CĐT, `MAT`, `TCQ_LOG`, `VIEC_MO`. **Sheet ẩn** (mỗi lần build ẩn lại, chuột phải tab → Unhide; `DASHBOARD` có mục lục): `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN`, `_LINKS`, `_CODE`; `CAU_TAO`, `PHAN_VIEC` ẩn khi chưa có mẫu cấu tạo. Sửa ở sheet ẩn vẫn được kéo vào khi build. Link tới sheet ẩn không nhảy, nên link trên sheet hiện không được trỏ vào các sheet này.
 - Cho nhẹ file: `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN` không có hyperlink; `VL_XUATHIEN` bỏ cột `Khóa`, `Dòng BOQ`, `Chữ gốc` ở sheet. JSON trong `_data` vẫn giữ đủ.
 - Link file đi qua sheet `_LINKS` (cùng định dạng 01-scan) + add-in `_MASTER\vba\SRC_LINKS.xlam`: bấm ô → mở PDF **đúng trang** bằng Edge; ô nhiều link → menu chọn. Không có add-in thì bấm ô không mở gì (`_LINKS` đã bỏ cột mở dự phòng; đường dẫn file vẫn ở cột E để mở tay). Link 1 đích trong workbook (dòng BOQ gốc, 1 mã VL/TCQ) là hyperlink thường.
 - File trong zip được link qua bản giải nén ở `_data\_zip` (build tự giải nén file đang được link). Link ghi tương đối theo thư mục file xlsx — chuyển cả thư mục `10_TENDER` + hồ sơ cùng nhau thì link không gãy.
-- Báo user, ngắn: đường dẫn file · số dòng BOQ / TCQ / MAT / DWG · số dòng Code ID highlight · LỖI còn lại · **CẦN XEM** (chép từ sheet DASHBOARD, gộp theo loại) · câu hỏi. Không kể lại nội dung từng dòng.
+- Báo user, ngắn: đường dẫn file (cả DMVT) · số dòng BOQ / TCQ / MAT / DWG / DMVT · số dòng Code ID highlight · LỖI còn lại · **CẦN XEM** (chép từ sheet DASHBOARD, gộp theo loại) · câu hỏi. Không kể lại nội dung từng dòng.
 - Bản gửi CĐT: **không tự gửi**. Nhắc user kiểm cột "Mô tả NT – Đề xuất / KL – Đề xuất" (chỉ user điền) trước khi gửi.
 
 ## 4. Chạy lại / đợt mới

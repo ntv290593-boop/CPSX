@@ -2,6 +2,7 @@
 
 Mới nhất ở trên. Định dạng: ngày · skill · phần đã sửa · lý do.
 
+- 2026-11-01 · 10-tender · phần 0, 8 (mới) · thêm lệnh `dmvt`, `dmvt.py`, `dmvt_xlsx.py`, bước `8-dmvt`, `form/DMVT_form.xlsx`, cột `Link vật tư` (GĐ5 plan Code ID/DMVT), để có danh mục vật tư kèm ảnh từ trang spec, theo trạng thái cuối của MAT, build lại không mất sửa tay; `build` dựng DMVT trước vì `Link vật tư` cần số hàng.
 - 2026-11-01 · 10-tender · phần 3, 7 · gộp `Mã VL`, `Spec · VL`, `Link spec`, `Mã spec/FF&E` thành 1 cột `Link vật liệu` trỏ trang gốc, không qua sheet MAT; dòng FF&E: ảnh sản phẩm ở cột bản vẽ, spec ở `Link vật liệu`; theo yêu cầu user, cho gọn và mở thẳng nguồn.
 - 2026-11-01 · 10-tender · phần 3 · sheet BOQ chi tiết hiện đủ cột như `BOQ_TONGHOP` (bỏ nhóm cột ẩn, thêm `Vùng`, `Nhóm`, `Mã phòng`, `Spec · VL`, link `Mã VL`, `Mã TCQ`), để xem ngay tại BOQ CĐT; cắt khai báo cột của file gốc lấn vào cột thêm, vì khoảng ẩn M:O làm mất cột ở `4. Provisional sum`.
 - 2026-11-01 · 10-tender · phần 3 · ẩn sheet dữ liệu, chạy code và 2 sheet khi trống, cho bớt rối; bỏ hyperlink ở sheet ẩn và cột mở dự phòng của `_LINKS`, cho nhẹ file; link trên `DASHBOARD` trỏ sang `BOQ_TONGHOP`, vì link tới sheet ẩn không nhảy.

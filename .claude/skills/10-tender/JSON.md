@@ -24,6 +24,8 @@ Bạn chỉ ghi **file JSON** (và file `.md` khi bước của bạn nói rõ).
 
 Riêng `Mã cấp 3`, `Nguồn phân loại`, `Cờ phân loại` của SCOPE chỉ tool `phanloai` ghi. LLM trả lời qua `_data\_phanloai_llm.json` (`buoc/2b-phanloai.md`); user sửa `Mã cấp 3` bằng droplist ở sheet BOQ hoặc SCOPE. `Code ID`, `Link vật liệu` do `build` tính. `Bên thực hiện` ở `SCOPE.ben.json` hoặc user sửa ở sheet BOQ/SCOPE; không bước LLM nào ghi cột này.
 
+DMVT không qua `merge`: `_dmvt.json` (cấu hình dự án), `_dmvt_boc.json` và `_dmvt_anh\` (tool, ghi đè mỗi lần), `_dmvt_llm.json` (bước 8, theo `Khóa`), `_dmvt_snapshot.json`, `_dmvt_hang.json` (tool; không xóa snapshot). Xem `buoc/8-dmvt.md`.
+
 ## Dạng file
 ```json
 {"rows": [
