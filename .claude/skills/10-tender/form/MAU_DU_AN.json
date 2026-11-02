@@ -1,0 +1,17 @@
+{
+  "_ghi_chu": "Thư viện mẫu dự án. Dự án mới chọn mẫu gần nhất bằng: init --mau <tên>. Không khớp mẫu nào thì thêm 1 khóa mới ở đây, không viết lại tool. Dự án chưa khai mau dùng cdt_item.",
+  "cdt_item": {
+    "mo_ta": "Có BOQ CĐT tiếng Anh (cột Item, Description, Unit, Quantity) và TCQ gộp",
+    "du_an_mau": "SOFITEL",
+    "bat_buoc": ["boq", "tcq"],
+    "tieu_de": {"item": ["item"], "mo_ta": ["description"], "dv": ["unit"], "kl": ["quantity"]}
+  },
+  "tu_lap_vn": {
+    "mo_ta": "Chưa có BOQ CĐT, tự lập BOQ theo form tiếng Việt (STT, Kí hiệu, Nội dung công việc, Chi tiết vật liệu...); chưa có TCQ",
+    "du_an_mau": "CTX",
+    "bat_buoc": [],
+    "tieu_de": {"item": ["stt"], "mo_ta": ["nội dung công việc"], "dv": ["đơn vị"], "kl": ["khối lượng"], "ghi_chu": ["ghi chú"]},
+    "cot_mo_ta": ["kí hiệu", "nội dung công việc", "chi tiết vật liệu"],
+    "dau_muc": {"vung": "^[A-Z]$", "nhom": "^[A-Z]\\.\\d+$"}
+  }
+}

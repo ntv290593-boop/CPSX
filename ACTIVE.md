@@ -1,5 +1,12 @@
 # Dự án đang active
 
+- **Dự án:** CTX (bản vẽ ID ghi "Sun Feliza Suites") – tổ hợp 5 tháp tại Cầu Giấy, Hà Nội; phạm vi BOHO các gói 3–6. Phục vụ **phòng TENDER**. Chưa có BOQ CĐT và TCQ, tự lập BOQ theo `Định hướng BOQ.xlsx`.
+- **Thư mục:** `_ACTIVE\OneDrive_2026-11-01` (hồ sơ ở `1. THÔNG TIN`; làm việc ở `10_TENDER`, mẫu tool `tu_lap_vn`)
+- **Tên tháp:** Wealth = F1 = Tháp 1; Happiness = F2 = Tháp 2; Peace = F3 = Tháp 3; Health = F5 = Tháp 5; Longevity = F6 = Tháp 6. Thuyết minh đánh số khối tháp 1–5 theo trục, khối tháp 4 là Tháp 5.
+- **Cập nhật:** 2026-11-01
+
+## Dự án tạm dừng: SOFITEL (chưa đóng, không lưu trữ)
+Muốn quay lại thì đưa khối này lên đầu file.
 - **Dự án:** Sofitel Saigon Plaza Renovation – gói Main Fit-out (SSP-ID), phục vụ **phòng TENDER** (không phải costing)
 - **Thư mục:** `_ACTIVE\SOFITEL`
 - **Đợt hồ sơ:** `01. INPUT\new` (HSMT 06/10 + TCQ01–07 + ADD01, đến 26/10/2026). TCQ gộp đầy đủ: `new\10.261026_TCQ07\SSP-ID works-Tender queries TCQ.xlsx`.

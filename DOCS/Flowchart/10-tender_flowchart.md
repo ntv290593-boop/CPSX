@@ -16,6 +16,8 @@ Sơ đồ gồm 8 phần: luồng tổng, kiểm kê, chạy lại khi có đợ
 │ §0 CHUẨN BỊ                                                         │
 │  GOC = thư mục dự án trong ACTIVE.md                                │
 │  Chưa có _cauhinh.json → init (hồ sơ, BOQ CĐT, TCQ gộp, bản dịch)   │
+│  init --mau <tên>: mẫu dự án trong form/MAU_DU_AN.json              │
+│    cdt_item (mặc định): có BOQ CĐT, TCQ. tu_lap_vn: xem phần 9      │
 │  Thư mục không phải hồ sơ thầu → init --bo-thu-muc                  │
 │  DỪNG nếu: ~$<DA>_BOQ_TRACK_*.xlsx hoặc ~$FILE_INDEX.xlsx tồn tại   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -52,7 +54,7 @@ Sơ đồ gồm 8 phần: luồng tổng, kiểm kê, chạy lại khi có đợ
          8 dmvt  bóc A:I + ảnh, LLM dịch, chọn ảnh ca khó (mục 8; cần 5 mat)
             │
             ▼
-         9 build  (có _dmvt.json thì dựng DMVT trước để có số hàng)
+         9 build  (luôn dựng DMVT trước để có số hàng; không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi)
             │
             ├─► 03_boq\<DA>_DMVT_<yymmdd>.xlsx
             ├─► 03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (cột Link vật tư trỏ dòng DMVT)
@@ -268,7 +270,7 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
 # 8. DANH MỤC VẬT TƯ (td.py dmvt → dmvt.py, dmvt_xlsx.py)
 
 ```
- _dmvt.json (tiêu đề, tiền tố FF&E, item_spec, mục I, II…, chon_anh)   MAT, AREA, SCOPE, TCQ_LOG, VL_XUATHIEN
+ _dmvt.json (không bắt buộc: tiêu đề, tiền tố FF&E, item_spec, mục I, II…, chon_anh)   MAT, AREA, SCOPE, TCQ_LOG, VL_XUATHIEN
         │                                                                     │
         ▼                                                                     │
  Quét trang spec, bản mới nhất THEO TỪNG MÃ                                   │
@@ -298,7 +300,8 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
    tập mã đổi: cờ, không tự chuyển; dòng cũ có công người: mục DÒNG CŨ GIỮ LẠI
         │
         ▼
- Excel COM từ form\DMVT_form.xlsx: ghi file tạm, chèn ảnh sau cùng, mở lại kiểm
+ Excel COM từ form\DMVT_form.xlsx: ghi file tạm, chiều cao hàng do Excel đo (dư 2 dòng),
+   chèn ảnh sau cùng, mở lại kiểm
    mỗi ảnh gọn trong 1 ô cột H, đủ số ảnh ── sai ──► LỖI, file cũ giữ nguyên
         │ đúng
         ▼
@@ -307,3 +310,52 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
  Không tự gửi. Nhắc xóa: cột từ AG, _LINKS, _SOI_ANH; xem L, AB:AC.
 ```
 
+
+# 9. DỰ ÁN CHƯA CÓ BOQ CĐT (mẫu tu_lap_vn, lap_boq.py)
+
+```
+init --mau tu_lap_vn (--boq, --tcq không bắt buộc) → kiemke → trang
+        │
+        ▼
+_core/dwg_tag.py <CAD>        DWG → DXF (ODA) → _data/_dwg_tag.json
+  tag theo từng tờ: block có thuộc tính, block lồng, MULTILEADER (tag mặt đứng)
+  tag Model gán về tờ theo viewport; ngoài mọi viewport: không đếm
+  mũi tên, viewport, goc (gốc khung tên, để đổi tọa độ sang ảnh)
+spec_boc.py <pdf...>          spec kiểu AID → _data/_spec_boc.json
+  mã ghép với khối theo vị trí trên trang schedule; trang chi tiết bổ sung trường
+        │
+        ▼
+be_mat.py                     bề mặt từng tag: tuong, tran, san, cua, portal, joinery, khac
+  portal (lỗ mở không cánh) → dòng "Ốp portal lỗ mở"
+  san, khac → sheet Ghi chú; có khai san_tinh, chi_tiet, ngoai_tick trong _lap_boq.json → có dòng
+  block trần → nhãn tag → tên khung hình → còn lại can_soat (không suy từ loại tờ)
+chuan_bi_soat.py <GOC>        ảnh khoanh đỏ tag can_soat → _data/_soat/
+  người/LLM soát ──► _data/_soat_tag.<n>.json (thắng kết quả máy)
+mau_soat.py <GOC> tao | so    soát lại độc lập → _soat2/kq.json, đo tỉ lệ lệch
+soi_tag.py                    vẽ 1 tờ để xem riêng
+        │
+        ▼
+lap_boq.py <GOC>              cấu hình riêng dự án: _data/_lap_boq.json; tự trỏ boq trong _cauhinh.json sang file vừa ghi
+  phạm vi tick (cột X, gói) + tag theo khu + spec + lịch cửa
+  → 0.BOQ_TU_LAP/<DA>_BOQ_tu_lap_<yymmdd>.xlsx, chép từ form của user
+  Mỗi sheet: công tác (A) → khu (A.1) → mã. Cột Ghi chú: gói, nguồn tờ, cờ [XEM]
+  Sheet "Ghi chú & ngoài phạm vi": mã có trên bản vẽ nhưng không được tick
+        │
+        ▼
+init --boq → kiemke → boq (đọc tiêu đề theo mẫu) → tcq (rỗng nếu không có) → dwg → mat
+        │
+        ▼
+lap_boq_buoc.py <GOC>         ghi MAT, DWG, KHU, SCOPE.banve, SCOPE.doichieu, _phanloai_llm.json
+phanloai → check (cấu trúc)
+        │
+        ▼
+kiem_boq.py <GOC>             kiểm đúng sai, độc lập với lap_boq.py → _kiem_boq.json, VIEC_MO
+  K1 tờ link có mã không · K2 không nguồn · K3 PDF khớp số tờ · K4, K5 sót
+  K6 đếm lại · K7 kích thước · K8 mã trùng
+        │
+        ▼
+build (dmvt: _dmvt.json "nguon_spec": "spec_boc" → nội dung và ảnh từ _spec_boc.json,
+       tách dòng theo nhãn, mục cửa, mã hoàn thiện, kích thước; bỏ chữ rác layout PDF)
+```
+
+Chưa làm: diện tích ốp chưa đo. Mã FF&E trùng giữa 2 file LF: MAT, DMVT chỉ lấy 1 bản.

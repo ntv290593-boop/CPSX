@@ -58,7 +58,8 @@
         "Cờ phân loại":    {"kieu": "CHU", "buoc": ["phanloai-tool"]},
         "Cờ bên":          {"kieu": "CHU", "buoc": ["ben-tool"]},
         "Nguồn":           {"kieu": "LINK", "buoc": ["banve", "doichieu"]},
-        "Ngày cập nhật":   {"kieu": "NGAY", "buoc": ["build"], "boq": "noi_bo"}
+        "Ngày cập nhật":   {"kieu": "NGAY", "buoc": ["build"], "boq": "noi_bo"},
+        "Kích thước BoQ":  {"kieu": "CHU", "buoc": ["doichieu", "user"], "boq": "noi_bo"}
       }
     },
     "TCQ_LOG": {

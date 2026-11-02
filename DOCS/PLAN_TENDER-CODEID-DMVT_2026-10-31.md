@@ -236,6 +236,10 @@ Giới hạn: cùng một BOQ, cùng người lập. **Chưa đo trên BOQ dự 
 - Đóng băng đụng việc dở của 01-scan (`HANDOFF_TOOL-HOA-01SCAN`): 4.1 đã commit; đo 4.2 không đổi code nên làm được; 4.3 là tính năng mới, phải user quyết định có bỏ đóng băng không.
 - Điều kiện xóa 01-scan (1 dự án costing thật chạy từ BOQ_TRACK, quyết định 13) chưa có dự án thử.
 
+**User yêu cầu thêm sau GĐ6 (01/11): mỗi lần scan ra đủ 2 file BOQ_TRACK và DMVT.** Trước đó thiếu `_dmvt.json` thì `build` bỏ DMVT mà không báo. Nay `build` luôn dựng DMVT, thiếu cấu hình thì dùng mặc định và báo XEM. DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi `chưa đủ 2 file`; `--khong-dmvt` chỉ dùng khi user yêu cầu, `--ra` không dựng DMVT. `kiemthu.py` 81 đạt, 0 hỏng (thêm 4 phép). Bản sao SOFITEL bỏ mọi file `_dmvt*`: đủ 2 file, 174 dòng, so với 158 dòng khi có cấu hình (đếm theo cờ `Chưa dịch`; số 177 của phép kiểm tính cả 3 hàng tiêu đề mục). Mặc định không lọc tiền tố nên thừa 25 mã, đều là `01-` (AREA01 Main Lobby), không thiếu mã nào. Cùng phép đo: ảnh 169/174, `Link spec` 173/174, `Link bản vẽ` 87, `Area` 140; 808 link vật tư ở BOQ_TRACK. Chưa chạy trên dự án thật thứ 2.
+
+**Máy và LLM, đếm ô trong `_data` SOFITEL 01/11:** máy 60.159 ô, file không có đuôi `-tool` 5.732 ô, tức 91% máy; bỏ sổ tự động `VL_XUATHIEN` (39.185 ô) còn 79%. Số này chưa trừ `SCOPE.ben.json` (659 dòng do script chuyển), chưa tính `_phanloai_llm.json`, `_dmvt_llm.json`. Đây là số ô, không phải chi phí: chưa đo token và thời gian từng bước, nên chưa kết luận được đã tối ưu.
+
 ## 3. Phân loại Code ID (máy trước)
 
 Lệnh mới `td.py phanloai`, chạy sau `boq`. Thứ tự, dừng ở lớp đầu tiên có kết quả:

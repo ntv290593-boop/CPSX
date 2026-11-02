@@ -12,6 +12,7 @@ Khác `01-scan`: quét **toàn gói**, gắn nhãn chứ không bỏ dòng; KHÔ
 - `GOC` = thư mục dự án trong `D:\COSTING EXCEL\ACTIVE.md`. `TOOL` = `D:\COSTING EXCEL\SKILL\10-tender\tool\td.py`, chạy `py -I "<TOOL>" <lệnh> <GOC> …` (không tham số = xem lệnh). Riêng `chu`, `anh`, `mail`, `xem` nhận thẳng đường dẫn file, không cần `<GOC>`.
 - Chưa có `GOC\10_TENDER\_data\_cauhinh.json` → `init` với thư mục hồ sơ, BOQ CĐT, file TCQ **gộp mới nhất**, bản dịch nội bộ (lấy từ ACTIVE.md; thiếu thì hỏi user 1 câu). Có TCQ gộp mới hơn → chạy lại `init --tcq <file mới>`.
 - Thư mục trong hồ sơ không phải hồ sơ thầu (file học, form, dữ liệu dự án khác) → `init --bo-thu-muc "<thư mục>;<thư mục 2>"` (đường dẫn tính từ thư mục hồ sơ, ghi vào khóa `bo_thu_muc` của `_cauhinh.json`, thay cả danh sách cũ). `kiemke` không đi vào các thư mục này và báo XEM nếu tên không khớp thư mục nào. Thư mục đã có trong FILE_INDEX thì lần `kiemke` sau báo file mất.
+- **Mẫu dự án:** `form\MAU_DU_AN.json` là thư viện các kiểu dự án. Dự án mới chọn mẫu gần nhất bằng `init --mau <tên>`, không viết lại Python. `cdt_item` (mặc định): có BOQ CĐT, TCQ. `tu_lap_vn`: chưa có BOQ CĐT, tự lập BOQ theo form tiếng Việt, TCQ không bắt buộc (mục 1d). Không khớp mẫu nào thì thêm 1 khóa mới trong file này.
 - Dừng và báo user nếu `~$<DA>_BOQ_TRACK_*.xlsx` hoặc `~$FILE_INDEX.xlsx` tồn tại (file đang mở).
 - `README.md` của `10_TENDER` là trí nhớ của dự án (đợt hiệu lực, thứ tự ưu tiên, bẫy, việc chưa quyết). Mọi subagent đọc nó trước.
 
@@ -60,7 +61,9 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 - DASHBOARD đếm mã chưa có trang spec, dòng có mã chưa có link, cặp lệch Area. `MAT.Nguồn spec` trỏ trang không có chữ mã thì ra dòng `XEM spec`. Đo cột Area: `DOCS\scan-toi-uu\tender-test\do_area.py`.
 
 ## 1c. Danh mục vật tư (DMVT)
-- Dự án cần DMVT: tạo `_data\_dmvt.json` (tiêu đề, tiền tố FF&E, mẫu mã lấy từ trang SPEC, mục I, II…), chạy `dmvt --chi-boc`, làm bước 8, rồi `build`. Có `_dmvt.json` thì `build` dựng DMVT trước để `Link vật tư` có số hàng; `build --khong-dmvt` bỏ qua. Cần Excel; không có Excel thì báo XEM và BOQ_TRACK vẫn ra.
+- **Mỗi lần scan phải ra đủ 2 file: BOQ_TRACK và DMVT.** `build` luôn dựng DMVT trước để `Link vật tư` có số hàng. Chạy `dmvt --chi-boc`, làm bước 8, rồi `build`.
+- `_data\_dmvt.json` (tiêu đề, tiền tố FF&E, mẫu mã lấy từ trang SPEC, mục I, II…) không bắt buộc: chưa có thì dùng mặc định và báo XEM; dự án mới nên tạo để có tiêu đề và mục đúng.
+- Cần Excel. DMVT không dựng được (không có Excel, file đang mở) thì BOQ_TRACK vẫn ra, nhưng `build` báo `LỖI: chưa đủ 2 file` và thoát lỗi: sửa rồi build lại, không báo xong. Chỉ bỏ DMVT khi user yêu cầu: `build --khong-dmvt`.
 - Máy bóc A:I theo loại trang: `MATERIAL REFERENCE` theo từng khối `ITEM`, `DRAWING REFERENCE` theo đường kẻ cột, `SPECIFICATION` cho mã khớp `item_spec` (SOFITEL: rug, phụ kiện rèm). Bản mới nhất **theo từng mã**, không theo cả file. FF&E gộp theo Design + Colour; phụ kiện gộp theo nhà cung cấp; mã khác 1 dòng/mã. Mã có ở MAT mà không có trang spec vẫn có dòng, có cờ.
 - **Chỉ áp kết luận từ MAT:** Omit giữ dòng, tô xám; Đổi theo TCQ/VE giữ nội dung spec, ghi kết luận vào cột I, có cờ. Mã FF&E chưa có ở MAT có cờ `Chưa qua MAT`, không suy; có câu TCQ còn hiệu lực nhắc tới thì thêm `TCQ nhắc mã`. Spec ghi thẳng OMITTED cũng tô xám.
 - **Ảnh:** ảnh gốc theo xref, thuộc khối khi tâm nằm giữa 2 tiêu đề `ITEM` hoặc trong vùng `Sample Swatch`. Nhiều ảnh: ảnh chụp trước, rồi lớn nhất (`"chon_anh": "lon_nhat"` trong `_dmvt.json` để lấy lớn nhất). Mọi dòng có cờ ảnh vào sheet `_SOI_ANH`.
@@ -68,6 +71,19 @@ Trả về ≤ 15 dòng: file đã ghi, số dòng, việc chưa làm được v
 - **Build lại giữ sửa tay** (so `_dmvt_snapshot.json`): ô A:I, ảnh khác snapshot được giữ; spec mới khác thì ghi `Spec mới khác`, không đè. Dòng không mã đi theo dòng có mã phía trên. Tập mã đổi: có cờ, không tự chuyển sửa tay; dòng cũ có công người nằm ở mục `DÒNG CŨ GIỮ LẠI, CẦN XEM`. Không xóa `_dmvt_snapshot.json`.
 - **Trước khi gửi CĐT tender tự xóa:** các cột từ AG, sheet `_LINKS`, `_SOI_ANH`; xem thêm L và AB:AC (giá). Skill nhắc đủ các mục này khi báo kết quả, không gửi thay.
 - Đo lại: `DOCS\scan-toi-uu\tender-test\do_dmvt.py`. Đổi form: `lam_form_dmvt.py`.
+
+## 1d. Dự án chưa có BOQ CĐT (mẫu `tu_lap_vn`)
+Chỉ làm khi user yêu cầu lập BOQ. Hỏi rõ form, phạm vi, mức bóc khối lượng trước khi chạy.
+1. `init --mau tu_lap_vn --input <rel> --du-an <DA> [--dwg-regex …] [--bo-thu-muc …]` → gán vai trò file → `kiemke` → `trang`.
+2. Có DWG: `_MASTER\tools\.venv\Scripts\python.exe -I SKILL\_core\dwg_tag.py <thư mục DWG> <GOC>\10_TENDER\_data\_dwg_tag.json` (tag PDF là nét vẽ thì đây là nguồn đếm; so vài tờ với PDF trước khi tin). Tag gán về tờ theo viewport, tag Model nằm ngoài mọi viewport không được đếm; `goc` là gốc khung tên để đổi tọa độ sang ảnh. Spec kiểu `Item Desc / Area`: `tool\spec_boc.py`.
+3. **Soát bề mặt từng tag** (`tool\be_mat.py`): máy xếp theo nhãn tag rồi tên khung hình; tag mặt đứng còn lại là `can_soat`. Giá trị: `tuong`, `tran`, `san`, `cua`, `portal` (lỗ mở không cánh, ra dòng `Ốp portal lỗ mở` riêng vì không có dòng cửa nhận), `joinery`, `khac`, `khong_ro`. Tag `san`, `khac` mặc định chỉ ghi ở sheet `Ghi chú & ngoài phạm vi`; muốn có dòng thì khai trong `_lap_boq.json`: `san_tinh` (mã → công tác), `chi_tiet` (mã → tên, đơn vị), `ngoai_tick` (công tác không được tick nhưng user chốt phải tính). `tool\chuan_bi_soat.py <GOC>` vẽ ảnh khoanh đỏ vào `_data\_soat\`, người hoặc LLM ghi `_data\_soat_tag.<n>.json`, kết quả này thắng máy. Không suy bề mặt từ loại tờ. Đo độ tin cậy: `tool\mau_soat.py <GOC> tao` rồi `so`, người soát lại không được đọc `_soat_tag.*`. Xem 1 tờ: `tool\soi_tag.py`.
+4. Viết `_data\_lap_boq.json` cho dự án (tên tháp, khu, luật công tác, xem CTX làm mẫu) → `tool\lap_boq.py <GOC>` → `0.BOQ_TU_LAP\<DA>_BOQ_tu_lap_<yymmdd>.xlsx`. Mỗi dòng có nguồn và cờ `[XEM]` ở cột Ghi chú.
+5. `init --boq <file>` → `kiemke` → `boq`, `tcq`, `dwg`, `mat` → `tool\lap_boq_buoc.py <GOC>` → `phanloai` → `check` → `tool\kiem_boq.py <GOC>` → `build`.
+6. DMVT: `_data\_dmvt.json` ghi `"nguon_spec": "spec_boc"` để `dmvt` lấy nội dung và ảnh từ `_spec_boc.json` thay vì mẫu trang SOFITEL. `spec_boc.py` gộp chữ về 1 dòng; `dmvt.py` tách lại theo nhãn, mục cửa `(D..)`, mã hoàn thiện, kích thước và chỉ bỏ chữ rác từ layout (`bo_ma_rac`, `chu_ncc`). Spec kiểu khác có nhãn mới thì thêm vào `_NHAN_HD`.
+`lap_boq.py` tự trỏ `boq` trong `_cauhinh.json` sang file vừa ghi (tên có ngày, sang ngày mới là file mới). Kích thước ở cột E, F lên `BOQ_TONGHOP` qua `Kích thước BoQ`.
+`check` chỉ kiểm cấu trúc. Kiểm đúng sai là `kiem_boq.py` (tờ link có chứa mã không, dòng không nguồn, PDF khớp số tờ, sót mã, đếm lại, kích thước, mã trùng); khi báo kết quả phải nói rõ đã chạy cái nào. Cả hai không đọc file xlsx đã build: trước khi giao phải đọc lại `BOQ_TONGHOP` và xem ảnh các dòng có cờ của DMVT.
+DMVT: quy tắc "ảnh lớn nhất" hay chọn nhầm phối cảnh cả phòng thay vì ảnh sản phẩm; dòng `Nhiều ảnh, máy chọn` phải xem hình, sai thì ghi `Ảnh chọn` trong `_dmvt_llm.json`.
+Giới hạn: `lap_boq.py` không đo diện tích; mã FF&E trùng giữa 2 file LF: BOQ tra đúng theo khu, MAT và DMVT chỉ lấy 1 bản.
 
 ## 2. Sau mỗi bước
 1. `py -I "<TOOL>" check <GOC> --den <buoc>`.

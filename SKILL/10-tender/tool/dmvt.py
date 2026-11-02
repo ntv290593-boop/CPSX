@@ -26,7 +26,7 @@ MAC_DINH = {
              {"so": "II", "ten": "FINISHES – VẬT LIỆU HOÀN THIỆN", "bo": "FINISHES"},
              {"so": "III", "ten": "SANITARYWARE – THIẾT BỊ VỆ SINH", "bo": "SANITARYWARE"},
              {"so": "IV", "ten": "IRONMONGERY", "bo": "IRONMONGERY"}],
-    "tam": True,
+    "tam": "Chưa có _data\\_dmvt.json: đang dùng mục nhóm mặc định, tiêu đề dòng 2 và 3 trống; tạo file đó để sửa",
 }
 TRAI_ANH = (800, 800)  # cạnh dài tối đa của ảnh đưa vào xlsx
 HASH_LECH = 20  # plan mục 8: perceptual hash 16x16, lệch <= 20 bit là cùng ảnh
@@ -34,7 +34,10 @@ HASH_LECH = 20  # plan mục 8: perceptual hash 16x16, lệch <= 20 bit là cùn
 
 def nap_cau_hinh(p):
     c = dict(MAC_DINH)
-    c.update(jload(p.f("_dmvt.json")) or {})
+    rieng = jload(p.f("_dmvt.json"))
+    if rieng:  # đã có file của dự án: bỏ cảnh báo "chưa có file"
+        c["tam"] = ""
+        c.update(rieng)
     return c
 
 
@@ -283,9 +286,38 @@ def ten_file(fidx, fid):
     return os.path.basename(s(r.get("Trong zip")) or s(r.get("Đường dẫn")))
 
 
+def boc_nguon_spec_boc(p, res):
+    """Spec kiểu 'Item Desc / Area' (mẫu AID): lấy từ _data\\_spec_boc.json do spec_boc.py bóc, chỉ các mã có ở MAT. Trả như boc_nguon."""
+    import pymupdf
+    fidx = res["FILE_INDEX"]
+    fid_ten = {os.path.basename(s(r.get("Đường dẫn"))): k for k, r in fidx.items()}
+    moi, tk = {}, Counter()
+    con = defaultdict(list)
+    for f in jload(p.f("_spec_boc.json")) or []:
+        bo = "FINISHES" if "_FM_" in f["file"] else "IRONMONGERY" if "_IM_" in f["file"] else "SANITARYWARE" if "_SW_" in f["file"] else "FF&E"
+        for x in f["ma"]:
+            ma = x["ma"]
+            if "." in ma:
+                con[ma.split(".")[0]].append(x)
+            elif ma in res["MAT"] and (ma not in moi or (not moi[ma].get("mo_ta") and x.get("item desc"))):
+                moi[ma] = {"loai": "AID", "fid": fid_ten[f["file"]], "trang": x.get("trang_ct") or x["trang"], "trang_sc": x["trang"], "ngay": ngay_file(fidx, fid_ten[f["file"]]), "bo": bo, "mo_ta": s(x.get("item desc")), "kv": x}
+    for ma, r in moi.items():
+        r["con"] = con.get(ma, [])
+    docs = {}
+
+    def mo(fid):
+        if fid not in docs:
+            docs[fid] = pymupdf.open(duong_dan_pdf(p, fidx, fid))
+        return docs[fid]
+
+    return moi, defaultdict(list), tk, mo, docs
+
+
 def boc_nguon(p, res, cfg):
     """Quét mọi trang spec, lấy bản mới nhất theo từng mã (không theo cả file). Trả {mã: bản ghi}."""
     import pymupdf
+    if cfg.get("nguon_spec") == "spec_boc":
+        return boc_nguon_spec_boc(p, res)
     fidx = res["FILE_INDEX"]
     texts, _, _ = nap_trang(p, res)
     dup, tong = trang_trung(texts)
@@ -379,7 +411,7 @@ def dong_dmvt(p, res, cfg):
     ghi_chu_gop = defaultdict(list)
     for ma in sorted(moi, key=sap_xep_ma):
         r = moi[ma]
-        if r["loai"] == "DR":
+        if r["loai"] in ("DR", "AID"):
             nhom[ma] = [ma]
         elif r["loai"] == "MR":
             d = dict(r["kv"])
@@ -431,6 +463,43 @@ def so_nhom(cfg, cac_ma, moi):
     return {"so": "", "ten": "CHƯA XẾP MỤC"}
 
 
+# Trình bày chữ spec kiểu AID: spec_boc.py gộp hết về 1 dòng. Chỉ thêm xuống dòng và bỏ chữ rác dính từ layout PDF, không đổi nội dung.
+_NHAN_HD = ["Product Code", "Colour/ Finish", "Pull Handle-EXT", "I-Shaped Grab Bar-INT", "Grab Bar-INT", "Lever Handle", "Pull Handle", "Lockset", "Wall Stopper", "Concealed Hinge Depth", "Concealed Hinge", "Flush Bolt", "Dimension", "Notes", "Note", "Location", "Handle", "Length"]
+_RX_NHAN_HD = re.compile(r"(?<![\w(/-])(?<!Pull )(?<!Lever )(" + "|".join(re.escape(x) for x in sorted(_NHAN_HD, key=len, reverse=True)) + r")\s*:\s*")
+_RX_CUA = re.compile(r"\s*(?:;\s*)?(-\s*\(D\d|\(D\d[^)]*\)\s+(?=[A-Z]))")
+_RX_NHAN_FFE = re.compile(r"(?<!\()\s+\b(Base|Mattress|Frame material selection|Colour|Size)\s*:\s*")
+_RX_KT = re.compile(r"\s+(?=(?:ø\s*\d|[LWHD]\s?\d{2,5}\s?mm\b))")
+_RX_MA_VL = re.compile(r"(?<!with)(?<!match)(?<!to)\s+(?=[A-Z]{2}-\d{2}\b)")
+
+
+def chu_hd(t):
+    """Brand: X Product Code: Y Colour/ Finish: ... -> mỗi nhãn, mỗi mục cửa (D..) 1 dòng."""
+    t = re.sub(r"\s*\bW(Location\s*:)", r" W\n\1", t)  # chữ W thừa có sẵn trong PDF: giữ, chỉ tách
+    t = re.sub(r"\s+-\s*(Location\s*:)", r" \1", t)
+    t = _RX_NHAN_HD.sub(lambda m: "\n" + m.group(1) + ": ", t)
+    t = _RX_CUA.sub(lambda m: "\n" + m.group(1) + (" " if m.group(1).endswith(")") else ""), t)
+    t = re.sub(r"\s+-(?=(?:For|Max)\b)", "\n-", t)
+    t = re.sub(r"\s+-\s+(?=L\d\b)", "\n- ", t)
+    return re.sub(r"\s*\n\s*", "\n", t).strip()
+
+
+def chu_material(t):
+    """Tên và kích thước tách dòng. Không đoán ranh giới giữa loại và tên."""
+    return _RX_NHAN_FFE.sub(lambda m: "\n" + m.group(1) + ": ", _RX_KT.sub("\n", t, count=1))
+
+
+def bo_ma_rac(v, ma):
+    """'NA MT-01', 'WXE5987 for Background only WC-01': mã của chính dòng dính từ cột bên cạnh. Bỏ mã; còn 'NA...' ngắn hoặc rỗng thì coi như không có."""
+    v = re.sub(rf"(?:^|\s+){re.escape(ma)}$|^{re.escape(ma)}\s+|\s+{re.escape(ma)}\s+(?=[A-Z]{{3,}})", " ", v).strip()
+    return "" if v in ("", "-") or re.fullmatch(r"(?:NA|N/A)(?:\s.{0,40})?", v) else v
+
+
+def chu_ncc(v):
+    """'AGC Flat Glass Supplier': bỏ nhãn cột dính cuối. 'Grace Lee 7030 Ang Mo Kio': tách địa chỉ."""
+    v = re.sub(r"\s+Supplier$", "", v.strip())
+    return "" if v in ("Supplier", "T:") else re.sub(r"\s+(?=\d{1,5}[A-Z]?\s+[A-Z][a-z])", "\n", v)
+
+
 def viet_dong(cac_ma, moi, res, cfg, ghi_chu_gop_k):
     """Dòng A:I bằng tiếng gốc của spec (LLM dịch thêm sau) + cờ + trạng thái."""
     r0 = moi.get(cac_ma[0])
@@ -440,6 +509,16 @@ def viet_dong(cac_ma, moi, res, cfg, ghi_chu_gop_k):
         x = res["MAT"][cac_ma[0]]
         d.update(Material=s(x.get("Mô tả")), NCC=s(x.get("NCC/Mã SP")), Description="")
         d["Cờ"].append(s(x.get("Trạng thái cuối")) or "Không thấy spec")
+    elif r0["loai"] == "AID":
+        kv = r0["kv"]
+        ma0 = cac_ma[0]
+        tt = [(n, bo_ma_rac(s(kv.get(k)), ma0)) for n, k in (("Dimensions", "dimensions"), ("Finishes", "finishes"), ("Material", "material"), ("Content", "content"), ("Prod. Code", "prod. code"), ("Brand", "brand"))]
+        chinh = {"Dimensions": lambda v: _RX_NHAN_FFE.sub(lambda m: "\n" + m.group(1) + ": ", v), "Finishes": lambda v: _RX_MA_VL.sub("\n", v), "Brand": chu_hd}
+        mo_ta = [f"{n}: {chinh.get(n, str)(v)}" for n, v in tt if v and v not in TRONG]
+        if r0.get("con"):
+            mo_ta.append("Kèm:\n" + "\n".join(dict.fromkeys(f"- {x['ma']} {s(x.get('item desc'))}"[:90] for x in r0["con"])))  # 1 mã con có cả ở trang schedule và trang chi tiết
+        ncc = [y for y in (chu_ncc(s(kv.get(k))) for k in ("manufacturer", "supplier", "contact", "address")) if y]
+        d.update(Material=chu_material(s(r0.get("mo_ta"))), Location=s(kv.get("area")), Description="\n".join(mo_ta), NCC="\n".join(ncc), Remarks=bo_ma_rac(s(kv.get("remarks")), ma0))
     elif r0["loai"] == "DR":
         ref = list(r0.get("ref") or [])
         fin = list(r0.get("finish") or [])
@@ -468,7 +547,7 @@ def viet_dong(cac_ma, moi, res, cfg, ghi_chu_gop_k):
     else:
         for r in res["SCOPE"].values():
             if set(ma_cua_dong(r, area)) & set(cac_ma):
-                ph += sorted(phong_of(r.get("Mã phòng")))
+                ph += sorted(phong_of(r.get("Mã phòng"))) or ([s(r.get("Nhóm"))] if cfg.get("nguon_spec") == "spec_boc" and s(r.get("Nhóm")) else [])
         if ph:
             d["Cờ"].append("Area theo dòng BOQ")
     d["Area"] = "\n".join(dict.fromkeys(ph))
@@ -510,6 +589,28 @@ def ung_vien_anh(ma, r, mo):
     if not r:
         return [], ""
     doc = mo(r["fid"])
+    if r["loai"] == "AID":  # ảnh trên trang chi tiết của mã; thiếu thì dùng khối của mã trên trang schedule
+        out = []
+        kv = r["kv"]
+        if not kv.get("trang_ct") and kv.get("y0") is not None:  # không có trang chi tiết riêng: chỉ lấy ảnh trong dải của mã trên trang schedule
+            trang = doc[r["trang_sc"] - 1]
+            # ảnh trên schedule thường là nhiều mảnh nhỏ ghép lại (phụ kiện): cắt nguyên vùng cột ảnh của mã, có mảnh ảnh mới cắt
+            r_cot = (trang.rect.width * 0.68, kv["y0"], trang.rect.width * 0.97, kv["y1"])
+            co_anh = any(r_cot[0] <= (i["bbox"][0] + i["bbox"][2]) / 2 <= r_cot[2] and r_cot[1] <= (i["bbox"][1] + i["bbox"][3]) / 2 < r_cot[3] for i in trang.get_image_info())
+            if co_anh:
+                from PIL import Image
+                import pymupdf
+                px = trang.get_pixmap(dpi=150, clip=pymupdf.Rect(r_cot))
+                out.append({"xref": None, "bbox": [round(v) for v in r_cot], "img": Image.open(io.BytesIO(px.tobytes("png"))).convert("RGB"), "trang": r["trang_sc"]})
+            return out, "khối"
+        for t_so in dict.fromkeys((r["trang"], r["trang_sc"])):
+            trang = doc[t_so - 1]
+            for u in anh_trong_vung(doc, trang, 0, trang.rect.height, nho=60):
+                u["trang"] = t_so
+                out.append(u)
+            if out and t_so == r["trang"] and r["trang"] != r["trang_sc"]:
+                break
+        return out, "trang chi tiết"
     if r["loai"] == "MR":
         trang = doc[r["trang"] - 1]
         ms = [m for m, _ in ma_khoi_mr(trang.get_text())]

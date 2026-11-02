@@ -45,7 +45,8 @@ def chuan_o(v):
 
 
 def tap_ma(chu):
-    return frozenset(x[0] for x in tach_ma(s(chu)) if x[3] in ("ffe", "gach"))
+    """Tập mã ở cột B. tach_ma không nhận mã 4 số (SX-5200, SX-1104A) nên lấy thêm ở đây, nếu không thì build lại coi các dòng này là 'dòng user thêm' và nhân đôi."""
+    return frozenset(x[0] for x in tach_ma(s(chu)) if x[3] in ("ffe", "gach")) | frozenset(re.findall(r"\b[A-Z]{2}-\d{4}[A-Z]?\b", s(chu)))
 
 
 # ---------------------------------------------------------------- đọc file cũ
@@ -378,7 +379,14 @@ def build(p, res, cfg, args):
                 if s(v):
                     ghi_o(ws, h, COT_AI[c], v)
             co_anh = bool(r.get("Ảnh") or r.get("anh_cu"))
-            ws.Rows(h).RowHeight = r.get("cao_cu") or cao_dong(r["o"], True)
+            # Excel tự đo theo font và độ rộng thật, cao_dong chỉ ước lượng nên có hàng bị cắt chữ. Vượt trần 409 của Excel thì giảm cỡ chữ cột F.
+            ws.Rows(h).AutoFit()
+            for co_chu in (10, 9, 8):
+                if ws.Rows(h).RowHeight < CAO_MAX:
+                    break
+                ws.Cells(h, COT_AI["F"]).Font.Size = co_chu
+                ws.Rows(h).AutoFit()
+            ws.Rows(h).RowHeight = min(CAO_MAX, max(r.get("cao_cu") or 0, CAO_MIN, ws.Rows(h).RowHeight + 30))  # dư 2 dòng: Excel chạy ẩn đo thấp hơn lúc mở file
             for j, v in r["sau"].items():
                 c = ws.Cells(h, j)
                 if isinstance(v, str) and v.startswith("="):

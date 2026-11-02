@@ -25,7 +25,8 @@ for _d in SHEETS.values():
             _x["ds"] = ([r["cap3"] for r in BANG_MA.rows] if BANG_MA else []) + [code_id.KHONG_RO]
 
 LENH = """Lệnh:
-  init <GOC> --input <rel> --boq <rel trong input> --tcq <rel> [--takenote <rel>] [--du-an SSP] [--bo-thu-muc "a;b/c"]
+  init <GOC> --input <rel> [--mau <tên>] --boq <rel trong input> --tcq <rel> [--takenote <rel>] [--du-an SSP] [--bo-thu-muc "a;b/c"] [--dwg-regex <regex>]
+                                --mau: mẫu dự án trong form\\MAU_DU_AN.json (mặc định cdt_item); mẫu quyết định --boq, --tcq có bắt buộc không
   kiemke <GOC>                  FILE_INDEX.kiemke-tool.json (liệt kê cả zip, ID giữ nguyên khi chạy lại; bỏ thư mục trong bo_thu_muc)
   boq <GOC>                     SCOPE.boq-tool.json + _boq_map.json
   phanloai <GOC> [--duyet-luat] SCOPE.phanloai-tool.json: Mã cấp 3 từng dòng (User > Luật > Nhớ > LLM); chạy lại sau khi có _phanloai_llm.json
@@ -52,7 +53,7 @@ LENH = """Lệnh:
   dmvt <GOC> [--chi-boc] [--ra <dir>]  03_boq\\<DA>_DMVT_<yymmdd>.xlsx: bóc A:I + ảnh từ trang spec, áp Trạng thái cuối MAT, giữ sửa tay (cần Excel); --chi-boc: chỉ ra _data\\_dmvt_boc.json
   ben <GOC>                     nháp Bên thực hiện cho dòng chưa có: Mã VL -> Loại (MAT) -> bên theo _data\\_ben.json, luôn gắn cờ
   goi <GOC> "<bên>"             04_out\\<DA>_GOI_<bên>_<yymmdd>.xlsx gửi nhà thầu phụ, chỉ phần việc của bên đó (chạy sau build); máy soát trước khi lưu
-  build <GOC> [--ra <dir>] [--khong-dmvt]  kéo sửa tay + chạy lại phanloai + dựng DMVT (nếu có _data\\_dmvt.json) rồi dựng 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; --ra: chỉ ghi file ra thư mục đó, không kéo sửa tay, không đổi _data"""
+  build <GOC> [--ra <dir>] [--khong-dmvt]  kéo sửa tay + chạy lại phanloai + dựng 03_boq\\<DA>_DMVT_<yymmdd>.xlsx rồi 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi; --khong-dmvt: bỏ DMVT; --ra: chỉ ghi BOQ_TRACK và bản CĐT ra thư mục đó (không DMVT), không kéo sửa tay, không đổi _data"""
 
 BO_TEN = re.compile(r"^(~\$|\.~)|^(plot\.log|thumbs\.db|desktop\.ini)$", re.I)
 BO_DUOI = {".dwl", ".dwl2", ".bak", ".log", ".tmp", ".lck"}
@@ -92,6 +93,14 @@ def opt(args, name, default=None):
     return default
 
 
+def nap_mau(ten):
+    """Mẫu dự án (form\\MAU_DU_AN.json): phần khác nhau giữa các kiểu dự án, để dự án gần giống dùng lại, không viết lại tool."""
+    ds = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "form", "MAU_DU_AN.json"), encoding="utf-8"))
+    if ten not in ds or ten.startswith("_"):
+        sys.exit(f"LỖI: không có mẫu {ten!r}. Có: {', '.join(k for k in ds if not k.startswith('_'))}")
+    return ds[ten]
+
+
 class P:
     def __init__(self, goc):
         self.goc = os.path.abspath(goc)
@@ -100,6 +109,7 @@ class P:
         f = os.path.join(self.d, "_cauhinh.json")
         self.cfg = json.load(open(f, encoding="utf-8")) if os.path.exists(f) else None
         self.inp = os.path.join(self.goc, self.cfg["input"]) if self.cfg else None
+        self.mau = nap_mau((self.cfg or {}).get("mau") or "cdt_item")
 
     def need(self):
         if not self.cfg:
@@ -401,7 +411,7 @@ README_DA = """# {du_an} — TENDER (skill 10-tender)
 def cmd_init(goc, args):
     p = P(goc)
     cfg = p.cfg or {}
-    for k, o in [("input", "--input"), ("boq", "--boq"), ("tcq", "--tcq"), ("takenote", "--takenote"), ("du_an", "--du-an")]:
+    for k, o in [("input", "--input"), ("boq", "--boq"), ("tcq", "--tcq"), ("takenote", "--takenote"), ("du_an", "--du-an"), ("mau", "--mau"), ("dwg_regex", "--dwg-regex")]:
         v = opt(args, o)
         if v:
             cfg[k] = v
@@ -412,7 +422,7 @@ def cmd_init(goc, args):
     cfg.setdefault("boq_bo_sheet", [])
     cfg.setdefault("bo_thu_muc", [])
     chuan_bo_thu_muc(cfg["bo_thu_muc"])
-    for k in ("input", "boq", "tcq"):
+    for k in ["input"] + nap_mau(cfg.get("mau") or "cdt_item")["bat_buoc"]:
         if not cfg.get(k):
             sys.exit(f"LỖI: thiếu --{k}")
     inp = os.path.join(p.goc, cfg["input"])
@@ -424,7 +434,7 @@ def cmd_init(goc, args):
     jdump(os.path.join(p.d, "_cauhinh.json"), cfg)
     rd = os.path.join(p.t, "README.md")
     if not os.path.exists(rd) or os.path.getsize(rd) == 0:
-        txt = README_DA.format(**dict({"takenote": "chưa có"}, **cfg))
+        txt = README_DA.format(**dict({"takenote": "chưa có", "boq": "chưa có", "tcq": "chưa có"}, **cfg))
         open(rd, "w", encoding="utf-8").write(txt)
     print(f"OK {p.t}\n{json.dumps(cfg, ensure_ascii=False, indent=1)}")
 
@@ -573,11 +583,12 @@ def low(v):
     return re.sub(r"\s+", " ", s(v)).lower()
 
 
-def boq_header(rows):
+def boq_header(rows, td):
     for h, r in enumerate(rows[:25]):
         cells = [low(c) for c in r]
-        if "item" in cells and any("description" in c for c in cells):
-            return h, cells.index("item")
+        for k in td["item"]:
+            if k in cells and any(m in c for c in cells for m in td["mo_ta"]):
+                return h, cells.index(k)
     return None, None
 
 
@@ -585,6 +596,9 @@ def cmd_boq(goc):
     import openpyxl
     from openpyxl.utils import get_column_letter as L
     p = P(goc).need()
+    if not p.cfg.get("boq"):
+        sys.exit("LỖI: chưa có BOQ — lập BOQ rồi chạy init --boq <rel trong input>.")
+    td, dau_muc = p.mau["tieu_de"], p.mau.get("dau_muc") or {}
     wb = openpyxl.load_workbook(os.path.join(p.inp, p.cfg["boq"]), read_only=True, data_only=True)
     bo = set(p.cfg.get("boq_bo_sheet", []))
     out, bmap, room_codes = [], {}, set()
@@ -593,9 +607,9 @@ def cmd_boq(goc):
             print(f"bỏ sheet {ws.title} (_cauhinh boq_bo_sheet)")
             continue
         rows = [list(r) for r in ws.iter_rows(values_only=True)]
-        h, ic = boq_header(rows)
+        h, ic = boq_header(rows, td)
         if h is None:
-            print(f"bỏ sheet {ws.title}: không thấy hàng tiêu đề Item/Description")
+            print(f"bỏ sheet {ws.title}: không thấy hàng tiêu đề {td['item'][0]}/{td['mo_ta'][0]}")
             continue
         width = max(len(r) for r in rows)
         for r in rows:
@@ -603,9 +617,9 @@ def cmd_boq(goc):
         hr, sub, top = rows[h], rows[h + 1] if h + 1 < len(rows) else [None] * width, rows[h - 1] if h else [None] * width
         cells = [low(c) for c in hr]
         sub_l = [low(c) for c in sub]
-        unit = next((j for j in range(width) if cells[j] == "unit" or sub_l[j] == "unit"), None)
-        qty = next((j for j in range(width) if "quantity" in cells[j]), None)
-        remarks = [j for j in range(width) if cells[j] == "remark"]
+        unit = next((j for j in range(width) if cells[j] in td["dv"] or sub_l[j] in td["dv"]), None)
+        qty = next((j for j in range(width) if any(k in cells[j] for k in td["kl"])), None)
+        remarks = [j for j in range(width) if cells[j] in td.get("ghi_chu", ["remark"])]
         ve = next((j for j in range(width) if re.match(r"ve\b", low(top[j]))), None)
         last = max(j for j in range(width) if any(s(x[j]) for x in (top, hr, sub))) + 1
         rooms, grp = [], ""
@@ -619,6 +633,7 @@ def cmd_boq(goc):
                         room_codes.add(m.group(1))
                     rooms.append([j, code if m else f"{grp} {code}".strip()])
         dend = qty if qty is not None else (unit if unit is not None else ic + 4)
+        cot_mt = [j for j in range(width) if any(k in cells[j] for k in p.mau.get("cot_mo_ta", []))] or None  # None = mọi cột từ sau Item tới dend
         bmap[ws.title] = {"hang_tieu_de": h + 1, "cot_item": L(ic + 1), "cot_cuoi": last,
                           "kl": L(qty + 1) if qty is not None else None, "dv": L(unit + 1) if unit is not None else None,
                           "phong": [[L(j + 1), lab] for j, lab in rooms], "ghi_chu": [L(j + 1) for j in remarks]}
@@ -627,7 +642,13 @@ def cmd_boq(goc):
         for i in range(h + 2, len(rows)):
             r = rows[i]
             item = s(r[ic])
-            texts = [s(x) for x in r[ic + 1:dend] if s(x)]
+            texts = [s(r[j]) for j in cot_mt if s(r[j])] if cot_mt else [s(x) for x in r[ic + 1:dend] if s(x)]
+            if dau_muc.get("vung") and re.match(dau_muc["vung"], item):
+                vung, nhom, muc = " ".join(texts), None, None
+                continue
+            if dau_muc.get("nhom") and re.match(dau_muc["nhom"], item):
+                nhom, muc = " ".join(texts), None
+                continue
             kl = num(r[qty]) if qty is not None else None
             if not item and texts and kl is not None and unit is not None and s(r[unit]):
                 item = "-"  # dòng có KL + ĐV nhưng không đánh số (vd Provisional sum)
@@ -650,7 +671,7 @@ def cmd_boq(goc):
                 gc = []
                 for j in remarks:
                     if s(r[j]):
-                        gc.append(("VE: " if ve is not None and j >= ve else "Base: ") + s(r[j]))
+                        gc.append(s(r[j]) if "ghi_chu" in td else ("VE: " if ve is not None and j >= ve else "Base: ") + s(r[j]))
                 if gc:
                     row["Ghi chú BOQ"] = " | ".join(gc)
                 ffe = sorted(set(RX_FFE.findall(full)))
@@ -833,6 +854,10 @@ def tham_chieu(text):
 
 def cmd_tcq(goc):
     p = P(goc).need()
+    if not p.cfg.get("tcq"):
+        write_tool(p, "TCQ_LOG", "tcq", [])
+        print("Dự án chưa có TCQ: TCQ_LOG rỗng. Có TCQ thì chạy init --tcq <file> rồi tcq lại.")
+        return
     path = os.path.join(p.inp, p.cfg["tcq"])
     data = tcq_parse(path)
     tn = tcq_parse(os.path.join(p.inp, p.cfg["takenote"])) if p.cfg.get("takenote") else {}
@@ -1364,7 +1389,8 @@ def khu_cua_file(res):
 def ma_cua_dong(r, area):
     """Mã VL/FF&E của 1 dòng SCOPE. Mã FF&E rug, rèm thường nằm ở Mục phụ; mã viết cách (51 - 500B) không có ở cột Mã spec/FF&E.
     Mã FF&E đọc từ chữ chỉ nhận khi tiền tố có trong bảng AREA, tránh bắt nhầm kích thước (15-200)."""
-    out = [ma_chuan(m) for c in ("Mã VL", "Mã spec/FF&E") for m in split_list(r.get(c))]
+    # mã FF&E 4 số (SX-2000, mẫu spec AID) ma_chuan không nhận, nhưng cột này đã là mã nên giữ nguyên
+    out = [ma_chuan(m) or (m if re.fullmatch(r"[A-Z]{2}-\d{4}", m) else None) for c in ("Mã VL", "Mã spec/FF&E") for m in split_list(r.get(c))]
     for c in ("Mục phụ", "Mô tả BOQ"):
         out += [x[0] for x in tach_ma(s(r.get(c))) if x[3] == "ffe" and x[0][:2] in area]
     return list(dict.fromkeys(m for m in out if m))
@@ -1473,7 +1499,7 @@ def cmd_xuathien(goc):
                                       "Chữ gốc": re.sub(r"\s+", " ", t[max(0, a - 30):b + 30]).strip(),
                                       "Cờ": "Viết cách, chưa chắc" if dang == "cach" else ""})
     # 2. Dòng BOQ; bản vẽ qua dòng BOQ vì tag trên bản vẽ là nét, không có trong chữ
-    fid_boq = next((k for k, r in fidx.items() if s(r.get("Đường dẫn")) == p.cfg["boq"].replace("\\", "/") and not s(r.get("Trong zip"))), None)
+    fid_boq = next((k for k, r in fidx.items() if s(r.get("Đường dẫn")) == s(p.cfg.get("boq")).replace("\\", "/") and not s(r.get("Trong zip"))), None)
     dong_bv = defaultdict(list)
     for k, r in scope.items():
         ma_dong = ma_cua_dong(r, area)
@@ -2552,6 +2578,7 @@ def cmd_build(goc, args):
         sys.exit("LỖI: chưa chạy boq")
     snap_old = jload(p.f("_snapshot.json"))
     n_user = pull_user(p) if not ra else 0
+    f_dmvt = loi_dmvt = None
     if not ra and os.path.exists(p.f("SCOPE.ben-tool.json")):  # nháp bên phải né ô user vừa sửa
         cmd_ben(goc)
     if not ra:  # sau khi kéo sửa tay: Nguồn/Cờ phân loại phải theo chỗ user vừa sửa, ô sửa vào nho_local
@@ -2561,11 +2588,14 @@ def cmd_build(goc, args):
             print("XEM: chưa chạy phanloai, cột Mã cấp 3 và Code ID sẽ trống")
         cmd_area(goc)
         cmd_xuathien(goc)
-        if os.path.exists(p.f("_dmvt.json")) and "--khong-dmvt" not in args:
+        if "--khong-dmvt" in args:
+            print("XEM: --khong-dmvt, lần này không dựng DMVT")
+        else:
             try:
-                cmd_dmvt(goc, [])
-            except Exception as e:  # không có Excel: BOQ_TRACK vẫn dựng được, link trỏ bản DMVT gần nhất
-                print(f"XEM: không dựng được DMVT ({str(e)[:200]}); Link vật tư trỏ bản DMVT gần nhất nếu có")
+                f_dmvt = cmd_dmvt(goc, [])
+            except (Exception, SystemExit) as e:  # không có Excel, file đang mở: vẫn dựng BOQ_TRACK, cuối lệnh báo lỗi
+                loi_dmvt = str(e)[:300]
+                print(f"LỖI: không dựng được DMVT ({loi_dmvt}); Link vật tư trỏ bản DMVT gần nhất nếu có")
     errs, xem, res = run_check(p)
     derive(p, res, snap_old)
     fidx = res["FILE_INDEX"]
@@ -2583,6 +2613,8 @@ def cmd_build(goc, args):
         bk = os.path.join(d_boq, "_backup")
         os.makedirs(bk, exist_ok=True)
         shutil.copy2(out, os.path.join(bk, f"{os.path.basename(out)[:-5]}_{datetime.datetime.now():%H%M%S}.xlsx"))
+    if not p.cfg.get("boq"):
+        sys.exit("LỖI: chưa có BOQ — lập BOQ rồi chạy init --boq <rel trong input>.")
     src_boq = os.path.join(p.inp, p.cfg["boq"])
     snap = {"reg": {}, "ct": {}}
     scope_letters = {c: openpyxl.utils.get_column_letter(j) for j, c in enumerate(cols_of("SCOPE"), 1)}
@@ -2634,9 +2666,11 @@ def cmd_build(goc, args):
     if not ra:
         snap.update(boq_track=out, file_index=f_idx)
         jdump(p.f("_snapshot.json"), snap)
-    print(f"Đã ghi:\n  {out}\n  {f_idx}\n  {f_cdt}")
+    print("Đã ghi:\n  " + "\n  ".join(x for x in (out, f_dmvt, f_idx, f_cdt) if x))
     print(f"Dòng BOQ {len(res['SCOPE'])} · TCQ {len(res['TCQ_LOG'])} · MAT {len(res['MAT'])} · DWG {len(res['DWG'])} · việc mở {len(vm)} · sửa tay user giữ {n_user}")
     print(f"{len(errs)} LỖI, {len(xem)} XEM (chi tiết ở sheet DASHBOARD)")
+    if loi_dmvt:
+        sys.exit(f"LỖI: chưa đủ 2 file, có BOQ_TRACK nhưng DMVT không dựng được: {loi_dmvt}")
 
 
 # ---------------------------------------------------------------- ben, goi

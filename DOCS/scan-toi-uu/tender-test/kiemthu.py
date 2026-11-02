@@ -34,10 +34,17 @@ def kiem(gd, loai):
     return dk
 
 
-def td(*args):
-    """Chạy td.py, trả (mã thoát, stdout + stderr)."""
+def td_that(*args):
+    """Chạy td.py đúng tham số, trả (mã thoát, stdout + stderr)."""
     r = subprocess.run([sys.executable, "-I", TD, *args], capture_output=True, encoding="utf-8", errors="replace")
     return r.returncode, r.stdout + r.stderr
+
+
+def td(*args):
+    """Như td_that, nhưng build mặc định bỏ DMVT: các phép kiểm BOQ không cần mở Excel. Kiểm DMVT trong build thì dùng td_that."""
+    if args[0] == "build" and "--khong-dmvt" not in args:
+        args = (*args, "--khong-dmvt")
+    return td_that(*args)
 
 
 def td_ok(*args):
@@ -2504,6 +2511,63 @@ def gd6_sofitel_giong_ban_cu(tmp):
     khac = so_nhieu(ca)
     assert not khac, f"{len(khac)}/{len(ca)} lệnh khác:\n" + "\n".join(khac[:20])
     print(f"      SOFITEL: {len(ca)} lệnh giống pd.py từng byte: mail {n_mail} file, xem {n_xem}, chu + anh {n_pdf} ({len(chon)} PDF)")
+
+
+# ---------------------------------------------------------------- build ra đủ 2 file (user yêu cầu 01/11)
+def file_dmvt(goc):
+    import glob
+    return glob.glob(os.path.join(goc, "10_TENDER", "03_boq", "*_DMVT_*.xlsx"))
+
+
+@kiem(6, "mau")
+def gd6_build_khong_cau_hinh_van_ra_2_file(tmp):
+    goc, _, data = dung_boq(tmp)
+    assert not os.path.exists(os.path.join(data, "_dmvt.json"))
+    rc, out = td_that("build", goc)
+    assert rc == 0, out
+    assert file_dmvt(goc), f"thiếu DMVT:\n{out}"
+    assert file_track(goc), "thiếu BOQ_TRACK"
+    assert os.path.basename(file_dmvt(goc)[0]) in out.split("Đã ghi:")[-1], "phần báo kết quả phải nêu file DMVT"
+    assert "Chưa có _data" in out, "dùng mặc định phải báo XEM"
+
+
+@kiem(6, "mau")
+def gd6_dmvt_hong_thi_thoat_loi_van_giu_boq(tmp):
+    goc, _, data = dung_boq(tmp)
+    with open(os.path.join(data, "_dmvt.json"), "w", encoding="utf-8") as fh:
+        fh.write("{hỏng")
+    rc, out = td_that("build", goc)
+    assert rc != 0, "thiếu DMVT mà vẫn báo thành công"
+    assert "chưa đủ 2 file" in out, out
+    assert file_track(goc), "DMVT hỏng không được làm mất BOQ_TRACK"
+    assert not file_dmvt(goc)
+
+
+@kiem(6, "mau")
+def gd6_khong_dmvt_chi_khi_yeu_cau(tmp):
+    goc, _, _ = dung_boq(tmp)
+    rc, out = td_that("build", goc, "--khong-dmvt")
+    assert rc == 0 and not file_dmvt(goc) and "--khong-dmvt" in out, out
+
+
+@kiem(6, "sofitel")
+def gd6_sofitel_khong_cau_hinh_van_ra_2_file(tmp):
+    """Giả lập dự án chưa tạo _dmvt.json: bản sao SOFITEL bỏ mọi file _dmvt*."""
+    import openpyxl
+    data_that = os.path.join(GOC_SOFITEL, "10_TENDER", "_data")
+    truoc = chu_ky_thu_muc(data_that)
+    goc, _ = ban_sao_gd3(tmp, nho=True)
+    rc, out = td_that("build", goc)
+    assert rc == 0, out[-1500:]
+    import glob
+    f = file_dmvt(goc)
+    assert f and glob.glob(os.path.join(goc, "10_TENDER", "03_boq", "*_BOQ_TRACK_*.xlsx")), out[-1500:]
+    wb = openpyxl.load_workbook(f[0], read_only=True)
+    n = sum(1 for r in wb["DMVT"].iter_rows(min_row=8, max_col=2, values_only=True) if r[1])
+    wb.close()
+    assert n > 100, f"DMVT chỉ có {n} dòng có mã"
+    assert chu_ky_thu_muc(data_that) == truoc, "_data thật đã bị ghi"
+    print(f"      SOFITEL không có _dmvt.json: đủ 2 file, DMVT {n} hàng có chữ ở cột B (gồm hàng tiêu đề mục)")
 
 
 # ---------------------------------------------------------------- chạy
