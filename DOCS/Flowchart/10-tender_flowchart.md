@@ -156,7 +156,12 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
             Cắt khai báo cột của file gốc lấn vào cột thêm (M:O ẩn ở 4. Provisional sum)
             DASHBOARD (đếm highlight, dòng Base chưa có bên, cờ nhiều bên) · BOQ_TONGHOP, PHAN_VIEC (chỉ xem)
             · TCQ_LOG · MAT · DWG · KHU · AREA · VL_XUATHIEN (chỉ xem) · CAU_TAO · SCOPE · _CODE
-            _LINKS cho add-in SRC_LINKS (mở PDF đúng trang, không còn cột mở dự phòng)
+            _LINKS cho add-in SRC_LINKS (mở PDF đúng trang, không còn cột mở dự phòng; H1:H2 BASE_DIR = thư mục file lúc build)
+              Add-in tìm đích: file mở từ https → đổi sang thư mục OneDrive đồng bộ trên máy
+                → tương đối theo chỗ đặt file → theo BASE_DIR → bỏ ..\ rồi thử từng thư mục cha
+              File mở từ https mà máy chưa đồng bộ → mở thẳng địa chỉ web
+              Máy khác: chép SRC_LINKS.xlam vào %APPDATA%\Microsoft\Excel\XLSTART
+                (gói _MASTER\vba\GUI_CHO_NGUOI_KHAC: xlam + HUONG DAN CAI.txt; Cortex chặn file .bat tự giải mã)
             Ẩn sheet: SCOPE, DWG, KHU, AREA, VL_XUATHIEN (không dựng hyperlink), _LINKS, _CODE;
                       CAU_TAO, PHAN_VIEC ẩn khi chưa có mẫu. Sửa ở sheet ẩn vẫn được kéo vào
         │

@@ -24,6 +24,14 @@ try {
     if ($null -eq $old) { Remove-ItemProperty -Path $key -Name AccessVBOM -ErrorAction SilentlyContinue }
     else { Set-ItemProperty -Path $key -Name AccessVBOM -Value $old -Type DWord }
 }
+# Goi cho nguoi khac (chep tay vao XLSTART, xem HUONG DAN CAI.txt): chi can ban xlam moi nhat
+Copy-Item $out (Join-Path $root 'GUI_CHO_NGUOI_KHAC\SRC_LINKS.xlam') -Force
+# May da nap add-in qua khoa OPEN thi khong chep them vao XLSTART, neu khong add-in nap 2 lan.
+$opt = Get-ItemProperty 'HKCU:\Software\Microsoft\Office\16.0\Excel\Options' -ErrorAction SilentlyContinue
+if ($opt -and ($opt.PSObject.Properties | Where-Object { $_.Name -like 'OPEN*' -and $_.Value -like '*SRC_LINKS.xlam*' })) {
+    Write-Output "OK: $out (da nap qua khoa OPEN, khong chep XLSTART)"
+    return
+}
 $xlstart = Join-Path $env:APPDATA 'Microsoft\Excel\XLSTART'
 if (-not (Test-Path $xlstart)) { New-Item -ItemType Directory -Path $xlstart | Out-Null }
 Copy-Item $out (Join-Path $xlstart 'SRC_LINKS.xlam') -Force

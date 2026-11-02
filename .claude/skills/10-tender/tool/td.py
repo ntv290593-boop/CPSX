@@ -2134,7 +2134,8 @@ def put(ws, row, col, v, p, fidx, kieu=None):
 
 def write_links(wb, p):
     """Sheet _LINKS đúng dạng add-in SRC_LINKS đọc: A Key(Sheet!Ô) B Sheet C Ô D Nhãn E File(tương đối) F Trang G Ô đích.
-    Các dòng cùng Key phải liền nhau. Không còn cột mở dự phòng: 2 hyperlink mỗi dòng là phần nặng nhất của file."""
+    Các dòng cùng Key phải liền nhau. Không còn cột mở dự phòng: 2 hyperlink mỗi dòng là phần nặng nhất của file.
+    H1/H2 = BASE_DIR: thư mục file lúc build, để add-in vẫn tìm được đích khi file bị chuyển đi chỗ khác."""
     from openpyxl.styles import Font, PatternFill
     from openpyxl.utils import get_column_letter as L
     ws = wb.create_sheet("_LINKS")
@@ -2146,6 +2147,7 @@ def write_links(wb, p):
     for i, (sh, coord, lab, f, pg, sub) in enumerate(p.links, 2):
         for j, v in enumerate([f"{sh}!{coord}", sh, coord, lab, f, pg, sub], 1):
             ws.cell(row=i, column=j, value=v)
+    ws["H1"], ws["H2"] = "BASE_DIR", os.path.abspath(p.base)
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:G{max(len(p.links) + 1, 2)}"
 

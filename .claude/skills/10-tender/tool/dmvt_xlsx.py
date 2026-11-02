@@ -550,5 +550,6 @@ def ghi_links(wb, p):
     n = len(p.links) + 1
     du = [hdr] + [[f"{sh}!{c}", sh, c, lab, f, pg if pg else "", sub or ""] for sh, c, lab, f, pg, sub in p.links]
     ws.Range(f"A1:G{n}").Value = du
+    ws.Range("H1").Value, ws.Range("H2").Value = "BASE_DIR", os.path.abspath(p.base)  # add-in dùng khi file bị chuyển đi chỗ khác
     ws.Rows(1).Font.Bold = True
     ws.Visible = 0  # xlSheetHidden

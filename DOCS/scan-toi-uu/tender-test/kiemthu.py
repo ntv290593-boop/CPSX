@@ -1890,7 +1890,8 @@ def gd4_sheet_an_va_nhe_file(tmp):
     assert {"DASHBOARD", "BOQ_TONGHOP", "MAT", "TCQ_LOG", "VIEC_MO", SH} <= {s for s in wb.sheetnames if s not in an}
     for sh in ("SCOPE", "DWG", "KHU", "AREA", "VL_XUATHIEN", "_LINKS"):
         assert not o_co_link(wb[sh]), f"{sh} còn hyperlink"
-    assert wb["_LINKS"].max_column == 7, wb["_LINKS"].max_column
+    assert wb["_LINKS"].max_column == 8, wb["_LINKS"].max_column  # A:G + H = BASE_DIR, không có cột mở dự phòng
+    assert wb["_LINKS"]["H1"].value == "BASE_DIR" and os.path.isabs(wb["_LINKS"]["H2"].value), wb["_LINKS"]["H2"].value
     hd = [c.value for c in wb["VL_XUATHIEN"][1]]
     assert not {"Khóa", "Dòng BOQ", "Chữ gốc"} & set(hd) and "Mã VL" in hd, hd
     r0 = doc_json(goc, "VL_XUATHIEN.xuathien-tool.json")["rows"][0]

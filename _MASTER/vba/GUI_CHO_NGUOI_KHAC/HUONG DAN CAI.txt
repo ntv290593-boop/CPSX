@@ -1,0 +1,36 @@
+CAI ADD-IN SRC_LINKS DE BAM MO LINK BAN VE TRONG FILE BOQ_TRACK / DMVT
+======================================================================
+
+Chi can chep 1 file SRC_LINKS.xlam vao thu muc XLSTART. Lam 1 lan, sau do
+moi lan mo Excel add-in tu chay.
+
+CACH NHANH (khuyen dung)
+------------------------
+1. Dong het cac cua so Excel.
+2. Bam chuot phai file SRC_LINKS.xlam (cung thu muc voi file nay) > Copy.
+3. Mo cua so Run: bam phim Windows + R.
+4. Dan dong sau vao o Run roi bam OK (mo thang thu muc XLSTART):
+      %APPDATA%\Microsoft\Excel\XLSTART
+5. Trong cua so vua mo, bam chuot phai cho trong > Paste.
+6. (Neu Windows hoi "came from another computer"): bam chuot phai file vua
+   dan > Properties > tich o Unblock o cuoi tab General > OK.
+7. Mo lai file BOQ_TRACK hoac DMVT. Neu Excel hoi thi bam Enable Content.
+8. Bam thu 1 o co link (chu mau xanh gach chan) o cot Link / Ban ve.
+
+KIEM TRA DA CAI CHUA
+--------------------
+Mo Excel > File > Options > Add-ins. Phia duoi o "Manage" chon "Excel Add-ins"
+> Go. Thay dong "Src_links" co dau tich la da cai.
+
+BAM LINK THI SAO
+----------------
+- May da dong bo thu muc du an ve: mo file PDF ngay tren may, dung trang.
+- May chua dong bo (mo file tu tren web): mo PDF tren trinh duyet Edge
+  (can co quyen xem thu muc do). Co the khong nhay dung trang.
+
+KHONG CHAY DUOC
+---------------
+- Bam link khong thay gi: add-in chua cai (lam lai cac buoc tren), hoac
+  cong ty dang chan macro Excel. Hoi IT mo macro cho file Office noi bo.
+- Bao "Khong tim thay file": da dong bo nhung thieu dung file PDF do,
+  hoac file du an khong con o dung cho cu.
