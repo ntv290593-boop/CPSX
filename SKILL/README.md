@@ -26,7 +26,7 @@ Số đầu tên skill = thư mục của dự án mà skill ghi vào.
 ## Lõi dùng chung `_core\scan_core.py`
 Cào + tìm trang PDF dùng chung cho `01-scan` (`pd.py`) và `10-tender` (`td.py`): đọc chữ + đoán khung tên, phân loại tờ, trang trùng / file tổng, chỉ mục BM25 + mã chuẩn hóa, chữ ký file (phát hiện file đổi). Mỗi skill chỉ giữ phần riêng của nhiệm vụ (form, bước, cách chấm điểm). Sửa lõi → chạy `DOCS\scan-toi-uu\bench.py` và `td.py ungvien <GOC> --do`, không số nào được tụt.
 
-`_core\doc_file.py` (đọc chữ, ảnh trang PDF, mail, ô Excel) chỉ `td.py` dùng. `pd.py` đóng băng nên giữ bản riêng của các lệnh này cho tới khi xóa 01-scan.
+`_core\doc_file.py` (đọc chữ, ảnh trang PDF, mail, ô Excel), `_core\gemini_doc.py` (Gemini đọc độc lập qua agy), `_core\neo.py` (kiểm giá trị có trên trang được link) chỉ `td.py` dùng. `pd.py` đóng băng nên giữ bản riêng của các lệnh này cho tới khi xóa 01-scan.
 
 ## Cấu trúc một skill
 ```

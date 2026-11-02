@@ -1,7 +1,7 @@
 # Bước 6 — banve: bản vẽ hiệu lực cho từng dòng BOQ, trích gọn theo mã phòng
 
 **Ghi:** `SCOPE.banve-<n>.json` (`Bản vẽ hiệu lực`, `Mã VL`, `Mã spec/FF&E`, `Nguồn`), `02_extract\<mã phòng hoặc khu>.md`, `VIEC_MO.banve-<n>.json`.
-**Chỉ làm các mã phòng/khu được giao.** Không bóc khối lượng chi tiết, không tính giá — mục tiêu: mỗi dòng BOQ biết **tờ nào là căn cứ** và **vật liệu nào** theo bản vẽ hiệu lực.
+**Chỉ làm các mã phòng/khu được giao.** Không bóc khối lượng chi tiết, không tính giá — mục tiêu: mỗi dòng BOQ biết **tờ nào là căn cứ** và **vật liệu nào** theo bản vẽ hiệu lực. Kích thước, cấu tạo, KL theo bản vẽ, Gemini kiểm chéo là của bước 7d, dùng link bước này gán.
 
 ## Làm
 1. Đọc README + mục bẫy. Tờ của khu: `loc <GOC> DWG "Khu (thư mục)~<khu>" "Trạng thái=Hiệu lực" --cot "Số BV,Tên tờ,File PDF"`; khu ↔ mã phòng: `loc <GOC> KHU`.

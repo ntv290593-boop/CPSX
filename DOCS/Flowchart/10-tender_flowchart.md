@@ -1,10 +1,10 @@
 # Flowchart skill 10-tender
 
 > Cập nhật lần cuối: 2026-11-01 · Theo code: `SKILL/10-tender/` (SKILL.md, `buoc/*.md`, `tool/td.py`)
-> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm. Main Lobby (BOQ thứ 2) chưa làm.
+> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm + đọc sâu toàn gói chuyển từ 01-scan (`docsau`, `gemini`, `neo`, `tincay`, `so`, `do`; phần 10) đã làm, kiểm thử bằng dữ liệu mẫu và thử lệnh trên bản sao CTX, các bước LLM 7c–7e chưa chạy trên dự án thật. Main Lobby (BOQ thứ 2) chưa làm.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
-Sơ đồ gồm 8 phần: luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu, danh mục vật tư.
+Sơ đồ gồm 10 phần (phần 9: dự án chưa có BOQ CĐT; phần 10: đọc sâu): luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu, danh mục vật tư.
 
 # 0. LUỒNG TỔNG (phiên điều phối)
 
@@ -51,6 +51,9 @@ Sơ đồ gồm 8 phần: luồng tổng, kiểm kê, chạy lại khi có đợ
          7 doichieu  mỗi 1–2 sheet BOQ 1 subagent (sau 3, 5, 6)
             │
             ▼
+         docsau (tool: gom cụm, chia nhóm ≤ 8 cụm) ──► 7c spec  1 subagent
+            │                                          7d docsau  mỗi nhóm 1 subagent, song song; Gemini đọc lại; neo
+            ▼                                          7e tincay  tool nháp rồi 1 subagent (mục 10)
          8 dmvt  bóc A:I + ảnh, LLM dịch, chọn ảnh ca khó (mục 8; cần 5 mat)
             │
             ▼
@@ -359,3 +362,53 @@ build (dmvt: _dmvt.json "nguon_spec": "spec_boc" → nội dung và ảnh từ _
 ```
 
 Chưa làm: diện tích ốp chưa đo. Mã FF&E trùng giữa 2 file LF: MAT, DMVT chỉ lấy 1 bản.
+
+# 10. ĐỌC SÂU TOÀN GÓI (td.py → tool/docsau.py, _core/gemini_doc.py, _core/neo.py)
+
+Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này có 2 bản; `kiemthu.py` so hàm tách số, tách mã, câu hỏi Gemini và lệnh `so` với `pd.py`.
+
+```
+ SCOPE sau bước 7
+   │  bỏ: sheet codeid_bo_sheet, dòng không đơn vị, Trạng thái Omit / Loại trừ / Không áp dụng
+   ▼
+ docsau  gom dòng cùng (mô tả, Mã VL, Mã spec/FF&E, bộ tờ Bản vẽ hiệu lực) thành CỤM; khóa cụm = Khóa dòng đầu
+   │     ghi SCOPE.docsau-tool (Cụm đọc, nhãn Phạm vi nhà máy), BOQ_MAP.docsau-tool (mỗi dòng × khu)
+   │     _docsau.json, _docsau.txt (nhóm ≤ 8 cụm); lọc phần giao: --phong --sheet --thaydoi --thieu
+   ▼
+ 7c spec   SPEC, SCOPE (Spec · ML, Thông số riêng), QUAN_SAT nguồn SPEC, ISSUES S…
+   ▼
+ 7d docsau  mỗi nhóm 1 subagent
+   │    Claude đọc crop, ghi QUAN_SAT nguồn HÌNH/TEXT TRƯỚC
+   │         ▼
+   │    gemini --cum  dừng nếu chưa có Kích thước BV của Claude ──► _gemini_so\<cụm>.json
+   │    gemini --quansat  so từng trường, lệch: đọc lại; vẫn lệch: 2 dòng, MÂU THUẪN, issue
+   │    agy lỗi / không có: KHÔNG THẤY, làm tiếp, cụm tối đa TB
+   │         ▼
+   │    BOQ_MAP (KL theo BV, tờ đếm), DAY_TUONG (cửa), PAGES, ISSUES V…
+   │         ▼
+   │    neo  số tờ, mã spec, mã VL, kích thước có trên trang được link không ──► _neo.json (chỉ XEM)
+   ▼
+ tincay (tool) so số Claude↔Gemini, KL BOQ↔BV, KHÔNG THẤY, MÂU THUẪN
+   │    SCOPE/BOQ_MAP Độ tin cậy, ISSUES DT…, QUAN_SAT Kiểm chéo Gemini số, _tincay.json
+   ▼
+ 7e tincay (LLM) Mã hoàn thiện, Giả định tính giá, Hành động/RFI, RFI_LOG, ASK_USER; ô LLM ghi thắng nháp tool
+   ▼
+ build  merge: dòng cùng cụm nhận kết quả của dòng đại diện, trừ ô có giá trị riêng
+        derive: KL theo BV = tổng các khu (còn khu chưa đếm thì để trống), Lệch KL
+        cột đọc sâu ở BOQ_TONGHOP + sheet BOQ CĐT; không có ở bản _CDT, goi
+        sổ ẩn QUAN_SAT, BOQ_MAP, DAY_TUONG, SPEC, PAGES; sheet hiện ISSUES, RFI_LOG, ASK_USER (không có dữ liệu thì không có sheet)
+        DASHBOARD: mục ĐỌC SÂU; CẦN XEM thêm Tin cậy THẤP, Hỏi user
+```
+
+Độ tin cậy (tool, lấy mức thấp nhất):
+
+```
+ THAP  chưa có quan sát HÌNH/TEXT · trường giá KHÔNG THẤY · trường giá có dòng GEMINI MÂU THUẪN · thiếu Bản vẽ đối chứng
+       còn tờ chưa đọc · Gemini lệch ở trường giá · số Claude không có trong số Gemini
+ TB    MÂU THUẪN khác · Gemini chưa chạy, lỗi, lệch trường phụ · KL BOQ ≠ BV · còn khu chưa có KL theo BV
+ CAO   còn lại
+```
+
+`check`: chưa có `_docsau.json` thì chỉ nhắc XEM, không LỖI. Có rồi: `--den docsau` đòi mọi cụm có QUAN_SAT và `Kiểm chéo Gemini`; `--den tincay` đòi `Độ tin cậy`. Luôn LỖI: nguồn HÌNH/TEXT không có tờ, phép cộng `a+b=c` sai, RFI không có trong RFI_LOG. Khóa `BOQ_MAP` mới không có trong nháp tool là LỖI.
+
+Không chuyển, vì 10-tender đã có phần tương ứng: `boq-tach` (`boq`), `kiemke --ds` và `_bo_qua.txt` (`init --bo-thu-muc`), `_timkiem.*` (`ungvien` riêng), sheet `PROJECT`, `NOTES` (`README.md` của `10_TENDER`), `FILES` (`FILE_INDEX`), `BOQ_CDT` (`SCOPE`). `PAGES` chỉ giữ trang đã mở, không lập cho mọi trang như 01-scan, vì hồ sơ tender lớn; khung tên để `neo` kiểm lấy từ cache `trang`.

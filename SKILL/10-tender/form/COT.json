@@ -1,6 +1,6 @@
 {
   "_ghi_chu": "Form cột của skill 10-tender. Đổi thứ tự cột = đổi thứ tự trong 'cot'. Thêm cột = thêm 1 mục. 'buoc' = các bước được ghi cột đó (tool ghi bằng '<buoc>-tool'; 'user' = sửa tay trong xlsx; 'build' = tool tự tính khi dựng). kieu: CHU | SO | LINK | DS (1 giá trị trong ds; ds_tu = 'code_id' thì tool lấy danh sách từ _MASTER\\code_id\\bang_ma.json) | DSN (nhiều giá trị trong ds, cách nhau '; ') | NGAY. boq: 'chinh_thuc' = cột gửi CĐT, 'noi_bo' = cột nội bộ thêm vào BOQ. sua: true = cột nội bộ nhập trực tiếp ở sheet BOQ (không ẩn, không phải công thức tra SCOPE, pull_user đọc ngược).",
-  "thu_tu_buoc": ["kiemke", "boq", "tcq", "dwg", "mat", "banve", "doichieu", "ben"],
+  "thu_tu_buoc": ["kiemke", "boq", "tcq", "dwg", "mat", "banve", "doichieu", "ben", "spec", "docsau", "tincay"],
   "sheet": {
     "FILE_INDEX": {
       "loai": "KHOA", "khoa": "ID", "file": "01_index",
@@ -59,7 +59,123 @@
         "Cờ bên":          {"kieu": "CHU", "buoc": ["ben-tool"]},
         "Nguồn":           {"kieu": "LINK", "buoc": ["banve", "doichieu"]},
         "Ngày cập nhật":   {"kieu": "NGAY", "buoc": ["build"], "boq": "noi_bo"},
-        "Kích thước BoQ":  {"kieu": "CHU", "buoc": ["doichieu", "user"], "boq": "noi_bo"}
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau-tool"]},
+        "Phạm vi nhà máy": {"kieu": "CHU", "buoc": ["docsau-tool", "docsau", "user"], "boq": "noi_bo"},
+        "Kích thước BoQ":  {"kieu": "CHU", "buoc": ["docsau", "doichieu", "user"], "boq": "noi_bo"},
+        "Kích thước BV":   {"kieu": "CHU", "buoc": ["docsau", "user"], "boq": "noi_bo"},
+        "KL theo BV":      {"kieu": "SO",  "buoc": ["build"], "boq": "noi_bo"},
+        "Lệch KL":         {"kieu": "SO",  "buoc": ["build"], "boq": "noi_bo"},
+        "Bản vẽ đối chứng":{"kieu": "LINK", "buoc": ["docsau"], "boq": "noi_bo"},
+        "Spec · ML":       {"kieu": "LINK", "buoc": ["spec"], "boq": "noi_bo"},
+        "Thông số riêng":  {"kieu": "CHU", "buoc": ["spec", "user"]},
+        "Mã hoàn thiện":   {"kieu": "CHU", "buoc": ["tincay", "user"], "boq": "noi_bo"},
+        "Độ tin cậy":      {"kieu": "DS", "buoc": ["tincay-tool", "tincay", "user"], "boq": "noi_bo", "ds": ["CAO", "TB", "THAP"]},
+        "Issue":           {"kieu": "CHU", "buoc": ["tincay-tool", "tincay", "user"], "boq": "noi_bo"},
+        "Giả định tính giá": {"kieu": "CHU", "buoc": ["tincay", "user"], "boq": "noi_bo"}
+      }
+    },
+    "QUAN_SAT": {
+      "loai": "NOI",
+      "cot": {
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*"},
+        "Thành phần":      {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "user"]},
+        "Trường":          {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*"},
+        "Giá trị":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*"},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*", "ds": ["CÓ", "KHÔNG CÓ", "KHÔNG THẤY", "MÂU THUẪN"]},
+        "Tờ · Chi tiết":   {"kieu": "LINK", "buoc": ["spec", "docsau", "tincay", "user"]},
+        "Nguồn":           {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*", "ds": ["HÌNH", "TEXT", "SPEC", "BOQ", "USER", "GEMINI", "DWG"]},
+        "Bước":            {"kieu": "CHU", "buoc": ["*"]},
+        "Model":           {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"]}
+      }
+    },
+    "BOQ_MAP": {
+      "loai": "KHOA", "khoa": "Khóa KL",
+      "cot": {
+        "Khóa KL":         {"kieu": "CHU", "buoc": ["docsau-tool"]},
+        "Khóa":            {"kieu": "CHU", "buoc": ["docsau-tool"]},
+        "Khu":             {"kieu": "CHU", "buoc": ["docsau-tool"]},
+        "KL BOQ":          {"kieu": "SO",  "buoc": ["docsau-tool"]},
+        "KL theo BV":      {"kieu": "SO",  "buoc": ["docsau", "user"]},
+        "Lệch":            {"kieu": "SO",  "buoc": ["build"]},
+        "Kích thước BV":   {"kieu": "CHU", "buoc": ["docsau", "user"]},
+        "Tờ đếm KL":       {"kieu": "LINK", "buoc": ["docsau"]},
+        "Tờ chi tiết":     {"kieu": "LINK", "buoc": ["docsau"]},
+        "Issue":           {"kieu": "CHU", "buoc": ["tincay-tool", "tincay"]},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["tincay-tool", "tincay"], "ds": ["KHỚP", "LỆCH", "CHƯA ĐỌC"]},
+        "Độ tin cậy":      {"kieu": "DS", "buoc": ["tincay-tool", "tincay"], "ds": ["CAO", "TB", "THAP"]}
+      }
+    },
+    "DAY_TUONG": {
+      "loai": "KHOA", "khoa": "Khóa DT",
+      "cot": {
+        "Khóa DT":         {"kieu": "CHU", "buoc": ["docsau"]},
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau"]},
+        "Vị trí":          {"kieu": "CHU", "buoc": ["docsau"]},
+        "Loại tường":      {"kieu": "CHU", "buoc": ["docsau"]},
+        "Dày hoàn thiện (mm)": {"kieu": "CHU", "buoc": ["docsau"]},
+        "Tờ mặt bằng":     {"kieu": "LINK", "buoc": ["docsau"]},
+        "Ghi chú":         {"kieu": "CHU", "buoc": ["docsau"]}
+      }
+    },
+    "SPEC": {
+      "loai": "NOI",
+      "cot": {
+        "Mục":             {"kieu": "CHU", "buoc": ["spec"], "bat_buoc": "*"},
+        "Tiêu đề":         {"kieu": "CHU", "buoc": ["spec"]},
+        "Nội dung":        {"kieu": "CHU", "buoc": ["spec"], "bat_buoc": "*"},
+        "Nhãn":            {"kieu": "CHU", "buoc": ["spec"]},
+        "Mã liên quan":    {"kieu": "CHU", "buoc": ["spec"]},
+        "File · Trang":    {"kieu": "LINK", "buoc": ["spec"], "bat_buoc": "*"},
+        "Bước":            {"kieu": "CHU", "buoc": ["*"]}
+      }
+    },
+    "PAGES": {
+      "loai": "KHOA", "khoa": "Khóa trang",
+      "cot": {
+        "Khóa trang":      {"kieu": "CHU", "buoc": ["docsau"]},
+        "File ID":         {"kieu": "CHU", "buoc": ["docsau"]},
+        "Trang":           {"kieu": "SO",  "buoc": ["docsau"]},
+        "Số BV":           {"kieu": "CHU", "buoc": ["docsau"]},
+        "Tên BV":          {"kieu": "CHU", "buoc": ["docsau"]},
+        "Rev":             {"kieu": "CHU", "buoc": ["docsau"]},
+        "Loại tờ":         {"kieu": "CHU", "buoc": ["docsau"]},
+        "Mã xuất hiện":    {"kieu": "CHU", "buoc": ["docsau"]},
+        "Đã đọc bằng":     {"kieu": "DS", "buoc": ["docsau"], "ds": ["HÌNH", "TEXT", "KHÔNG LIÊN QUAN"]},
+        "Lớp text":        {"kieu": "DS", "buoc": ["docsau"], "ds": ["CÓ", "ÍT", "KHÔNG"]}
+      }
+    },
+    "ISSUES": {
+      "loai": "KHOA", "khoa": "ID",
+      "cot": {
+        "ID":              {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool"]},
+        "Loại":            {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool"]},
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool"]},
+        "Nội dung":        {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool"]},
+        "Nguồn":           {"kieu": "LINK", "buoc": ["spec", "docsau", "tincay", "tincay-tool"]},
+        "Mức":             {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool"], "ds": ["CAO", "TB", "THAP"]},
+        "Hành động":       {"kieu": "CHU", "buoc": ["tincay", "user"]},
+        "RFI":             {"kieu": "CHU", "buoc": ["tincay", "user"]},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["tincay", "tincay-tool", "user"], "ds": ["MỞ", "ĐÃ GỬI RFI", "ĐÃ CHỐT", "ĐÓNG"]}
+      }
+    },
+    "RFI_LOG": {
+      "loai": "KHOA", "khoa": "RFI",
+      "cot": {
+        "RFI":             {"kieu": "CHU", "buoc": ["tincay"]},
+        "Câu hỏi":         {"kieu": "CHU", "buoc": ["tincay"]},
+        "Issue":           {"kieu": "CHU", "buoc": ["tincay"]},
+        "Ngày gửi":        {"kieu": "CHU", "buoc": ["user"]},
+        "Trả lời":         {"kieu": "CHU", "buoc": ["user"]},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["tincay", "user"], "ds": ["Nháp", "Đã gửi", "Đã trả lời"]}
+      }
+    },
+    "ASK_USER": {
+      "loai": "KHOA", "khoa": "ID",
+      "cot": {
+        "ID":              {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay"]},
+        "Câu hỏi":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay"]},
+        "Vì sao cần":      {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay"]},
+        "Trả lời":         {"kieu": "CHU", "buoc": ["user"]}
       }
     },
     "TCQ_LOG": {

@@ -21,8 +21,18 @@ Bạn chỉ ghi **file JSON** (và file `.md` khi bước của bạn nói rõ).
 | AREA | KHÓA | `Tiền tố` = `51` | tiền tố mã → tập phòng; tool dựng từ KHU, user sửa ở sheet AREA, LLM không ghi |
 | VL_XUATHIEN | KHÓA | `Khóa` = `<mã>\|<FID>\|<trang>` | mã xuất hiện ở đâu; tool dựng lại mỗi lần build, chỉ để xem, không nhận sửa tay |
 | VIEC_MO | NỐI | — | việc còn mở, câu cần hỏi |
+| QUAN_SAT | NỐI | — | đọc sâu: 1 dòng = 1 trường của 1 `Cụm đọc`, có `Nguồn`, `Tờ · Chi tiết` |
+| BOQ_MAP | KHÓA | `Khóa KL` = `<Khóa>\|<Khu>` | đọc sâu: KL BOQ và KL theo BV từng khu; khóa do tool `docsau`, không thêm mới |
+| DAY_TUONG | KHÓA | `Khóa DT` = `<Cụm đọc>\|<Vị trí>` | đọc sâu: dày tường từng vị trí cửa |
+| SPEC | NỐI | — | mục spec ảnh hưởng giá, cấu tạo |
+| PAGES | KHÓA | `Khóa trang` = `<FID>\|<trang>` | trang đã mở, đọc bằng gì; `Số BV` ở đây thắng khung tên máy đoán khi `neo` kiểm |
+| ISSUES | KHÓA | `ID` (`S01`, `V2-01`, `D01`; tool `DT01`) | chỗ lệch cần xử lý, gắn `Cụm đọc` |
+| RFI_LOG | KHÓA | `RFI` = `RFI-01` | câu hỏi nháp gửi CĐT, gom từ ISSUES |
+| ASK_USER | KHÓA | `ID` | quyết định nội bộ cần user; `Trả lời` user điền ở sheet |
 
 Riêng `Mã cấp 3`, `Nguồn phân loại`, `Cờ phân loại` của SCOPE chỉ tool `phanloai` ghi. LLM trả lời qua `_data\_phanloai_llm.json` (`buoc/2b-phanloai.md`); user sửa `Mã cấp 3` bằng droplist ở sheet BOQ hoặc SCOPE. `Code ID`, `Link vật liệu` do `build` tính. `Bên thực hiện` ở `SCOPE.ben.json` hoặc user sửa ở sheet BOQ/SCOPE; không bước LLM nào ghi cột này.
+
+Đọc sâu theo `Cụm đọc` = `Khóa` dòng đầu của cụm (`_data\_docsau.json`, `_docsau.txt` do tool `docsau`). Các cột `Kích thước BoQ`, `Kích thước BV`, `Bản vẽ đối chứng`, `Spec · ML`, `Thông số riêng`, `Mã hoàn thiện`, `Giả định tính giá` của SCOPE chỉ cần ghi ở dòng đại diện, dòng cùng cụm tự nhận khi ghép, trừ ô đã có giá trị riêng. Tool khác: `_gemini_so\<cụm>.json` (`gemini --cum`), `_neo.json` (`neo`), `_tincay.json` (`tincay`). Không sửa tay.
 
 DMVT không qua `merge`: `_dmvt.json` (cấu hình dự án), `_dmvt_boc.json` và `_dmvt_anh\` (tool, ghi đè mỗi lần), `_dmvt_llm.json` (bước 8, theo `Khóa`), `_dmvt_snapshot.json`, `_dmvt_hang.json` (tool; không xóa snapshot). Xem `buoc/8-dmvt.md`.
 

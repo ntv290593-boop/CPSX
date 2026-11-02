@@ -1648,7 +1648,8 @@ def gd3b_sofitel_danh_sach_tam_va_goi(tmp):
     snap.pop("file_index", None)
     ghi(os.path.join(goc, "10_TENDER", "_data", "_snapshot.json"), snap)
     out = td_ok("build", goc)
-    assert "0 LỖI, 0 XEM" in out, out[-600:]
+    assert "0 LỖI, 1 XEM" in out, out[-600:]  # 1 XEM duy nhất: nhắc chưa đọc sâu (GĐ7)
+    assert "XEM  Chưa đọc sâu" in td("check", goc)[1]
     moi = doc_json(goc, "_snapshot.json")["reg"]["SCOPE"]
     ds = set(doc_json(goc, "_ben.json")["ds"])
     la = {b for r in moi.values() for b in str(r.get("Bên thực hiện") or "").split("; ") if b and b not in ds}
@@ -1931,7 +1932,8 @@ def gd4_sofitel_so_xuat_hien_va_link_spec(tmp):
     snap.pop("file_index", None)
     ghi(os.path.join(goc, "10_TENDER", "_data", "_snapshot.json"), snap)
     out = td_ok("build", goc)
-    assert "0 LỖI, 0 XEM" in out, out[-800:]
+    assert "0 LỖI, 1 XEM" in out, out[-800:]  # 1 XEM duy nhất: nhắc chưa đọc sâu (GĐ7)
+    assert "XEM  Chưa đọc sâu" in td("check", goc)[1]
     rows = doc_json(goc, "VL_XUATHIEN.xuathien-tool.json")["rows"]
     assert all(r.get("File") and r["File"][1] for r in rows), "có dòng không nguồn"
     v = {r["Khóa"]: r for r in rows}
@@ -2571,6 +2573,257 @@ def gd6_sofitel_khong_cau_hinh_van_ra_2_file(tmp):
 
 
 # ---------------------------------------------------------------- chạy
+# ---------------------------------------------------------------- GĐ7: đọc sâu (chuyển từ 01-scan)
+def khoa_cua(data, mo_ta):
+    with open(os.path.join(data, "SCOPE.boq-tool.json"), encoding="utf-8") as fh:
+        return [r["Khóa"] for r in json.load(fh)["rows"] if r.get("Mô tả BOQ") == mo_ta]
+
+
+def agy_gia(tmp, ten, dong):
+    """agy giả: in đúng 1 dòng rồi thoát; dòng rỗng = thoát lỗi không in gì."""
+    f = os.path.join(tmp, ten + ".bat")
+    with open(f, "w", encoding="ascii") as fh:
+        fh.write(f"@echo {dong}\n" if dong else "@exit /b 1\n")
+    return f
+
+
+def png_gia(tmp, ten):
+    f = os.path.join(tmp, ten + ".png")
+    with open(f, "wb") as fh:
+        fh.write(b"x")
+    return f
+
+
+def dong_qs(cum, truong, gia_tri, tt="CÓ", nguon="HÌNH", to=True):
+    r = {"Cụm đọc": cum, "Trường": truong, "Giá trị": gia_tri, "Trạng thái": tt, "Nguồn": nguon}
+    if to:
+        r["Tờ · Chi tiết"] = ["p1", "F0001", 1]
+    return r
+
+
+def du_an_doc_sau(tmp):
+    goc, cd, data = dung_boq(tmp)
+    ghi(os.path.join(data, "FILE_INDEX.kiemke-tool.json"), {"rows": [{"ID": "F0001", "Đường dẫn": "bv.pdf", "Vai trò": "Chính"}]})
+    return goc, data
+
+
+@kiem(7, "mau")
+def gd7_ham_tach_so_giong_pd(tmp):
+    import importlib.util
+    sys.path.insert(0, os.path.join(ROOT, "SKILL", "_core"))
+    spec = importlib.util.spec_from_file_location("pd_cu", os.path.join(ROOT, "SKILL", "01-scan", "tool", "pd.py"))
+    pd = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pd)
+    import neo
+    import gemini_doc
+    mau = ["900×550×440", "1,200 x 600", "1.200x600mm", "W900 D550", "450+450=900", "1540 (R) × 2375 (C)", "900×?×440", "±130x200", "12/10/2026 900",
+           "ID-SK-52-101 1200", "010 900", "Rev 3 2000", "WD-01 và PT1, GL 2", "WD1a 51-400 MK630 18mm F024 p11 900x650mmH", "", None, "+84 28 3824 1525 1200x300"]
+    for x in mau:
+        assert neo.neo_tach_so(x) == pd.neo_tach_so(x), x
+        assert neo.neo_kt_gt(x) == pd.neo_kt_gt(x), x
+        assert neo.neo_mavl(x, {"WD", "PT", "GL"}) == pd.neo_mavl(x, {"WD", "PT", "GL"}), x
+        assert neo.neo_ma(x) == pd.neo_ma(x), x
+    assert (gemini_doc.GEM_SO, gemini_doc.GEM_QS, gemini_doc.GEM_TRUONG, gemini_doc.GEM_MODEL) == (pd.GEM_SO, pd.GEM_QS, pd.GEM_TRUONG, pd.GEM_MODEL)
+    assert gemini_doc.gem_doc('x ["900", "?"] y') == pd.gem_doc('x ["900", "?"] y') and gemini_doc.gem_doc("LỖI agy") is None
+
+
+@kiem(7, "mau")
+def gd7_so_giong_pd(tmp):
+    import pymupdf
+    f = os.path.join(tmp, "a.pdf")
+    d = pymupdf.open()
+    t = d.new_page()
+    t.insert_text((50, 50), "900 x 450 1,200 WD-01 2375")
+    d.save(f)
+    d.close()
+    a = subprocess.run([sys.executable, "-I", os.path.join(ROOT, "SKILL", "01-scan", "tool", "pd.py"), "so", f, "1"], capture_output=True).stdout
+    b = subprocess.run([sys.executable, "-I", TD, "so", f, "1"], capture_output=True).stdout
+    assert a.strip() and a.split() == b.split(), (a, b)
+
+
+@kiem(7, "mau")
+def gd7_gom_cum_dung_pham_vi(tmp):
+    goc, data = du_an_doc_sau(tmp)
+    ke = khoa_cua(data, "Cai ke")
+    assert len(ke) == 2
+    tu, cua = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai cua")[0]
+    ghi(os.path.join(data, "SCOPE.doichieu.json"), {"rows": [{"Khóa": cua, "Trạng thái": "Omit"}]})
+    td_ok("docsau", goc)
+    cum = doc_json(goc, "_docsau.json")["cum"]
+    assert cum[ke[0]]["khoa"] == ke, "2 dòng giống hệt phải 1 cụm, đại diện là dòng đầu"
+    assert tu in cum and cua not in cum, "dòng Omit không đọc sâu"
+    assert not any("Prelims" in k for k in cum), "sheet Prelims không đọc sâu"
+    assert not khoa_cua(data, "Chu thich khong don vi")[0] in cum, "dòng không đơn vị không đọc sâu"
+    # khác tờ là khác món: tách cụm
+    ghi(os.path.join(data, "SCOPE.banve.json"), {"rows": [{"Khóa": ke[0], "Bản vẽ hiệu lực": [["A-101", "F0001", 1]]}, {"Khóa": ke[1], "Bản vẽ hiệu lực": [["A-102", "F0001", 2]]}]})
+    td_ok("docsau", goc)
+    cum = doc_json(goc, "_docsau.json")["cum"]
+    assert ke[0] in cum and ke[1] in cum
+    # lọc chỉ đổi phần giao, không đổi cụm
+    n = len(cum)
+    td_ok("docsau", goc, "--sheet", "không có")
+    d = doc_json(goc, "_docsau.json")
+    assert d["nhom"] == [] and len(d["cum"]) == n
+
+
+@kiem(7, "mau")
+def gd7_check_du_an_chua_doc_sau_khong_loi(tmp):
+    import openpyxl
+    goc, cd, data = dung_boq(tmp)
+    ghi(os.path.join(data, "SCOPE.doichieu.json"), {"rows": [{"_loc": {"Khóa": "."}, "Trạng thái": "Base"}]})
+    rc, out = td("check", goc)
+    assert "Chưa đọc sâu" in out, out[-500:]
+    assert not re.search(r"LỖI .*(QUAN_SAT|Độ tin cậy|Kiểm chéo)", out), out[-800:]
+    td_ok("build", goc)
+    wb = openpyxl.load_workbook(file_track(goc))
+    assert not {"QUAN_SAT", "BOQ_MAP", "ISSUES", "RFI_LOG", "ASK_USER", "SPEC", "PAGES", "DAY_TUONG"} & set(wb.sheetnames), wb.sheetnames
+
+
+@kiem(7, "mau")
+def gd7_check_doi_du_quan_sat(tmp):
+    goc, data = du_an_doc_sau(tmp)
+    td_ok("docsau", goc)
+    k = khoa_cua(data, "Cai tu 12")[0]
+    rc, out = td("check", goc, "--den", "docsau")
+    assert rc == 1 and f"{k}: chưa có dòng QUAN_SAT" in out, out[-600:]
+    rc, out = td("check", goc, "--den", "doichieu")
+    assert "chưa có dòng QUAN_SAT" not in out, "bước trước docsau không đòi đọc sâu"
+    ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": [dong_qs(k, "Kích thước BV", "900×450×2000", to=False), dong_qs(k, "Dày", "450+450=1000")]})
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "không ghi tờ/chi tiết" in out and "chuỗi cộng sai" in out and f"{k}: thiếu dòng QUAN_SAT 'Kiểm chéo Gemini'" in out, out[-800:]
+    # sai cột, sai giá trị danh sách vẫn bị bắt như mọi sheet
+    ghi(os.path.join(data, "QUAN_SAT.docsau-2.json"), {"rows": [{"Cụm đọc": k, "Trường": "X", "Giá trị": "y", "Trạng thái": "có", "Nguồn": "HÌNH", "Lạ": 1}]})
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "cột lạ 'Lạ'" in out and "'Trạng thái' = 'có'" in out, out[-800:]
+    # BOQ_MAP không được thêm khóa mới
+    ghi(os.path.join(data, "BOQ_MAP.docsau-1.json"), {"rows": [{"Khóa KL": "khong|co", "KL theo BV": 1}]})
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "khóa 'khong|co' không có trong nháp tool" in out, out[-800:]
+
+
+@kiem(7, "mau")
+def gd7_gemini_doc_lap_va_tin_cay(tmp):
+    goc, data = du_an_doc_sau(tmp)
+    td_ok("docsau", goc)
+    k = khoa_cua(data, "Cai tu 12")[0]
+    ke = khoa_cua(data, "Cai ke")[0]
+    os.environ["TD_AGY"] = agy_gia(tmp, "agy1", '["900","450","2000","?"]')
+    try:
+        rc, out = td("gemini", png_gia(tmp, "c0"), "--cum", k, "--goc", goc)
+        assert rc != 0 and "Ghi số của Claude" in out, "phải buộc Claude ghi trước để Gemini độc lập: " + out[-300:]
+        hang = [dong_qs(c, "Kích thước BV", "900×450×2000") for c in (k, ke)] + [dong_qs(c, "Kiểm chéo Gemini", "khớp: Có cánh; lệch: không; crop: p1", nguon="GEMINI", to=False) for c in (k, ke)]
+        ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": hang})
+        ghi(os.path.join(data, "SCOPE.docsau-1.json"), {"rows": [{"Khóa": c, "Bản vẽ đối chứng": [["A-101", "F0001", 1]], "Kích thước BV": "900×450×2000"} for c in (k, ke)]})
+        out = td_ok("gemini", png_gia(tmp, "c1"), "--cum", k, "--goc", goc)
+        assert "khớp: 450, 900, 2000" in out, out[-300:]
+        os.environ["TD_AGY"] = agy_gia(tmp, "agy2", '["900","450"]')
+        out = td_ok("gemini", png_gia(tmp, "c2"), "--cum", ke, "--goc", goc)
+        assert "chỉ Claude: 2000" in out, out[-300:]
+        bm = doc_json(goc, "BOQ_MAP.docsau-tool.json")["rows"]
+        ghi(os.path.join(data, "BOQ_MAP.docsau-1.json"), {"rows": [{"Khóa KL": r["Khóa KL"], "KL theo BV": r["KL BOQ"]} for r in bm if r["Khóa"] == k]})
+        td_ok("tincay", goc)
+        ct = doc_json(goc, "_tincay.json")
+        assert ct["muc"][k] == "CAO", ct["ly_do"][k]
+        assert ct["muc"][ke] == "THAP" and any("Gemini không đọc ra số: 2000" in x for x in ct["ly_do"][ke]), ct["ly_do"][ke]
+        chua = khoa_cua(data, "Cai ghe go")[0]
+        assert ct["muc"][chua] == "THAP" and any("chưa có quan sát" in x for x in ct["ly_do"][chua])
+        iss = doc_json(goc, "ISSUES.tincay-tool.json")["rows"]
+        assert any(r["Cụm đọc"] == ke and "2000" in r["Nội dung"] for r in iss), iss
+        # chạy lại không nhân đôi issue, dòng Gemini số
+        td_ok("tincay", goc)
+        iss2, gs = doc_json(goc, "ISSUES.tincay-tool.json")["rows"], doc_json(goc, "QUAN_SAT.tincay-tool.json")["rows"]
+        assert len(iss2) == len(iss) and len({r["Cụm đọc"] for r in gs}) == len(gs), (len(iss2), len(iss), gs)
+        assert doc_json(goc, "_tincay.json")["muc"] == ct["muc"], "chạy lại phải cùng kết quả"
+        # agy lỗi: không được CAO, không phải THAP vì chưa có bằng chứng lệch
+        os.environ["TD_AGY"] = agy_gia(tmp, "agy3", "")
+        os.remove(os.path.join(data, "_gemini_so", re.sub(r'[\\/:*?"<>|]', "_", k) + ".json"))
+        td_ok("gemini", png_gia(tmp, "c3"), "--cum", k, "--goc", goc)
+        td_ok("tincay", goc)
+        ct = doc_json(goc, "_tincay.json")
+        assert ct["muc"][k] == "TB" and any("LỖI" in x for x in ct["ly_do"][k]), ct["ly_do"][k]
+    finally:
+        os.environ.pop("TD_AGY", None)
+
+
+@kiem(7, "mau")
+def gd7_neo_bat_so_sai_tren_trang_co_chu(tmp):
+    goc, data = du_an_doc_sau(tmp)
+    td_ok("docsau", goc)
+    k = khoa_cua(data, "Cai tu 12")[0]
+    ke = khoa_cua(data, "Cai ke")[0]
+    chu = "A-101 PLAN\n" + "\n".join(str(x) for x in (900, 450, 2000, 300, 600, 750, 1200, 1500, 1800, 2100, 2400)) + "\nWD-01 PT-02\n"
+    ghi(os.path.join(data, "_text", "F0001.json"), {"ck": "x", "pages": [{"text": chu, "so": "A-101", "ten": "PLAN", "lop": "CÓ"}, {"text": "khong co gi o day " * 3, "so": "A-102", "ten": "", "lop": "CÓ"}]})
+    ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": [dong_qs(k, "Kích thước BV", "900×450×2000"), dong_qs(ke, "Kích thước BV", "900×777×2000"),
+                                                               dong_qs(k, "Mã hoàn thiện trên BV", "WD-01"), dong_qs(ke, "Mã hoàn thiện trên BV", "PT-02"), dong_qs(ke, "Mã hoàn thiện trên BV", "WD-09")]})
+    ghi(os.path.join(data, "SCOPE.docsau-1.json"), {"rows": [{"Khóa": k, "Bản vẽ đối chứng": [["A-101", "F0001", 1]]}, {"Khóa": ke, "Bản vẽ đối chứng": [["A-101", "F0001", 2]]}]})
+    out = td_ok("neo", goc)
+    n = doc_json(goc, "_neo.json")
+    ly = " | ".join(l["ly_do"] for l in n["lech"])
+    assert "777" in ly, out[-900:]
+    assert "WD-09" in ly, out[-900:]
+    assert "không có số tờ A-101" in ly, "link trỏ tờ khác phải LỆCH: " + out[-900:]
+    assert n["theo_kieu"]["kt"]["CÓ NEO"] == 1, n["theo_kieu"]
+    rc, x = td("check", goc, "--den", "docsau")
+    assert "NEO LỆCH" in x, x[-500:]
+    # link đổi: phải nhắc chạy lại, không in kết quả cũ
+    ghi(os.path.join(data, "SCOPE.docsau-1.json"), {"rows": [{"Khóa": k, "Bản vẽ đối chứng": [["A-101", "F0001", 2]]}]})
+    rc, x = td("check", goc, "--den", "docsau")
+    assert "chạy lại lệnh neo" in x and "NEO LỆCH" not in x, x[-500:]
+
+
+@kiem(7, "mau")
+def gd7_build_co_doc_sau(tmp):
+    import glob
+    import openpyxl
+    goc, data = du_an_doc_sau(tmp)
+    ghi(os.path.join(data, "SCOPE.doichieu.json"), {"rows": [{"_loc": {"Khóa": "."}, "Trạng thái": "Base"}]})
+    td_ok("docsau", goc)
+    ke = khoa_cua(data, "Cai ke")
+    ghi(os.path.join(data, "SCOPE.docsau-1.json"), {"rows": [{"Khóa": ke[0], "Kích thước BV": "900×450×2000", "Bản vẽ đối chứng": [["A-101", "F0001", 1]], "Phạm vi nhà máy": "TRONG SCOPE – mộc"}]})
+    ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": [dong_qs(ke[0], "Kích thước BV", "900×450×2000")]})
+    ghi(os.path.join(data, "BOQ_MAP.docsau-1.json"), {"rows": [{"Khóa KL": f"{ke[0]}|(cả dòng)", "KL theo BV": 3}, {"Khóa KL": f"{ke[1]}|(cả dòng)", "KL theo BV": 4}]})
+    ghi(os.path.join(data, "ASK_USER.tincay.json"), {"rows": [{"ID": "A01", "Câu hỏi": "Tính hay loại trừ?"}]})
+    ghi(os.path.join(data, "RFI_LOG.tincay.json"), {"rows": [{"RFI": "RFI-01", "Câu hỏi": "Kích thước?", "Trạng thái": "Nháp"}]})
+    td_ok("tincay", goc)
+    assert doc_json(goc, "_tincay.json")["muc"][ke[0]] == "TB"
+    td_ok("build", goc)
+    f = file_track(goc)
+    wb = openpyxl.load_workbook(f)
+    an = {x for x in wb.sheetnames if wb[x].sheet_state == "hidden"}
+    assert {"QUAN_SAT", "BOQ_MAP"} <= an, wb.sheetnames
+    assert {"ISSUES", "RFI_LOG", "ASK_USER"} <= set(wb.sheetnames) - an, wb.sheetnames
+    ws = wb["BOQ_TONGHOP"]
+    c = {x.value: x.column for x in ws[1]}
+    dong = {ws.cell(r, 1).value: r for r in range(2, ws.max_row + 1)}
+    for k in ke:  # dòng thành viên nhận kết quả của đại diện
+        assert ws.cell(dong[k], c["Kích thước BV"]).value == "900×450×2000", k
+        assert ws.cell(dong[k], c["Độ tin cậy"]).value == "TB", k
+    assert ws.cell(dong[ke[0]], c["Phạm vi nhà máy"]).value == "TRONG SCOPE – mộc"
+    assert ws.cell(dong[ke[0]], c["KL theo BV"]).value == 3 and ws.cell(dong[ke[0]], c["Lệch KL"]).value == 2, "BOQ 1, BV 3"
+    assert ws.cell(dong[ke[1]], c["Lệch KL"]).value == 0
+    d = "\n".join(str(x.value) for r in wb["DASHBOARD"].iter_rows() for x in r if x.value is not None)
+    assert "ĐỌC SÂU" in d and "Tính hay loại trừ?" in d, d[-500:]
+    # sửa tay giữ qua build, không bị dòng đại diện đè
+    sc = wb["SCOPE"]
+    h = {x.value: x.column for x in sc[1]}
+    r_ = next(r for r in range(2, sc.max_row + 1) if sc.cell(r, 1).value == ke[1])
+    sc.cell(r_, h["Kích thước BV"], "800×400×1000")
+    wa = wb["ASK_USER"]
+    wa.cell(2, [x.value for x in wa[1]].index("Trả lời") + 1, "Tính")
+    wb.save(f)
+    td_ok("build", goc)
+    wb = openpyxl.load_workbook(f)
+    ws = wb["BOQ_TONGHOP"]
+    assert ws.cell(dong[ke[1]], c["Kích thước BV"]).value == "800×400×1000" and ws.cell(dong[ke[0]], c["Kích thước BV"]).value == "900×450×2000"
+    assert wb["ASK_USER"].cell(2, [x.value for x in wb["ASK_USER"][1]].index("Trả lời") + 1).value == "Tính"
+    # bản gửi CĐT không lộ đọc sâu
+    wc = openpyxl.load_workbook(glob.glob(os.path.join(goc, "10_TENDER", "04_out", "T_BOQ_*_CDT.xlsx"))[0])
+    nd = {x.value for w in wc.worksheets for r in w.iter_rows() for x in r if isinstance(x.value, str)}
+    lo = nd & {"Độ tin cậy", "Kích thước BV", "Giả định tính giá", "Tính hay loại trừ?", "900×450×2000"}
+    assert not lo, lo
+    assert not {"QUAN_SAT", "ISSUES", "ASK_USER", "RFI_LOG"} & set(wc.sheetnames)
+
+
 def main():
     args = set(sys.argv[1:])
     if args - {"--mau", "--sofitel"}:

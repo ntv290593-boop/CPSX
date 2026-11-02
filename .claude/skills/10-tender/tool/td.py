@@ -45,6 +45,16 @@ LENH = """Lệnh:
   anh <pdf> <trang> <png> [--dpi 150] [--clip ...]  xuất ảnh trang/vùng để xem bằng Read
   mail <file.msg>               in tiêu đề, người gửi/nhận, đính kèm, nội dung mail Outlook
   xem <xlsx> [sheet] [A1:Z60]   in giá trị ô; không nêu sheet thì liệt kê sheet
+  so <pdf> <trang> [--clip ...] in các số trong lớp chữ kèm toạ độ (đọc kích thước)
+  docsau <GOC> [--nhom 8] [--phong SK-01 | --sheet S | --thaydoi | --thieu]
+                                đọc sâu: gom dòng BOQ thành cụm, chia nhóm -> _docsau.txt, nháp Phạm vi nhà máy, BOQ_MAP; lọc = chỉ giao lại phần đó
+  gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo"] [--hoi "câu hỏi"]
+                                Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng
+  gemini <a.png> [b.png …] --cum <Cụm đọc> --goc <GOC>
+                                lưu số Gemini theo cụm -> _gemini_so\\<cụm>.json; số Claude lấy từ QUAN_SAT (phải ghi trước)
+  neo <GOC>                     số tờ trong nhãn link, mã spec, mã VL + kích thước BV có trên trang được link không -> _neo.json (chỉ XEM)
+  tincay <GOC>                  Độ tin cậy, trạng thái KL BOQ↔BV, issue nháp, dòng Kiểm chéo Gemini số -> *.tincay-tool.json, _tincay.json
+  do <GOC>                      tỉ lệ ô do tool ghi / tổng ô
   cot [--buoc <buoc>]           cột bước được ghi
   loc <GOC> <SHEET> [cột=gt | cột!=gt | cột~regex | cột=] ... [--cot a,b] [--max n]
   check <GOC> [--den <buoc>]
@@ -269,7 +279,21 @@ def merge(p, only_tool=False):
                             v = gop_nhom(d["cot"].get(c, {}).get("kieu"), c, row[c], v)  # nhóm khác cùng bước: gộp
                         row[c] = v
                     src[sheet][kk][c] = buoc
+    lan_cum(res["SCOPE"])
     return res, src
+
+
+COT_CUM = ("Kích thước BoQ", "Kích thước BV", "Bản vẽ đối chứng", "Spec · ML", "Thông số riêng", "Mã hoàn thiện", "Giả định tính giá")
+
+
+def lan_cum(scope):
+    """Bước đọc sâu ghi 1 lần ở dòng đại diện của cụm; dòng cùng cụm nhận theo, trừ ô đã có giá trị riêng (user sửa)."""
+    for k, r in scope.items():
+        rep = scope.get(s(r.get("Cụm đọc")))
+        if rep is not None and rep is not r:
+            for c in COT_CUM:
+                if c in rep and c not in r:
+                    r[c] = rep[c]
 
 
 COT_MA = ("Mã VL", "Mã spec/FF&E")
@@ -1658,7 +1682,7 @@ def run_check(p, den=None):
                 k = s(r.get(d["khoa"]))
                 if not k:
                     errs.append(f"{tag}: thiếu khóa '{d['khoa']}'")
-                elif sheet in ("SCOPE", "TCQ_LOG", "DWG") and k not in tool_keys.get(sheet, set()):
+                elif sheet in ("SCOPE", "TCQ_LOG", "DWG", "BOQ_MAP") and k not in tool_keys.get(sheet, set()):
                     errs.append(f"{tag}: khóa '{k}' không có trong nháp tool (không được thêm dòng mới vào {sheet})")
                 elif sheet == "FILE_INDEX" and k not in tool_keys.get(sheet, set()):
                     if not re.match(r"L\d+$", k) or not r.get("Đường dẫn") or not r.get("Vai trò"):
@@ -1742,6 +1766,9 @@ def run_check(p, den=None):
             miss = [f"{s(r.get('Bước'))} #{i}" for i, r in enumerate(res[sh], 1) if not s(_txt(r.get(c)))]
             if miss:
                 errs.append(f"{sh}: {len(miss)} dòng thiếu '{c}' vd: {', '.join(miss[:6])}")
+    e2, x2 = _docsau().kiem(p, res, STEPS[:lim])
+    errs.extend(e2)
+    xem.extend(x2)
     return errs, xem, res
 
 
@@ -1912,7 +1939,8 @@ def pull_user(p):
     return n
 
 
-COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link vật liệu", "Link vật tư")  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
+COT_KHONG_TINH_NGAY = ("Ngày cập nhật", "Mã cấp 3", "Code ID", "Nguồn phân loại", "Cờ phân loại", "Bên thực hiện", "Mã cấu tạo", "Cờ bên", "Link vật liệu", "Link vật tư",  # phân loại, ai làm: không phải thay đổi nội dung dòng BOQ
+                       "Cụm đọc", "Phạm vi nhà máy", "Kích thước BoQ", "Kích thước BV", "KL theo BV", "Lệch KL", "Bản vẽ đối chứng", "Spec · ML", "Thông số riêng", "Mã hoàn thiện", "Độ tin cậy", "Issue", "Giả định tính giá")  # kết quả đọc sâu, không phải đổi nội dung BOQ/TCQ
 RX_NHIEU_BEN = re.compile(r"plywood|\bMDF\b|framework|metal frame|consisting of", re.I)
 TT_CON_LAM = ("Base", "VE", "Chờ")  # Loại trừ, Omit, Không áp dụng không giao cho bên nào
 
@@ -2039,6 +2067,17 @@ def derive(p, res, snap):
             r["Cờ bên"] = "; ".join(co)
         else:
             r.pop("Cờ bên", None)
+    kl_bv = defaultdict(list)
+    for r in res["BOQ_MAP"].values():
+        kl_bv[s(r.get("Khóa"))].append(r)
+        a, b = num(r.get("KL BOQ")), num(r.get("KL theo BV"))
+        if a is not None and b is not None:
+            r["Lệch"] = round(b - a, 3)
+    for k, ds in kl_bv.items():
+        if k in scope and all(num(x.get("KL theo BV")) is not None for x in ds):  # còn khu chưa đếm thì không ra tổng, tránh hiện lệch giả
+            scope[k]["KL theo BV"] = round(sum(num(x["KL theo BV"]) for x in ds), 3)
+            if num(scope[k].get("KL BOQ")) is not None:
+                scope[k]["Lệch KL"] = round(scope[k]["KL theo BV"] - num(scope[k]["KL BOQ"]), 3)
     ch = tcq_chain(tcq)
     for k, r in tcq.items():
         r["Hiệu lực"] = "Hiệu lực" if ch[k] == [k] else ("Chuỗi bị vòng" if ch[k] is None else f"Bị thay → {'; '.join(ch[k])}")
@@ -2173,12 +2212,15 @@ def write_reg(wb, sheet, rows, p, fidx, snap_reg):
     return ws
 
 
-AN_DU_LIEU = ("SCOPE", "DWG", "KHU", "AREA", "VL_XUATHIEN")  # kho dữ liệu: ẩn, không dựng link; JSON vẫn giữ đủ link, các sheet hiện mở được file và trang
+AN_DU_LIEU = ("SCOPE", "DWG", "KHU", "AREA", "VL_XUATHIEN", "QUAN_SAT", "BOQ_MAP", "DAY_TUONG", "SPEC", "PAGES")  # kho dữ liệu: ẩn, không dựng link; JSON vẫn giữ đủ link, các sheet hiện mở được file và trang
+SO_DOC_SAU = ("QUAN_SAT", "BOQ_MAP", "DAY_TUONG", "SPEC", "PAGES", "ISSUES", "RFI_LOG", "ASK_USER")  # chỉ có sheet khi đã đọc sâu; dự án chưa đọc không thêm sheet trống
 AN_CHAY_CODE = ("_LINKS", "_CODE")
 AN_KHI_TRONG = ("CAU_TAO", "PHAN_VIEC")
 BO_COT_XLSX = {"VL_XUATHIEN": ("Khóa", "Dòng BOQ", "Chữ gốc")}  # chỉ bỏ ở sheet cho nhẹ file; JSON vẫn có
 MUC_SHEET_AN = {"SCOPE": "Kho dữ liệu dòng BOQ; sửa Trạng thái, Nội dung cuối ở đây", "DWG": "Sổ số bản vẽ, bản hiệu lực", "KHU": "Khu → mã phòng",
                 "AREA": "Tiền tố mã → tập phòng; sửa Mã phòng ở đây", "VL_XUATHIEN": "Mã vật liệu xuất hiện ở đâu",
+                "QUAN_SAT": "Đọc sâu: kích thước, cấu tạo từng cụm, có nguồn và Gemini kiểm chéo", "BOQ_MAP": "Đọc sâu: KL BOQ và KL theo bản vẽ từng khu",
+                "DAY_TUONG": "Đọc sâu: dày tường từng vị trí cửa", "SPEC": "Đọc sâu: mục spec ảnh hưởng giá, cấu tạo", "PAGES": "Đọc sâu: trang đã mở, đọc bằng gì",
                 "CAU_TAO": "Mẫu cấu tạo dòng nhiều bên; hiện khi đã có mẫu", "PHAN_VIEC": "Phần việc theo bên; hiện khi đã có mẫu cấu tạo",
                 "_LINKS": "Đích link cho add-in SRC_LINKS", "_CODE": "Danh sách droplist, nghĩa Code ID"}
 CAO_HANG, CAO_TIEU_DE = 15, 30  # hàng cố định, chữ dài cắt trong ô, xem đủ bằng cách click; không để Excel tự giãn theo nội dung
@@ -2357,7 +2399,9 @@ def column_index(letter):
 TONGHOP = [("Dòng BOQ gốc", 20), ("Item", 7), ("Vùng", 14), ("Nhóm", 14), ("Mô tả BOQ", 50), ("ĐV", 6), ("KL BOQ", 10),
            ("Mã phòng", 28), ("Trạng thái", 11), ("Mã cấp 3", 26), ("Code ID", 9), ("Bên thực hiện", 16), ("Mã cấu tạo", 10), ("Bản vẽ hiệu lực", 40),
            ("Rev/ngày/đợt", 18), ("Link vật liệu", 50), ("Link vật tư", 20), ("Mã TCQ", 16),
-           ("Nội dung cuối (VN)", 45), ("Việc còn mở", 35), ("Mô tả NT – Base", 40)]
+           ("Nội dung cuối (VN)", 45), ("Việc còn mở", 35), ("Mô tả NT – Base", 40),
+           ("Phạm vi nhà máy", 18), ("Kích thước BoQ", 16), ("Kích thước BV", 16), ("KL theo BV", 10), ("Lệch KL", 9), ("Bản vẽ đối chứng", 30),
+           ("Spec · ML", 30), ("Mã hoàn thiện", 16), ("Độ tin cậy", 9), ("Issue", 12), ("Giả định tính giá", 35)]
 COT_LINK_SO = {"Mã TCQ": "TCQ_LOG"}  # bấm ô nhảy tới dòng ở sổ
 
 
@@ -2515,16 +2559,37 @@ def dashboard(wb, res, errs, xem, p, n_user):
     line("Dòng FF&E không có link sản phẩm", sum(1 for x in scope.values() if x.get("_khong_sp")), "Mã không có trang ảnh ở tập mới nhất; lọc mã 5x ở BOQ_TONGHOP")
     line("Sửa tay user giữ lại", n_user)
     r += 1
+    cum = (jload(p.f("_docsau.json")) or {}).get("cum", {})
+    line("ĐỌC SÂU", bold=True)
+    if not cum:
+        line("Chưa đọc sâu", "", "Chưa chạy docsau: chưa có kích thước, cấu tạo, KL theo BV, Độ tin cậy")
+    else:
+        da_doc = {s(x.get("Cụm đọc")) for x in res["QUAN_SAT"] if x.get("Nguồn") in ("HÌNH", "TEXT")}
+        line("Cụm đã đọc / tổng", f"{len(set(cum) & da_doc)} / {len(cum)}", f"{sum(len(c['khoa']) for c in cum.values())} dòng BOQ")
+        ds_doc = [scope[k] for c in cum.values() for k in c["khoa"] if k in scope]
+        for k, v in Counter(s(x.get("Độ tin cậy")) or "(chưa chấm)" for x in ds_doc).most_common():
+            line("  Độ tin cậy", k, v)
+        for k, v in Counter(s(x.get("Trạng thái")) or "(chưa so)" for x in res["BOQ_MAP"].values()).most_common():
+            line("  KL BOQ ↔ bản vẽ", k, v)
+        for k, v in Counter(s(x.get("Trạng thái")) for x in res["QUAN_SAT"] if x.get("Trường") == "Kiểm chéo Gemini số").most_common():
+            line("  Gemini so số", {"CÓ": "khớp", "MÂU THUẪN": "lệch", "KHÔNG THẤY": "chưa so"}.get(k, k), v)
+        line("  Issue đang mở", sum(1 for x in res["ISSUES"].values() if s(x.get("Trạng thái")) in ("", "MỞ")), "", link="#'ISSUES'!A1" if res["ISSUES"] else None)
+        line("  Hỏi user chưa trả lời", sum(1 for x in res["ASK_USER"].values() if not s(x.get("Trả lời"))), "", link="#'ASK_USER'!A1" if res["ASK_USER"] else None)
+    r += 1
     line("SHEET ẨN", "Chuột phải tab → Unhide; mỗi lần build ẩn lại", bold=True)
     for k, v in MUC_SHEET_AN.items():
-        if k not in AN_KHI_TRONG or not res["CAU_TAO"]:
+        if (k not in AN_KHI_TRONG or res["CAU_TAO"]) and (k not in SO_DOC_SAU or res[k]):
             line("  " + k, "", v)
     r += 1
     line("CẦN XEM", bold=True)
     line("Loại", "Liên quan", "Nội dung", bold=True)
     keys = list(scope)
+    chua_doc = [x for x in errs if "chưa có dòng QUAN_SAT nào" in x]
+    if chua_doc:  # đọc sâu dở dang có thể hàng trăm cụm: 1 dòng là đủ, không đẩy các mục khác xuống
+        line("LỖI kiểm", f"{len(chua_doc)} cụm", "Chưa đọc sâu, chưa có QUAN_SAT; xem check --den docsau")
     for x in errs:
-        line("LỖI kiểm", "", x)
+        if x not in chua_doc:
+            line("LỖI kiểm", "", x)
     co = Counter(s(x.get("Cờ phân loại")) for x in scope.values() if s(x.get("Cờ phân loại")))
     if co:
         line("Code ID highlight", f"{sum(co.values())} dòng", "Chỗ máy không chắc, ô Mã cấp 3 tô màu; lọc theo màu ở BOQ_TONGHOP", link="#'BOQ_TONGHOP'!A1")
@@ -2551,6 +2616,12 @@ def dashboard(wb, res, errs, xem, p, n_user):
         line("XEM", "", x)
     for x in tk.get("xem", [])[:40]:
         line("XEM spec", "", x)
+    for k, x in scope.items():
+        if s(x.get("Độ tin cậy")) == "THAP" and s(x.get("Cụm đọc")) == k:  # 1 dòng mỗi cụm
+            line("Tin cậy THẤP", k, s(x.get("Giả định tính giá")) or s(x.get("Mô tả BOQ"))[:150], link=f"#'BOQ_TONGHOP'!A{keys.index(k) + 2}")
+    for k, x in res["ASK_USER"].items():
+        if not s(x.get("Trả lời")):
+            line("Hỏi user", k, s(x.get("Câu hỏi")))
     return ws
 
 
@@ -2626,6 +2697,9 @@ def cmd_build(goc, args):
             snap["ct"][sh] = add_boq_cols(wb[sh], info, res["SCOPE"], p, fidx, scope_letters, res=res)
     for sh in ("SCOPE", "TCQ_LOG", "MAT", "DWG", "KHU", "AREA", "VL_XUATHIEN", "CAU_TAO"):
         write_reg(wb, sh, list(res[sh].values()), p, fidx, snap["reg"])
+    for sh in SO_DOC_SAU:
+        if res[sh]:
+            write_reg(wb, sh, list(res[sh].values()) if isinstance(res[sh], dict) else res[sh], p, fidx, snap["reg"])
     vm = [dict(v, ID=f"V{i:03d}") for i, v in enumerate(res["VIEC_MO"], 1)]
     write_reg(wb, "VIEC_MO", vm, p, fidx, snap["reg"])
     sheet_phan_viec(wb, res, p)
@@ -2812,6 +2886,14 @@ def cmd_dmvt(goc, args):
     return dmvt.main(goc, args)
 
 
+def _docsau():
+    sys.modules.setdefault("td", sys.modules[__name__])  # như dmvt: docsau.py import lại td
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import docsau
+    return docsau
+
+
 # ---------------------------------------------------------------- main
 def cmd_doc_file(c, r):
     if c == "chu":
@@ -2838,6 +2920,10 @@ def main(a):
         sys.exit(LENH)
     if c in ("chu", "anh", "mail", "xem"):  # đọc 1 file, không cần GOC
         return cmd_doc_file(c, rest)
+    if c == "so":
+        return _docsau().so(rest[0], rest[1], opt(rest, "--clip"))
+    if c == "gemini":
+        return _docsau().cmd_gemini(rest)
     goc, rest = rest[0], rest[1:]
     fn = {"init": lambda: cmd_init(goc, rest), "kiemke": lambda: cmd_kiemke(goc), "boq": lambda: cmd_boq(goc),
           "phanloai": lambda: cmd_phanloai(goc, rest), "ben": lambda: cmd_ben(goc), "goi": lambda: cmd_goi(goc, rest),
@@ -2846,7 +2932,9 @@ def main(a):
           "loc": lambda: cmd_loc(goc, rest[0], rest[1:]), "check": lambda: cmd_check(goc, rest),
           "build": lambda: cmd_build(goc, rest), "trang": lambda: cmd_trang(goc), "tim": lambda: cmd_tim(goc, rest),
           "ungvien": lambda: cmd_ungvien(goc, rest), "thaydoi": lambda: cmd_thaydoi(goc),
-          "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc), "dmvt": lambda: cmd_dmvt(goc, rest)}.get(c)
+          "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc), "dmvt": lambda: cmd_dmvt(goc, rest),
+          "docsau": lambda: _docsau().cmd_docsau(goc, rest), "neo": lambda: _docsau().cmd_neo(goc),
+          "tincay": lambda: _docsau().cmd_tincay(goc), "do": lambda: _docsau().do(goc)}.get(c)
     if not fn:
         sys.exit(LENH)
     fn()

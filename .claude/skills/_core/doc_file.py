@@ -4,6 +4,7 @@ Gộp từ pd.py (GĐ6 plan Code ID/DMVT), kết quả giữ giống hệt bản
 Mỗi hàm trả chữ để người gọi in; không giữ file mở sau khi trả về.
 
   chu(pdf, trang, clip)            lớp chữ của 1 trang
+  so(pdf, trang, clip)             các số trong lớp chữ kèm toạ độ
   anh(pdf, trang, png, dpi, clip)  xuất ảnh trang hoặc vùng -> (rộng, cao)
   mail(msg)                        tiêu đề, người gửi/nhận, đính kèm, nội dung file .msg
   xem(xlsx, sheet, vung)           giá trị ô; không nêu sheet thì liệt kê sheet
@@ -26,6 +27,17 @@ def chu(pdf, trang, clip=None):
     with pymupdf.open(pdf) as d:
         p = d[int(trang) - 1]
         return p.get_text(clip=_vung(p, clip), sort=True)
+
+
+def so(pdf, trang, clip=None):
+    """Các số trong lớp chữ kèm toạ độ tỉ lệ (đọc kích thước, chỉ khi trang có lớp chữ)."""
+    import re
+    import pymupdf
+    with pymupdf.open(pdf) as d:
+        p = d[int(trang) - 1]
+        W, H = p.rect.width, p.rect.height
+        return "\n".join(f"{w[4]}\t x={w[0] / W:.3f} y={w[1] / H:.3f}" for w in p.get_text("words", clip=_vung(p, clip), sort=True)
+                         if re.fullmatch(r"[\d.,x×/+\-]+", w[4]) and re.search(r"\d", w[4]))
 
 
 def anh(pdf, trang, png, dpi=150, clip=None):

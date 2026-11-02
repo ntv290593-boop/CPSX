@@ -448,7 +448,7 @@ Không commit lẫn phần 01-scan đang dở (xem `DOCS\HANDOFF_TOOL-HOA-01SCAN
 - GĐ2 đạt mốc nhờ khóa nhớ đầu mục chọn sau khi xem đáp án (mục 2a); chưa có số đo độc lập.
 - Độ đúng Code ID trên BOQ khác chưa biết; kế hoạch dựa vào highlight, không dựa vào số 82–87%. Số dòng highlight có thể lớn (65–83% theo phép đo gần đúng ở mục 2), khi đó không còn là duyệt theo ngoại lệ.
 - Cột Area theo tiền tố đúng ở mức khu, không phân biệt được từng món; 29/37 là mức lạc quan (mục 4), nên ô nào cũng gắn cờ.
-- Lọc "5 xưởng" của costing chuyển sang lọc `Bên thực hiện` = Nhà máy, không dùng bảng Code ID → xưởng. Trước khi xóa 01-scan phải thử trên 1 dự án costing thật (quyết định 13).
+- Lọc "5 xưởng" của costing chuyển sang lọc `Bên thực hiện` = Nhà máy, không dùng bảng Code ID → xưởng. Trước khi xóa 01-scan phải thử trên 1 dự án costing thật (quyết định 13). 01/11: user yêu cầu 10-tender có đủ phần đọc sâu của 01-scan và chọn áp toàn gói (`SKILL\10-tender\SKILL.md` mục 1e), nên `BOQ_TRACK` nay có kích thước, cấu tạo, KL theo BV, Gemini kiểm chéo; vẫn cần thử dự án thật trước khi xóa 01-scan.
 - File gửi NTP chỉ đúng khi `Bên thực hiện` đúng. Dòng Base chưa có bên sẽ không vào file nào, nên tender phải xem số này trên DASHBOARD trước khi gửi. Cấu tạo chỉ có trên bản vẽ phải có người khai, máy không tự thấy.
 - Một file DMVT + xóa tay trước khi gửi có thể làm lộ đường dẫn nếu tender quên (quyết định 10, user đã chọn). Cùng file đó còn có `Ghi chú giá` (L), `UNIT RATE` (AB:AC) và `Spec mới khác`; user 31/10 không cần lệnh xuất bản sạch, tender tự kiểm trước khi gửi.
 - Main Lobby (BOQ thứ 2, F1175) nằm ngoài plan này, làm riêng theo README `10_TENDER`.

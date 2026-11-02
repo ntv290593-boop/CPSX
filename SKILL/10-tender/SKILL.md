@@ -6,7 +6,7 @@ description: Quét hồ sơ mời thầu cho PHÒNG TENDER (toàn gói, không l
 # 10-tender — ĐIỀU PHỐI
 
 Phiên này chỉ **điều phối**: chạy tool, giao việc, đọc kết quả kiểm. **Không tự đọc BOQ / TCQ / bản vẽ / spec ở đây** — mỗi bước giao 1 subagent mới (ngữ cảnh sạch, chỉ đọc file hướng dẫn của bước đó).
-Khác `01-scan`: quét **toàn gói**, gắn nhãn chứ không bỏ dòng; KHÔNG áp quy tắc "phạm vi nhà máy 5 xưởng"; các đợt nối tiếp, đợt sau đè đợt trước.
+Khác `01-scan`: quét **toàn gói**, gắn nhãn chứ không bỏ dòng; `Phạm vi nhà máy` chỉ là nhãn, không dùng để lọc; các đợt nối tiếp, đợt sau đè đợt trước. Có đủ phần đọc sâu của 01-scan (mục 1e), áp cho toàn gói.
 
 ## 0. Chuẩn bị (không hỏi user nếu đã rõ)
 - `GOC` = thư mục dự án trong `D:\COSTING EXCEL\ACTIVE.md`. `TOOL` = `D:\COSTING EXCEL\SKILL\10-tender\tool\td.py`, chạy `py -I "<TOOL>" <lệnh> <GOC> …` (không tham số = xem lệnh). Riêng `chu`, `anh`, `mail`, `xem` nhận thẳng đường dẫn file, không cần `<GOC>`.
@@ -28,6 +28,9 @@ Khác `01-scan`: quét **toàn gói**, gắn nhãn chứ không bỏ dòng; KHÔ
 | 6 | banve | `trang` (nếu chưa) | `buoc/6-banve.md` | mỗi nhóm mã phòng/khu 1 subagent, song song; file `SCOPE.banve-<n>.json` | 4, 5 |
 | 7 | doichieu | `doichieu` | `buoc/7-doichieu.md` | mỗi 1–2 sheet BOQ 1 subagent; file `SCOPE.doichieu-<n>.json` | 3, 5, 6 |
 | 7b | ben | `ben` (dự án mới, sau khi có `_data\_ben.json`) | (mục 1a) | bạn; tender duyệt | 5 |
+| 7c | spec | `docsau` | `buoc/7c-spec.md` | 1 subagent | 5, 7 |
+| 7d | docsau | (đã chạy ở 7c) | `buoc/7d-docsau.md` | mỗi nhóm trong `_docsau.txt` (≤ 8 cụm) 1 subagent, song song; file `*.docsau-<n>.json` | 6, 7 |
+| 7e | tincay | `tincay` | `buoc/7e-tincay.md` | 1 subagent | 7c, 7d |
 | 8 | dmvt | `dmvt <GOC> --chi-boc` | `buoc/8-dmvt.md` | bạn hoặc 1 subagent; ghi `_dmvt_llm.json` | 5 |
 | 9 | build | `build` (tự dựng DMVT trước) | (mục 3) | bạn | 7, 8 |
 | 10 | goi | `goi <GOC> "<bên>"` | (mục 1a) | bạn, khi tender cần | 8 |
@@ -85,27 +88,36 @@ Chỉ làm khi user yêu cầu lập BOQ. Hỏi rõ form, phạm vi, mức bóc 
 DMVT: quy tắc "ảnh lớn nhất" hay chọn nhầm phối cảnh cả phòng thay vì ảnh sản phẩm; dòng `Nhiều ảnh, máy chọn` phải xem hình, sai thì ghi `Ảnh chọn` trong `_dmvt_llm.json`.
 Giới hạn: `lap_boq.py` không đo diện tích; mã FF&E trùng giữa 2 file LF: BOQ tra đúng theo khu, MAT và DMVT chỉ lấy 1 bản.
 
+## 1e. Đọc sâu (chuyển từ 01-scan, `tool\docsau.py`)
+- **Phạm vi:** toàn gói. Mọi dòng có đơn vị, trừ sheet khớp `codeid_bo_sheet` (Prelims, Provisional sum, Summary) và dòng `Trạng thái` = Omit, Loại trừ, Không áp dụng. Vì vậy chạy sau bước 7.
+- **Cụm đọc:** `docsau` gom các dòng cùng mô tả, `Mã VL`, `Mã spec/FF&E` và bộ tờ `Bản vẽ hiệu lực` thành 1 cụm, đọc 1 lần; khóa cụm là `Khóa` của dòng đầu. Ứng với "mã" của 01-scan. Chia nhóm ≤ 8 cụm (`--nhom n`) → `_data\_docsau.txt`. **Dán khối `Nhóm <n>` vào prompt bước 7d.** CTX đo 01/11: 378 dòng → 339 cụm → 43 nhóm; SOFITEL 730 dòng nên tốn hơn. Báo số nhóm cho user trước khi giao lần đầu (không cần chờ duyệt).
+- **Kết quả:** `Kích thước BV`, `KL theo BV`, `Lệch KL`, `Bản vẽ đối chứng`, `Spec · ML`, `Mã hoàn thiện`, `Độ tin cậy`, `Issue`, `Giả định tính giá`, `Phạm vi nhà máy` ở BOQ_TONGHOP và sheet BOQ CĐT. Sổ ẩn: `QUAN_SAT`, `BOQ_MAP`, `DAY_TUONG`, `SPEC`, `PAGES`. Sheet hiện: `ISSUES`, `RFI_LOG`, `ASK_USER`. Sổ nào không có dữ liệu thì không có sheet. Bản `_CDT` và `goi` không có các cột này.
+- **Gemini bắt buộc** làm người đọc thứ 2 (`gemini --cum`), Claude ghi số trước. Máy không có agy: bước 7d ghi `KHÔNG THẤY – <lỗi>`, làm tiếp, cụm đó tối đa TB. Máy người dùng cần cài và đăng nhập `agy` mới có kiểm chéo.
+- **Kiểm:** `check --den docsau` đòi mọi cụm có QUAN_SAT và `Kiểm chéo Gemini`; phép cộng `a+b=c` sai là LỖI. `check --den tincay` đòi `Độ tin cậy`. `neo` kiểm cả `Bản vẽ hiệu lực` bước 6 và `Nguồn spec` của MAT (chỉ XEM). Dự án chưa chạy `docsau` không bị báo LỖI, chỉ có dòng nhắc, DASHBOARD ghi `Chưa đọc sâu`.
+- **Đừng làm lại ở 01-scan:** 01-scan đóng băng, không dùng chung dữ liệu. `Mã` của 01-scan không map sang `Cụm đọc`.
+
 ## 2. Sau mỗi bước
 1. `py -I "<TOOL>" check <GOC> --den <buoc>`.
 2. Có LỖI thuộc bước vừa làm → gửi nguyên danh sách cho subagent đó (SendMessage) sửa JSON của nó. Tối đa 2 vòng; còn lỗi → ghi vào báo cáo, làm tiếp. (LỖI "thiếu cột" của bước SAU là bình thường.)
 3. Sau bước 1–3: gom câu hỏi của subagent cần user quyết (vd hạng mục có bản vẽ nhưng không có trong BOQ, file thiếu) → hỏi user **1 câu gộp** trước khi giao bước 6–7. User trả lời → ghi `README.md` mục "Việc chưa quyết" và (nếu là dữ liệu) vào `*.user.json` tương ứng.
 4. Bước 6: chia nhóm theo sheet `KHU`/cột `Mã phòng` (vd SK-01+SK-02 / ST-01 / GK+GT / CR / suite L18–20 / hành lang+sảnh thang+cabin). Lấy danh sách bằng `loc <GOC> KHU --cot Khu,Mã phòng`.
 5. Bước 7: chạy `doichieu` (nháp từ TCQ_LOG) **sau** bước 3, 5, 6 rồi mới giao subagent.
+6. Bước 7c–7e: chạy `docsau` sau bước 7. Sau bước 7d chạy `neo`, gửi dòng `NEO LỆCH` của từng nhóm cho subagent nhóm đó (tối đa 2 vòng, chạy lại `neo` sau mỗi vòng); còn LỆCH thì để trong CẦN XEM, không chặn build. Câu `ASK_USER` gộp thành 1 câu hỏi user khi báo kết quả.
 
 ## 3. Kết thúc
 - `py -I "<TOOL>" build <GOC>` → `03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx` (bản cùng ngày tự sao `_backup`), `01_index\FILE_INDEX.xlsx`, `04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx` (BOQ gốc + chỉ 3 cột chính thức).
 - BOQ_TRACK có sheet **BOQ_TONGHOP** (sau DASHBOARD): 1 dòng = 1 dòng BOQ CĐT, nhìn ngang mô tả – phạm vi – bản vẽ hiệu lực – Link vật liệu – TCQ; ô nào cũng bấm được (dòng BOQ gốc, tờ PDF, file spec, TCQ_LOG). Chỉ để xem — dựng lại mỗi lần build, sửa ở SCOPE/MAT/TCQ_LOG.
 - `Link vật tư` (sheet BOQ, BOQ_TONGHOP): trỏ dòng DMVT của từng mã, dựng lại mỗi lần build, mở bằng add-in SRC_LINKS. Chuyển file thì giữ BOQ_TRACK và DMVT cùng thư mục `03_boq`.
 - Sheet BOQ chi tiết của CĐT có các cột của BOQ_TONGHOP theo cùng thứ tự, không ẩn cột nào, thêm `Loại thay đổi`, `Ngày cập nhật`. Không lặp `Item`, `Mô tả BOQ`, `ĐV`, `KL BOQ`, `Dòng BOQ gốc`, vì đã có trên chính hàng đó. Bản `_CDT` chỉ có 3 cột chính thức.
-- **Sheet hiện:** `DASHBOARD`, `BOQ_TONGHOP`, sheet CĐT, `MAT`, `TCQ_LOG`, `VIEC_MO`. **Sheet ẩn** (mỗi lần build ẩn lại, chuột phải tab → Unhide; `DASHBOARD` có mục lục): `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN`, `_LINKS`, `_CODE`; `CAU_TAO`, `PHAN_VIEC` ẩn khi chưa có mẫu cấu tạo. Sửa ở sheet ẩn vẫn được kéo vào khi build. Link tới sheet ẩn không nhảy, nên link trên sheet hiện không được trỏ vào các sheet này.
+- **Sheet hiện:** `DASHBOARD`, `BOQ_TONGHOP`, sheet CĐT, `MAT`, `TCQ_LOG`, `VIEC_MO`, `ISSUES`, `RFI_LOG`, `ASK_USER`. **Sheet ẩn** (mỗi lần build ẩn lại, chuột phải tab → Unhide; `DASHBOARD` có mục lục): `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN`, `QUAN_SAT`, `BOQ_MAP`, `DAY_TUONG`, `SPEC`, `PAGES`, `_LINKS`, `_CODE`; `CAU_TAO`, `PHAN_VIEC` ẩn khi chưa có mẫu cấu tạo. Sửa ở sheet ẩn vẫn được kéo vào khi build. Link tới sheet ẩn không nhảy, nên link trên sheet hiện không được trỏ vào các sheet này.
 - Cho nhẹ file: `SCOPE`, `DWG`, `KHU`, `AREA`, `VL_XUATHIEN` không có hyperlink; `VL_XUATHIEN` bỏ cột `Khóa`, `Dòng BOQ`, `Chữ gốc` ở sheet. JSON trong `_data` vẫn giữ đủ.
 - Link file đi qua sheet `_LINKS` (cùng định dạng 01-scan) + add-in `_MASTER\vba\SRC_LINKS.xlam`: bấm ô → mở PDF **đúng trang** bằng Edge; ô nhiều link → menu chọn. Không có add-in thì bấm ô không mở gì (`_LINKS` đã bỏ cột mở dự phòng; đường dẫn file vẫn ở cột E để mở tay). Link 1 đích trong workbook (dòng BOQ gốc, 1 mã VL/TCQ) là hyperlink thường.
 - File trong zip được link qua bản giải nén ở `_data\_zip` (build tự giải nén file đang được link). Link ghi tương đối theo thư mục file xlsx — chuyển cả thư mục `10_TENDER` + hồ sơ cùng nhau thì link không gãy.
-- Báo user, ngắn: đường dẫn file (cả DMVT) · số dòng BOQ / TCQ / MAT / DWG / DMVT · số dòng Code ID highlight · LỖI còn lại · **CẦN XEM** (chép từ sheet DASHBOARD, gộp theo loại) · câu hỏi. Không kể lại nội dung từng dòng.
+- Báo user, ngắn: đường dẫn file (cả DMVT) · số dòng BOQ / TCQ / MAT / DWG / DMVT · số dòng Code ID highlight · số cụm đọc sâu CAO / TB / THAP · LỖI còn lại · **CẦN XEM** (chép từ sheet DASHBOARD, gộp theo loại) · câu hỏi. Không kể lại nội dung từng dòng.
 - Bản gửi CĐT: **không tự gửi**. Nhắc user kiểm cột "Mô tả NT – Đề xuất / KL – Đề xuất" (chỉ user điền) trước khi gửi.
 
 ## 4. Chạy lại / đợt mới
-- Có TCQ/Addendum mới: đặt thư mục đợt vào thư mục hồ sơ → `init --tcq <TCQ gộp mới>` (nếu đổi) → `kiemke` (ID file cũ giữ nguyên; so chữ ký nội dung với lần trước, kể cả file trong zip → `_thaydoi.json`: file mới / đổi / mất) → bước 1 chỉ gán vai trò file mới → `trang` (chỉ đọc file mới/đổi) → `tcq` → bước 3 **chỉ cho đợt mới** (+ ghi `Bị thay bởi` vào câu cũ) → `dwg`, `mat` → **`thaydoi`**: dòng SCOPE có link tới file đổi/mất hoặc Số BV có bản mới, MAT có nguồn spec đổi, TCQ chưa phân loại, link bản vẽ trỏ bản cũ, đếm theo mã phòng → bước 4, 5 cho phần mới → bước 6 **chỉ cho mã phòng `thaydoi` báo** → `doichieu` → bước 7 cho dòng có `Mã TCQ` mới hoặc `thaydoi` báo → build.
+- Có TCQ/Addendum mới: đặt thư mục đợt vào thư mục hồ sơ → `init --tcq <TCQ gộp mới>` (nếu đổi) → `kiemke` (ID file cũ giữ nguyên; so chữ ký nội dung với lần trước, kể cả file trong zip → `_thaydoi.json`: file mới / đổi / mất) → bước 1 chỉ gán vai trò file mới → `trang` (chỉ đọc file mới/đổi) → `tcq` → bước 3 **chỉ cho đợt mới** (+ ghi `Bị thay bởi` vào câu cũ) → `dwg`, `mat` → **`thaydoi`**: dòng SCOPE có link tới file đổi/mất hoặc Số BV có bản mới, MAT có nguồn spec đổi, TCQ chưa phân loại, link bản vẽ trỏ bản cũ, đếm theo mã phòng → bước 4, 5 cho phần mới → bước 6 **chỉ cho mã phòng `thaydoi` báo** → `doichieu` → bước 7 cho dòng có `Mã TCQ` mới hoặc `thaydoi` báo → `docsau --thaydoi` (cụm vẫn tính lại đủ, chỉ giao cụm có dòng bị ảnh hưởng) → bước 7c, 7d cho các cụm đó → `tincay` → bước 7e → build. `check` báo XEM nếu `Cụm đọc` trong QUAN_SAT không còn (bộ tờ đổi nên cụm đổi): dùng `docsau --thieu` để giao lại cụm chưa có quan sát.
 - `check` báo XEM "link … là bản cũ của <Số BV>" khi DWG đổi bản hiệu lực sau khi bước 6 gán link → giao lại bước 6 cho các dòng đó.
 - Bước đã có `*.<buoc>*.json` → bỏ qua, trừ khi user bảo chạy lại. Chạy lại bước = xóa JSON LLM của bước đó rồi giao lại.
 - **Không bao giờ xóa** `*.user.json`, `_snapshot.json`. User sửa trong xlsx (sheet sổ, hoặc 3 cột chính thức trong sheet BOQ) rồi bảo "build lại" → chỉ chạy `build` (tool tự kéo chỗ sửa vào `*.user.json`, user thắng). Trong các cột nội bộ ở sheet BOQ, chỉ `Mã cấp 3`, `Bên thực hiện`, `Mã cấu tạo` được giữ; các cột khác là công thức tra từ SCOPE, sửa không giữ — sửa ở sheet SCOPE. `Code ID`, `Nguồn phân loại`, `Cờ phân loại`, `Cờ bên` do máy tính, sửa không giữ. Không chèn/xóa hàng trong sheet BOQ của BOQ_TRACK: tool đối chiếu cột Item, hàng bị dời thì `build` dừng và không nhận sửa tay.
