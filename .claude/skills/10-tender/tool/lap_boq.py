@@ -199,6 +199,129 @@ def hd_theo_thap(mo, thap_ten):
     return re.findall(r"HD-\d{2}", mo)
 
 
+def ma_tag_cua(t):
+    """(họ, số) của tag trên tờ cửa. Block FF-REF có 2 thuộc tính cùng tên ITEM: chữ ghi kèm (PULL HANDLE, ... TOWERS) có thể đè họ 'HD' nên trả lại HD."""
+    if t.get("ml"):
+        v = [x.strip("' ") for x in t["ml"]]
+        if len(v) < 2:
+            return None
+        chu, so = v[-2], v[-1]
+    elif "ITEM" in t["a"]:
+        chu, so = t["a"]["ITEM"], t["a"].get("NUM", "")
+    else:
+        return None
+    if re.search(r"PULL HANDLE|TOWERS?$", chu):
+        chu = "HD"
+    return (chu, so) if re.fullmatch(r"[A-Z]{2}", chu) and re.fullmatch(r"[0-9A-Za-z]{1,3}", so) else None
+
+
+def so_chot(so):
+    """Số trong mã đã chốt; WD-XX, WD-0x, WD-00 là mã bản vẽ chưa chốt."""
+    return bool(re.fullmatch(r"\d+", so)) and int(so) > 0
+
+
+def ma_cua_tieu_de(ten):
+    """Mã cửa trong tên khung hình: 'DOOR 8 & 13 - PLAN', 'DOOR PLAN DETAILS (D1a,D1b D2a)'."""
+    m = re.search(r"\(([^)]*\bD\d[^)]*)\)", ten)
+    if m:
+        return re.findall(r"D\d+[a-z]?", m[1])
+    m = re.match(r"DOOR ([\d &]+?) -", ten)
+    return [f"D{x}" for x in re.findall(r"\d+", m[1])] if m else []
+
+
+def vl_cua_tu_tag(thu_muc, tag):
+    """{mã cửa: {'lich': {mã}, 'hd': {mã}, 'hd_ct': {mã}, 'chi_tiet': {mã: {tờ}}, 'chua_chot': {mã}, 'to': {tờ}}} từ tag trên tờ cửa.
+    Tờ lịch: tag thuộc ô có chữ mã cửa cỡ lớn gần nhất về bên trái, cùng hàng. Tờ chi tiết: tag thuộc cột khung hình, chỉ lấy phần mặt cắt
+    vì tag trên mặt bằng chi tiết còn chỉ cả tường hai bên cửa. Mã cửa ở tờ chi tiết không có chữ cái (DOOR 10) áp cho mọi biến thể (D10a, D10b)."""
+    mm = 72 / 25.4
+    out = collections.defaultdict(lambda: {"lich": set(), "hd": set(), "hd_ct": set(), "chi_tiet": collections.defaultdict(set), "chua_chot": set(), "to": set()})
+    for rel, v in tag.items():
+        if not rel.startswith("8000 Door/"):
+            continue
+        la_lich = "_8000_8008" in rel
+        for so, l in v["to"].items():
+            ds = []
+            y_mb = None
+            if la_lich:
+                f = next((x for x in os.listdir(thu_muc) if x.endswith(f"_DR_8000_8008-{so}.pdf")), None)
+                if not f:
+                    continue
+                pg = fitz.open(os.path.join(thu_muc, f))[0]
+                for x, b, d, sz in dong_chu(pg):
+                    if sz > 30 and re.fullmatch(r"D\d+[a-zA-Z]?", x):
+                        # trang xoay 270: tọa độ thô (x, y) là (hàng, cột) khi xem trên giấy
+                        tx, ty = (b[3] / mm, b[0] / mm) if pg.rotation == 270 else (b[0] / mm, (pg.rect.height - b[3]) / mm)
+                        ds.append((x[:-1] + x[-1].lower(), tx, ty))
+            else:
+                td = [(x["a"]["%%AREA"], x["xy"]) for x in l["tag"] if "%%AREA" in x["a"]]
+                for ten, xy in td:
+                    for c in ma_cua_tieu_de(ten):
+                        ds.append((c, xy[0], xy[1]))
+                y_mb = min((xy[1] for ten, xy in td if ma_cua_tieu_de(ten) and "PLAN" in ten), default=None)
+            hang = sorted({d[2] for d in ds})
+            for t in l["tag"]:
+                m = ma_tag_cua(t)
+                if not m or not ds:
+                    continue
+                x, y = t["xy"]
+                if la_lich:
+                    h = max((a for a in hang if a <= y), default=None)
+                    cot = [d for d in ds if d[2] == h and d[1] <= x + 5]
+                else:
+                    if y_mb is None or y >= y_mb:
+                        continue
+                    cot = [d for d in ds if d[1] <= x + 5]
+                if not cot:
+                    continue
+                xa = max(d[1] for d in cot)
+                for c in {d[0] for d in cot if d[1] == xa}:
+                    o = out[c]
+                    ma = f"{m[0]}-{m[1]}"
+                    if not so_chot(m[1]):
+                        o["chua_chot"].add(ma)
+                    elif m[0] == "HD":
+                        o["hd" if la_lich else "hd_ct"].add(ma)
+                    elif la_lich:
+                        o["lich"].add(ma)
+                    else:
+                        o["chi_tiet"][ma].add(so)
+                    o["to"].add(so)
+    return out
+
+
+THU_TU_VL = {"WD": 0, "SP": 1, "WC": 2, "UP": 3, "MT": 4, "GL": 5, "ST": 6}
+
+
+def vl_cua_cua_ma(vl_cua, c, ma_khung=None):
+    """Gộp tag của cửa c với tag ghi không có chữ cái (DOOR 10 cho D10a). Trả (mã vật liệu đã sắp, HD tờ lịch, HD mặt cắt chi tiết, tờ, cờ).
+    ma_khung {mã: ghi chú}: mã đã xem hình là chỉ vào khung, không tính vật liệu của cửa, chỉ ghi cờ (cua_ma_khung trong _lap_boq.json)."""
+    goc = re.sub(r"[a-z]$", "", c)
+    nguon = [vl_cua[k] for k in dict.fromkeys((c, goc)) if k in vl_cua]
+    lich, hd, hd_ct, chua, to = set(), set(), set(), set(), set()
+    ct = collections.defaultdict(set)
+    for o in nguon:
+        lich |= o["lich"]
+        hd |= o["hd"]
+        hd_ct |= o["hd_ct"]
+        chua |= o["chua_chot"]
+        to |= o["to"]
+        for k, v in o["chi_tiet"].items():
+            ct[k] |= v
+    co = list((ma_khung or {}).values())
+    for m in ma_khung or {}:
+        lich.discard(m)
+        ct.pop(m, None)
+    go_l, go_c = {m for m in lich if m[:2] == "WD"}, {m for m in ct if m[:2] == "WD"}
+    if go_l and go_c - go_l:
+        co.append(f"Mã gỗ lệch: tờ lịch {', '.join(sorted(go_l))}, mặt cắt chi tiết " + ", ".join(f"{m} (tờ {', '.join(sorted(ct[m]))})" for m in sorted(go_c - go_l)))
+    if chua:
+        co.append("Bản vẽ còn mã chưa chốt: " + ", ".join(sorted(chua)))
+    vl = sorted(lich | set(ct), key=lambda m: (THU_TU_VL.get(m[:2], 9), m))
+    if vl and not any(m[:2] in ("WD", "SP", "WC", "UP") for m in vl):
+        co.append("Đang xếp cửa gỗ nhưng tag trên tờ cửa chỉ có " + ", ".join(vl))
+    return vl, sorted(hd), sorted(hd_ct), to, co
+
+
 class Du:
     def __init__(self, goc):
         self.goc = os.path.abspath(goc)
@@ -303,6 +426,7 @@ def lap_dong(du):
     ngoai = collections.defaultdict(lambda: collections.defaultdict(set))
     co_chung = collections.Counter()
     lich = doc_lich_cua(os.path.join(du.bv, "8000 Door"))
+    vl_cua = vl_cua_tu_tag(os.path.join(du.bv, "8000 Door"), du.tag)
     lich_ma = collections.defaultdict(list)
     for x in lich:
         lich_ma[x["ma"].lower() if len(x["ma"]) > 2 else x["ma"]].append(x)
@@ -411,9 +535,19 @@ def lap_dong(du):
                 co.append("Lịch cửa không ghi rõ cửa gỗ")
             if d["mb"] and d["wc"] and d["mb"] != d["wc"]:
                 co.append(f"Đếm trên mặt bằng chung {d['mb']}, trên tờ WC {d['wc']}, lấy số lớn")
+            vl_c, hd_tag, hd_ct, to_tag, co_vl = vl_cua_cua_ma(vl_cua, c, (cfg.get("cua_ma_khung") or {}).get(c))
+            co += co_vl
+            if ds and not vl_c:
+                co.append("Không có tag vật liệu trên tờ lịch, tờ chi tiết cửa")
             hd = hd_theo_thap(mo, thap[t]["ten"])
             if not hd and ds:
-                co.append("Lịch cửa chưa ghi bộ phụ kiện HD")
+                if "HD-" not in mo and hd_tag:  # ghi chú lịch không ghi bộ HD: lấy tag trên mặt đứng của chính cửa đó
+                    hd = hd_tag
+                    co.append("Bộ HD lấy từ tag trên mặt đứng, ghi chú lịch cửa không ghi")
+                    if set(hd_ct) - set(hd):
+                        co.append(f"Bộ HD lệch: mặt đứng {', '.join(hd)}, mặt cắt chi tiết {', '.join(hd_ct)}")
+                else:
+                    co.append("Lịch cửa chưa ghi bộ phụ kiện HD")
             for h in hd:
                 hd_dem[h] += sl
                 hd_to[h].add(c)
@@ -424,9 +558,9 @@ def lap_dong(du):
             kt = ds[0].get("kt") if ds else None
             if ds and not kt:
                 co.append("Không đọc được kích thước trên tờ lịch cửa")
-            ct_cua = (f"Rộng {kt[0]} x Cao {kt[1]} mm. " if kt else "") + ("Phụ kiện: " + "; ".join(hd) if hd else "")
+            ct_cua = (f"Rộng {kt[0]} x Cao {kt[1]} mm. " if kt else "") + ("Vật liệu: " + "; ".join(vl_c) + ". " if vl_c else "") + ("Phụ kiện: " + "; ".join(hd) if hd else "")
             bang[sh]["DO.WD"][k_ten].append({"ki_hieu": c, "nd": f"Cửa gỗ {la} — {ten_cua}".replace("  ", " "), "ct": ct_cua.strip(), "dv": "bộ", "sl": sl, "kl": None if dien_hinh else sl, "note": ghi, "co": co,
-                                             "to": sorted(d["to"] | {x["to"] for x in ds}), "dai": kt[1] if kt else None, "rong": kt[0] if kt else None})
+                                             "to": sorted(d["to"] | {x["to"] for x in ds} | to_tag), "dai": kt[1] if kt else None, "rong": kt[0] if kt else None})
         for h, n in sorted(hd_dem.items()):
             bang[sh]["HW.DO"][k_ten].append({"ki_hieu": h, "nd": f"Bộ phụ kiện cửa {h}", "ct": ten_hd(du, h), "dv": "bộ", "sl": n, "kl": None if dien_hinh else n, "to": sorted(hd_lich[h]),
                                              "note": f"Cho cửa {', '.join(sorted(hd_to[h]))}. IM_7400." + (" Số lượng cho 1 tầng điển hình." if dien_hinh else ""), "co": []})

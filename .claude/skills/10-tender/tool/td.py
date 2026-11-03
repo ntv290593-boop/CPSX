@@ -27,14 +27,17 @@ for _d in SHEETS.values():
 LENH = """Lệnh:
   init <GOC> --input <rel> [--mau <tên>] --boq <rel trong input> --tcq <rel> [--takenote <rel>] [--du-an SSP] [--bo-thu-muc "a;b/c"] [--dwg-regex <regex>]
                                 --mau: mẫu dự án trong form\\MAU_DU_AN.json (mặc định cdt_item); mẫu quyết định --boq, --tcq có bắt buộc không
-  kiemke <GOC>                  FILE_INDEX.kiemke-tool.json (liệt kê cả zip, ID giữ nguyên khi chạy lại; bỏ thư mục trong bo_thu_muc)
-  boq <GOC>                     SCOPE.boq-tool.json + _boq_map.json
+  kiemke <GOC> [--dot-moi]      FILE_INDEX.kiemke-tool.json (liệt kê cả zip, ID giữ nguyên khi chạy lại; bỏ thư mục trong bo_thu_muc);
+                                _thaydoi.json cộng dồn các lần kiemke cùng đợt (từng lần lưu _dot\\kiemke_<giờ>.json); --dot-moi: bắt đầu đợt mới
+  boq <GOC> [--thu]             SCOPE.boq-tool.json + _boq_map.json; chạy lại khi BOQ ra bản mới: khớp dòng cũ ↔ mới theo nội dung,
+                                đổi khóa '<sheet>!<hàng>' trong mọi file _data (bản gốc -> _data\\_dot\\boq_<giờ>\\); --thu: chỉ xem
   phanloai <GOC> [--duyet-luat] SCOPE.phanloai-tool.json: Mã cấp 3 từng dòng (User > Luật > Nhớ > LLM); chạy lại sau khi có _phanloai_llm.json
-  tcq <GOC>                     TCQ_LOG.tcq-tool.json (file TCQ gộp + bản dịch takenote)
+  tcq <GOC>                     TCQ_LOG.tcq-tool.json (file TCQ gộp + bản dịch takenote); đợt cập nhật: câu mới / đổi trả lời -> _thaydoi.json
   dwg <GOC>                     DWG.dwg-tool.json (số BV, bản hiệu lực, bản cũ)
   mat <GOC>                     MAT.mat-tool.json (mã VL gặp trong BOQ/TCQ)
-  doichieu <GOC>                SCOPE.doichieu-tool.json (nháp Mã TCQ/Trạng thái từ TCQ_LOG)
-  thaydoi <GOC>                 sau kiemke đợt mới: file mới/đổi/mất + dòng SCOPE/MAT/TCQ bị ảnh hưởng
+  doichieu <GOC>                SCOPE.doichieu-tool.json (nháp Mã TCQ/Trạng thái từ TCQ_LOG: theo Dòng BOQ, Mã VL, câu phạm vi theo
+                                mã phòng/khu); dòng nối với TCQ mới/đổi của đợt -> _thaydoi.json anh_huong
+  thaydoi <GOC>                 sau kiemke đợt mới: file mới/đổi/mất + dòng SCOPE/MAT/TCQ bị ảnh hưởng (MAT cả khi TCQ mới/đổi nhắc mã)
   trang <GOC>                   đọc chữ + khung tên mọi trang PDF được dùng -> _data\\_text (chỉ file mới/đổi)
   tim <GOC> <regex> [--file s] [--max n]   trang có chữ khớp regex
   tim <GOC> --ma <mã> [--file s] [--max n] trang có mã theo mọi cách viết (51 - 500B = 51-500B, ST 01 = ST-01, AREA53 = AREA 53)
@@ -231,8 +234,20 @@ def data_files(p):
         fb = file_buoc(fn)
         if fb:
             out.append((fb[3], fn, path) + fb[:3])
-    out.sort()
+    out.sort(key=thu_tu_file)
     return out
+
+
+def thu_tu_file(x):
+    """(prio, sheet, bước gốc, số nhóm): banve (nhóm 0) < banve-2 < banve-10 -> "file xếp sau thắng" và giao_lai đúng cả khi >= 10 nhóm."""
+    prio, fn, _, sheet, buoc, base = x
+    m = re.search(r"-(\d+)$", buoc)
+    return prio, sheet, base, int(m.group(1)) if m else 0, so_tu_nhien(fn)
+
+
+def so_tu_nhien(t):
+    """Khóa xếp tự nhiên: 'SCOPE.banve-10.json' sau 'SCOPE.banve-2.json'."""
+    return [(0, int(x), "") if x.isdigit() else (1, 0, x) for x in re.split(r"(\d+)", t) if x]
 
 
 def row_match(row, loc):
@@ -242,15 +257,37 @@ def row_match(row, loc):
     return True
 
 
-def merge(p, only_tool=False):
-    """-> (res, src): res[sheet] = OrderedDict(key->row) | list; src[sheet][key][col] = buoc."""
+def merge(p, only_tool=False, bao_giao_lai=None):
+    """-> (res, src): res[sheet] = OrderedDict(key->row) | list; src[sheet][key][col] = buoc.
+    File LLM có "giao_lai": true (giao lại 1 phần bước, vd bước 6 cho mã phòng thaydoi báo): với mỗi dòng file đó chạm tới,
+    bỏ kết quả của các nhóm TRƯỚC cùng bước (ô quay về nháp tool nếu có) rồi mới ghi -> link/mã cũ bị bỏ không còn sót lại.
+    bao_giao_lai: list nhận (file, khóa, nhóm bị bỏ) để check/thaydoi báo."""
     res = {sh: (OrderedDict() if d["loai"] == "KHOA" else []) for sh, d in SHEETS.items()}
     src = {sh: defaultdict(dict) for sh in SHEETS}
+    tool_val = {sh: defaultdict(dict) for sh in SHEETS}  # giá trị nháp tool (prio 0) để trả lại khi nhóm LLM bị giao lại
     for prio, fn, path, sheet, buoc, base in data_files(p):
         if sheet not in SHEETS or (only_tool and prio > 0):
             continue
-        rows = (jload(path) or {}).get("rows", [])
+        data = jload(path) or {}
+        rows = data.get("rows", []) if isinstance(data, dict) else []
         d = SHEETS[sheet]
+        if prio == 1 and isinstance(data, dict) and data.get("giao_lai") and d["loai"] == "KHOA":
+            k = d["khoa"]
+            cham = []
+            for r in rows:
+                cham += [kk for kk, row in res[sheet].items() if row_match(row, r["_loc"])] if "_loc" in r else [s(r.get(k))]
+            for kk in dict.fromkeys(x for x in cham if x in res[sheet]):
+                bo = set()
+                for c, b in list(src[sheet][kk].items()):
+                    if b != buoc and re.sub(r"-\d+$", "", b) == base and not b.endswith("-tool") and b != "user":
+                        bo.add(b)
+                        if c in tool_val[sheet][kk]:
+                            res[sheet][kk][c], src[sheet][kk][c] = tool_val[sheet][kk][c]
+                        else:
+                            res[sheet][kk].pop(c, None)
+                            src[sheet][kk].pop(c, None)
+                if bo and bao_giao_lai is not None:
+                    bao_giao_lai.append((fn, kk, sorted(bo, key=so_tu_nhien)))
         if d["loai"] == "NOI":
             for r in rows:
                 r = dict(r)
@@ -278,6 +315,8 @@ def merge(p, only_tool=False):
                         if prio == 1 and c in row and old and old != buoc and re.sub(r"-\d+$", "", old) == base:
                             v = gop_nhom(d["cot"].get(c, {}).get("kieu"), c, row[c], v)  # nhóm khác cùng bước: gộp
                         row[c] = v
+                        if prio == 0:
+                            tool_val[sheet][kk][c] = (v, buoc)
                     src[sheet][kk][c] = buoc
     lan_cum(res["SCOPE"])
     return res, src
@@ -482,8 +521,9 @@ def vai_tro_doan(rel, inner, ext):
     return None
 
 
-def cmd_kiemke(goc):
+def cmd_kiemke(goc, args=()):
     p = P(goc).need()
+    dot_moi = "--dot-moi" in args
     old = {}
     for r in (jload(p.f("FILE_INDEX.kiemke-tool.json")) or {}).get("rows", []):
         old[(r["Đường dẫn"], r.get("Trong zip", ""))] = r["ID"]
@@ -563,11 +603,35 @@ def cmd_kiemke(goc):
     ck = {r["ID"]: ck_by_key[(r["Đường dẫn"], r.get("Trong zip", ""))] for r in rows}
     if ck_cu is not None:
         sosanh = lambda a, b: {k: v for k, v in a.items() if k != "mtime"} == {k: v for k, v in b.items() if k != "mtime"}
-        td = {"ngay": TODAY.strftime("%Y-%m-%d"), "moi": sorted(set(ck) - set(ck_cu)),
-              "doi": sorted(f for f in set(ck) & set(ck_cu) if not sosanh(ck[f], ck_cu[f])),
-              "mat": sorted(set(ck_cu) - set(ck))}
+        bay_gio = datetime.datetime.now()
+        lan = {"gio": bay_gio.strftime("%Y-%m-%d %H:%M:%S"), "moi": sorted(set(ck) - set(ck_cu)),
+               "doi": sorted(f for f in set(ck) & set(ck_cu) if not sosanh(ck[f], ck_cu[f])),
+               "mat": sorted(set(ck_cu) - set(ck))}
+        dem = lambda x: {k: (len(v) if isinstance(v, list) else v) for k, v in x.items()}
+        os.makedirs(p.f("_dot"), exist_ok=True)  # lịch sử từng lần kiemke, không ghi đè
+        jdump(p.f(os.path.join("_dot", f"kiemke_{bay_gio:%y%m%d-%H%M%S}.json")), lan)
+        cu = jload(p.f("_thaydoi.json"))
+        if cu and not dot_moi:  # cùng đợt: cộng dồn, lần chạy lại (vd sau khi sửa lỗi) không xóa danh sách của đợt
+            con = set(ck)
+            moi = (set(cu.get("moi", [])) | set(lan["moi"])) & con
+            mat = (set(cu.get("mat", [])) | set(lan["mat"])) - con - set(cu.get("moi", []))  # file mới trong đợt rồi mất: không tính mất
+            doi = ((set(cu.get("doi", [])) | set(lan["doi"])) & con) - moi
+            td = {"ngay": cu.get("ngay") or TODAY.strftime("%Y-%m-%d"), "moi": sorted(moi), "doi": sorted(doi), "mat": sorted(mat),
+                  "lan": (cu.get("lan") or []) + [dem(lan)]}
+            td.update({k: cu[k] for k in ("tcq_moi", "tcq_doi") if cu.get(k)})  # do lệnh tcq ghi, giữ qua các lần kiemke
+            print(f"\nLần kiemke này: {len(lan['moi'])} mới, {len(lan['doi'])} đổi, {len(lan['mat'])} mất. "
+                  f"Cộng dồn đợt (từ {td['ngay']}, {len(td['lan'])} lần): {len(moi)} file mới, {len(doi)} đổi nội dung, {len(mat)} mất")
+            print("   Đợt hồ sơ mới thật sự (đợt trước đã build xong) thì chạy `kiemke <GOC> --dot-moi` để bắt đầu danh sách mới")
+            if cu.get("anh_huong"):
+                print("   Kết quả `thaydoi` cũ đã bỏ vì danh sách có thể đổi -> chạy lại `thaydoi`")
+        else:
+            td = {"ngay": TODAY.strftime("%Y-%m-%d"), "moi": lan["moi"], "doi": lan["doi"], "mat": lan["mat"], "lan": [dem(lan)]}
+            if cu:
+                jdump(p.f(os.path.join("_dot", f"_thaydoi_dot_truoc_{bay_gio:%y%m%d-%H%M%S}.json")), cu)
+                print("\n--dot-moi: danh sách đợt trước lưu ở _dot\\, bắt đầu đợt mới")
+            print(f"\nSo với lần kiemke trước: {len(td['moi'])} file mới, {len(td['doi'])} file đổi nội dung, {len(td['mat'])} file mất")
         jdump(p.f("_thaydoi.json"), td)
-        print(f"\nSo với lần kiemke trước: {len(td['moi'])} file mới, {len(td['doi'])} file đổi nội dung, {len(td['mat'])} file mất -> chạy `thaydoi` để xem dòng bị ảnh hưởng")
+        print("-> chạy `thaydoi` để xem dòng bị ảnh hưởng")
     else:
         print("\nLần đầu ghi chữ ký file (_chuky.json) — lần kiemke sau sẽ báo file mới/đổi/mất")
     jdump(p.f("_chuky.json"), ck)
@@ -616,7 +680,7 @@ def boq_header(rows, td):
     return None, None
 
 
-def cmd_boq(goc):
+def cmd_boq(goc, args=()):
     import openpyxl
     from openpyxl.utils import get_column_letter as L
     p = P(goc).need()
@@ -721,11 +785,215 @@ def cmd_boq(goc):
         trung |= set(vl) & room_codes
         if vl:
             r["Mã VL"] = "; ".join(vl)
+    cu = (jload(p.f("SCOPE.boq-tool.json")) or {}).get("rows")
+    if "--thu" in args:  # chỉ xem khớp dòng cũ ↔ mới, không ghi gì
+        if cu:
+            chuyen_dot_boq(p, cu, out, thu=True)
+        else:
+            print("Chưa có SCOPE.boq-tool.json cũ — không có gì để so.")
+        return
     jdump(p.f("_boq_map.json"), {"sheet": bmap, "ma_phong": sorted(room_codes), "vl_tien_to": sorted(tien_to)})
     if trung:
         print(f"XEM: mã trùng mã phòng nhưng tính là VL (họ mã có VL khác, ngữ cảnh không nói phòng): {', '.join(sorted(trung))}")
+    if cu:  # chạy lại boq: chuyển kết quả cũ sang đúng dòng mới TRƯỚC khi ghi nháp mới
+        chuyen_dot_boq(p, cu, out)
     write_tool(p, "SCOPE", "boq", out)
     print("Mã phòng:", ", ".join(sorted(room_codes)))
+
+
+# ---------------------------------------------------------------- BOQ ra bản mới: khớp dòng theo nội dung, chuyển kết quả cũ
+# Khóa dòng BOQ là vị trí '<sheet>!<hàng>'. BOQ chèn/xóa hàng thì mọi kết quả (bản vẽ, đối chiếu, bên, sửa tay, đọc sâu)
+# ghi theo khóa cũ sẽ dính sang dòng khác. boq chạy lại: khớp dòng cũ ↔ mới theo nội dung rồi đổi khóa trong mọi file _data.
+COT_SIG = ("Vùng", "Nhóm", "Mục phụ", "Mô tả BOQ", "ĐV")  # không gồm Item (chèn dòng thì đánh số lại) và KL (đổi KL vẫn là dòng đó)
+COT_SO_BOQ = ("Item", "Vùng", "Nhóm", "Mục phụ", "Mô tả BOQ", "ĐV", "KL BOQ", "Mã phòng", "Ghi chú BOQ")
+NGUONG_GAN = 0.85  # Mô tả giống ≥ 85% + cùng ĐV, nằm đúng chỗ bị sửa = cùng dòng, nội dung đổi
+KHONG_CHUYEN = {"SCOPE.boq-tool.json", "_boq_map.json", "_snapshot.json", "_chuky.json", "_thaydoi.json", "_boq_cho_build.json",
+                "_lap_boq_dong.json"}  # _lap_boq_dong: lap_boq.py vừa ghi theo BOQ mới
+RX_XOA = "(đã xóa: {} dòng {})"  # dòng cũ không còn: thay khóa bằng dấu này (không còn dạng sheet!hàng nên không bị đổi lần nữa)
+
+
+def _sig(r):
+    return tuple(low(_txt(r.get(c))) for c in COT_SIG)
+
+
+def khop_dong_boq(cu, moi):
+    """cu, moi: dòng SCOPE.boq-tool theo thứ tự file -> {khóa cũ: (khóa mới, cách khớp)}; dòng cũ không có = đã xóa."""
+    from difflib import SequenceMatcher
+    kq = {}
+
+    def theo_sheet(rows):
+        d = OrderedDict()
+        for r in rows:
+            d.setdefault(r["Sheet"], []).append(r)
+        return d
+
+    def ghep_gan(a, b):
+        j0 = 0
+        for x in a:
+            tx, best = low(x.get("Mô tả BOQ")), None
+            for j in range(j0, len(b)):
+                y = b[j]
+                if low(y.get("ĐV")) != low(x.get("ĐV")):
+                    continue
+                sm = SequenceMatcher(None, tx, low(y.get("Mô tả BOQ")), autojunk=False)
+                if sm.quick_ratio() >= NGUONG_GAN and sm.ratio() >= NGUONG_GAN and (best is None or sm.ratio() > best[1]):
+                    best = (j, sm.ratio())
+            if best:
+                kq[x["Khóa"]] = (b[best[0]]["Khóa"], f"gần giống {best[1]:.0%}")
+                j0 = best[0] + 1  # giữ thứ tự: không ghép chéo
+
+    A, B = theo_sheet(cu), theo_sheet(moi)
+    for sh, a in A.items():
+        b = B.get(sh)
+        if not b:
+            continue
+        ops = SequenceMatcher(None, [_sig(r) for r in a], [_sig(r) for r in b], autojunk=False).get_opcodes()
+        for op, i1, i2, j1, j2 in ops:
+            if op == "equal":
+                for x, y in zip(a[i1:i2], b[j1:j2]):
+                    kq[x["Khóa"]] = (y["Khóa"], "giống")
+            elif op == "replace":
+                ghep_gan(a[i1:i2], b[j1:j2])
+    # dòng đổi sheet (sheet đổi tên, dòng chuyển sheet): khớp đúng nội dung, cùng số lần xuất hiện ở hai bên
+    da = {v[0] for v in kq.values()}
+    con_a, con_b = defaultdict(list), defaultdict(list)
+    for r in cu:
+        if r["Khóa"] not in kq:
+            con_a[_sig(r)].append(r)
+    for r in moi:
+        if r["Khóa"] not in da:
+            con_b[_sig(r)].append(r)
+    for sg, xs in con_a.items():
+        ys = con_b.get(sg, [])
+        if len(xs) == len(ys):
+            for x, y in zip(xs, ys):
+                kq[x["Khóa"]] = (y["Khóa"], "giống, khác sheet")
+    return kq
+
+
+def _rx_khoa(sheets):
+    if not sheets:
+        return None
+    return re.compile(r"(?<!\w)(" + "|".join(re.escape(x) for x in sorted(sheets, key=len, reverse=True)) + r")!(\d+)(?!\d)")
+
+
+def doi_khoa(obj, ban_do, rx):
+    """Đổi mọi 'sheet!hàng' có trong ban_do (khóa cũ -> khóa mới | None = đã xóa) trong chuỗi, khóa dict, list lồng nhau."""
+    if rx is None:
+        return obj
+    if isinstance(obj, str):
+        def thay(m):
+            k = f"{m.group(1)}!{m.group(2)}"
+            if k not in ban_do:
+                return k
+            return ban_do[k] if ban_do[k] is not None else RX_XOA.format(m.group(1).strip(), m.group(2))
+        return rx.sub(thay, obj)
+    if isinstance(obj, list):
+        return [doi_khoa(x, ban_do, rx) for x in obj]
+    if isinstance(obj, dict):
+        return {doi_khoa(k, ban_do, rx): doi_khoa(v, ban_do, rx) for k, v in obj.items()}
+    return obj
+
+
+def ten_file_cum(c):  # như docsau: _gemini_so\<cụm>.json
+    return re.sub(r'[\\/:*?"<>|]', "_", c) + ".json"
+
+
+def chuyen_dot_boq(p, cu, moi, thu=False):
+    """Khớp dòng BOQ cũ ↔ mới; đổi khóa trong _data (bản gốc lưu _dot\\boq_<giờ>\\); ghi _dot\\boq_<giờ>.json; báo dòng cần làm lại."""
+    khop = khop_dong_boq(cu, moi)
+    ban_do = {r["Khóa"]: khop[r["Khóa"]][0] if r["Khóa"] in khop else None for r in cu}
+    doi_ten = {k: v for k, v in ban_do.items() if k != v}
+    cu_k, moi_k = {r["Khóa"]: r for r in cu}, {r["Khóa"]: r for r in moi}
+    da_khop = {v for v in ban_do.values() if v}
+    xoa = [k for k, v in ban_do.items() if v is None]
+    them = [r["Khóa"] for r in moi if r["Khóa"] not in da_khop]
+    doi_nd = {}
+    for k, v in ban_do.items():
+        if v:
+            cs = [c for c in COT_SO_BOQ if s(_txt(cu_k[k].get(c))) != s(_txt(moi_k[v].get(c)))]
+            if cs:
+                doi_nd[v] = {"cu": k, "cot": cs, "cach": khop[k][1]}
+    cach = Counter(x[1].split(" ")[0] if x[1].startswith("gần") else x[1] for x in khop.values())
+    print(f"\nBOQ bản mới so với lần boq trước: {len(cu)} → {len(moi)} dòng · khớp {len(da_khop)} ({dict(cach)}) · "
+          f"đổi khóa {len([k for k in doi_ten if doi_ten[k]])} · cũ không còn {len(xoa)} · dòng mới {len(them)} · nội dung đổi {len(doi_nd)}")
+    for tieu_de, ds in (("Cũ không còn (kết quả cũ bỏ, xem _dot)", [f"{k} {s(cu_k[k].get('Item'))} {s(cu_k[k].get('Mô tả BOQ'))[:70]}" for k in xoa]),
+                        ("Dòng mới (chưa có kết quả, giao lại các bước)", [f"{k} {s(moi_k[k].get('Item'))} {s(moi_k[k].get('Mô tả BOQ'))[:70]}" for k in them]),
+                        ("Nội dung đổi (giữ kết quả, xem lại)", [f"{k} ← {x['cu']}: {', '.join(x['cot'])} ({x['cach']})" for k, x in doi_nd.items()])):
+        if ds:
+            print(f"  {tieu_de}: {len(ds)}")
+            for x in ds[:12]:
+                print(f"     {x}")
+            if len(ds) > 12:
+                print("     …")
+    if thu:
+        print("(--thu: chưa ghi gì)")
+        return
+    gio = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    d_dot = p.f("_dot")
+    bk = os.path.join(d_dot, f"boq_{gio}")
+    os.makedirs(bk, exist_ok=True)
+    rx = _rx_khoa({k.rsplit("!", 1)[0] for k in doi_ten})
+    sua, bo_dong = [], defaultdict(list)
+    if doi_ten:
+        for path in sorted(glob.glob(p.f("*.json")) + glob.glob(p.f(os.path.join("_gemini_so", "*.json")))):
+            fn = os.path.relpath(path, p.d)
+            if fn in KHONG_CHUYEN:
+                continue
+            try:
+                raw = jload(path)
+            except Exception:
+                print(f"XEM: {fn} không đọc được JSON — không đổi khóa")
+                continue
+            new = doi_khoa(raw, doi_ten, rx)
+            ds = new.get("rows") if isinstance(new, dict) else new  # {"rows": [...]} hoặc list dòng (vd _comment_user)
+            if isinstance(ds, list):
+                giu = []
+                for r in ds:  # dòng mang khóa dòng BOQ đã xóa (SCOPE, BOQ_MAP, _phanloai_llm…): bỏ, lưu lại; khóa ở cột khác giữ dấu để check báo
+                    if isinstance(r, dict) and any("(đã xóa:" in s(r.get(c)) for c in ("Khóa", "khoa")):
+                        bo_dong[fn].append(r)
+                        continue
+                    giu.append(r)
+                    if isinstance(r, dict) and "_loc" in r and any(c in ("Khóa", "Dòng", "Cụm đọc") for c in r["_loc"]):
+                        print(f"XEM: {fn} có _loc theo số hàng BOQ {r['_loc']} — regex không đổi tự động, sửa tay")
+                if isinstance(new, dict):
+                    new["rows"] = giu
+                else:
+                    new = giu
+            if new != raw:
+                dst = os.path.join(bk, fn)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(path, dst)
+                jdump(path, new)
+                sua.append(fn)
+        # file _gemini_so mang tên cụm (= khóa dòng đại diện): đổi tên theo, 2 pha để không đè nhau
+        d_gs = p.f("_gemini_so")
+        if os.path.isdir(d_gs):
+            ten = {ten_file_cum(k): ten_file_cum(v) for k, v in doi_ten.items() if v}
+            tam = []
+            for fn in os.listdir(d_gs):
+                if fn in ten:
+                    os.replace(os.path.join(d_gs, fn), os.path.join(d_gs, fn + ".doi"))
+                    tam.append(fn)
+            for fn in tam:
+                os.replace(os.path.join(d_gs, fn + ".doi"), os.path.join(d_gs, ten[fn]))
+            if tam:
+                sua.append(f"_gemini_so: đổi tên {len(tam)} file")
+        # build lần trước có sửa tay user theo khóa cũ: pull_user đổi theo bản đồ này (ghép với bản đồ chưa build, nếu có)
+        if jload(p.f("_snapshot.json")):
+            cho = (jload(p.f("_boq_cho_build.json")) or {}).get("map")
+            gop = {k: (ban_do.get(v, v) if v and v in ban_do else v) for k, v in cho.items()} if cho else dict(ban_do)
+            jdump(p.f("_boq_cho_build.json"), {"map": gop, "tu": gio})
+    if bo_dong:
+        jdump(os.path.join(bk, "_dong_bo.json"), bo_dong)
+    jdump(os.path.join(d_dot, f"boq_{gio}.json"),
+          {"ngay": gio, "boq": p.cfg.get("boq"), "so_dong": [len(cu), len(moi)], "ban_do": ban_do,
+           "cach": {k: v[1] for k, v in khop.items()}, "xoa": xoa, "moi": them, "doi_noi_dung": doi_nd, "file_sua": sua})
+    if sua:
+        print(f"Đổi khóa trong {len(sua)} file (bản gốc: {bk}): {', '.join(sua[:15])}{' …' if len(sua) > 15 else ''}")
+    if bo_dong:
+        print(f"Bỏ {sum(len(v) for v in bo_dong.values())} dòng kết quả của dòng BOQ không còn -> {os.path.join(bk, '_dong_bo.json')}")
+    print(f"-> {os.path.join(d_dot, f'boq_{gio}.json')}  (dòng mới + nội dung đổi: giao lại banve/doichieu/ben/docsau cho đúng các khóa này)")
 
 
 # ---------------------------------------------------------------- phanloai
@@ -920,7 +1188,18 @@ def cmd_tcq(goc):
         else:
             r["Tình trạng trả lời"] = "Đã trả lời"
         rows.append(r)
+    cu_tcq = {s(r.get("Mã TCQ")): r for r in (jload(p.f("TCQ_LOG.tcq-tool.json")) or {}).get("rows", [])}
     write_tool(p, "TCQ_LOG", "tcq", rows)
+    td = jload(p.f("_thaydoi.json"))
+    if td is not None:  # đợt cập nhật (kiemke đã chạy >= 2 lần): ghi câu mới / câu đổi trả lời để thaydoi, doichieu báo MAT/SCOPE
+        nd = lambda r: tuple(s(r.get(c)) for c in ("Câu hỏi (EN)", "Trả lời (EN)"))
+        moi = [r["Mã TCQ"] for r in rows if r["Mã TCQ"] not in cu_tcq]
+        doi = [r["Mã TCQ"] for r in rows if r["Mã TCQ"] in cu_tcq and nd(r) != nd(cu_tcq[r["Mã TCQ"]])]
+        td["tcq_moi"] = sorted(set(td.get("tcq_moi", [])) | set(moi), key=so_tu_nhien)
+        td["tcq_doi"] = sorted((set(td.get("tcq_doi", [])) | set(doi)) - set(td["tcq_moi"]), key=so_tu_nhien)
+        jdump(p.f("_thaydoi.json"), td)
+        print(f"So với lần tcq trước: {len(moi)} câu mới, {len(doi)} câu đổi câu hỏi/trả lời. Cộng dồn đợt: "
+              f"{len(td['tcq_moi'])} mới, {len(td['tcq_doi'])} đổi (_thaydoi.json) -> thaydoi báo MAT, doichieu báo dòng SCOPE")
     c = Counter(r["Đợt TCQ"] for r in rows)
     print("Câu theo đợt:", ", ".join(f"TCQ{k:02d}={v}" for k, v in sorted(c.items())))
     print("Tình trạng:", ", ".join(f"{k}={v}" for k, v in Counter(r["Tình trạng trả lời"] for r in rows).items()))
@@ -1029,10 +1308,35 @@ def cmd_doichieu(goc):
     tcq, scope = res["TCQ_LOG"], res["SCOPE"]
     ma, tt = defaultdict(list), defaultdict(set)
     n_bo = 0
+    theo_khu, khong_dong, mot_phan = defaultdict(list), [], defaultdict(list)
     for k, r in tcq.items():
         if split_list(r.get("Bị thay bởi")):
             continue
         tp = phong_of(r.get("Mã phòng/Khu"))
+        for x in split_list(r.get("Mã phòng/Khu")):  # tên khu (sổ KHU) -> mã phòng của khu
+            if x in res["KHU"]:
+                tp |= phong_of(res["KHU"][x].get("Mã phòng"))
+        pham_vi = s(r.get("Trạng thái phạm vi")) in MAP_TT or "Phạm vi" in s(r.get("Loại thay đổi")) or s(r.get("Chủ đề")) == "Phạm vi"
+        if pham_vi and tp and not split_list(r.get("Dòng BOQ")) and not split_list(r.get("Mã VL")):
+            # câu phạm vi chỉ nói theo phòng/khu ("loại khu X khỏi gói"): nối mọi dòng BOQ của các phòng đó.
+            # Trạng thái nháp chỉ khi mọi mã phòng của dòng nằm trong câu; dòng dùng chung phòng khác -> chỉ Mã TCQ, báo XEM
+            n = 0
+            for key, sr in scope.items():
+                sp = phong_of(sr.get("Mã phòng"))
+                if not sp or not sp & tp:
+                    continue
+                n += 1
+                if k not in ma[key]:
+                    ma[key].append(k)
+                if sp <= tp:
+                    t = MAP_TT.get(s(r.get("Trạng thái phạm vi")))
+                    if t:
+                        tt[key].add(t)
+                else:
+                    mot_phan[k].append(key)
+            theo_khu[k] = n
+            if not n:
+                khong_dong.append(k)
         for key in split_list(r.get("Dòng BOQ")):
             if key in scope:
                 ma[key].append(k)
@@ -1059,6 +1363,24 @@ def cmd_doichieu(goc):
             rows.append(r)
     write_tool(p, "SCOPE", "doichieu", rows)
     print(f"Bỏ {n_bo} cặp TCQ–dòng trùng Mã VL nhưng khác mã phòng")
+    if theo_khu:
+        print(f"Câu TCQ phạm vi nối theo mã phòng/khu (không có Dòng BOQ, Mã VL): {len(theo_khu)} câu -> {sum(theo_khu.values())} cặp câu–dòng")
+    for k in khong_dong:
+        print(f"XEM: {k} nói phạm vi theo phòng/khu {s(tcq[k].get('Mã phòng/Khu'))!r} nhưng không có dòng BOQ nào của phòng đó")
+    for k, ds in mot_phan.items():
+        print(f"XEM: {k} chỉ nói một phần phòng của {len(ds)} dòng dùng chung (chưa gán Trạng thái, bước 7 quyết), vd: {', '.join(ds[:5])}")
+    td = jload(p.f("_thaydoi.json"))
+    if td and (td.get("tcq_moi") or td.get("tcq_doi")):  # dòng nối với câu TCQ mới/đổi của đợt -> danh sách giao lại bước 7, docsau --thaydoi
+        tm = set(td.get("tcq_moi", [])) | set(td.get("tcq_doi", []))
+        ah = (td.setdefault("anh_huong", {})).setdefault("SCOPE", {})
+        n = 0
+        for key in scope:
+            moi = [x for x in ma[key] if x in tm]
+            if moi:
+                ah[key] = sorted(set(ah.get(key, []) + [f"TCQ mới/đổi {x}" for x in moi]))
+                n += 1
+        jdump(p.f("_thaydoi.json"), td)
+        print(f"Dòng nối với TCQ mới/đổi của đợt: {n} -> thêm vào _thaydoi.json (anh_huong.SCOPE) cho bước 7 và docsau --thaydoi")
     print(f"Dòng có Mã TCQ: {sum(1 for r in rows if 'Mã TCQ' in r)}; có Trạng thái nháp:{sum(1 for r in rows if 'Trạng thái' in r)} / {len(scope)} dòng BOQ")
 
 
@@ -1340,7 +1662,17 @@ def cmd_thaydoi(goc):
         if ly:
             sc[k] = sorted(set(ly))
     mat = [k for k, r in res["MAT"].items() if any(l[1] in doi for l in links_of(r.get("Nguồn spec")))]
-    tcq = [k for k, r in res["TCQ_LOG"].items() if not s(r.get("Chủ đề"))]
+    tcq_dot = [k for k in td.get("tcq_moi", []) + td.get("tcq_doi", []) if k in res["TCQ_LOG"]]
+    tcq = list(dict.fromkeys(tcq_dot + [k for k, r in res["TCQ_LOG"].items() if not s(r.get("Chủ đề"))]))
+    mat_tcq = defaultdict(list)  # MAT bị TCQ mới/đổi nhắc: theo cột Mã VL (bước 3) hoặc mã xuất hiện trong câu hỏi/trả lời
+    rx_mat = {m: regex_ma(m) for m in res["MAT"]}
+    for k in tcq:
+        r = res["TCQ_LOG"][k]
+        chu = " ".join(s(_txt(r.get(c))) for c in ("Câu hỏi (EN)", "Trả lời (EN)", "Câu hỏi (VN)", "Trả lời (VN)", "Nội dung cuối (VN)"))
+        vl = set(split_list(r.get("Mã VL")))
+        for m, rx in rx_mat.items():
+            if m in vl or (rx and rx.search(chu)):
+                mat_tcq[m].append(k)
     cu = link_cu(res)
     phong = Counter(m for k in sc for m in phong_of(res["SCOPE"][k].get("Mã phòng")))
     print(f"Số BV có bản mới: {len(bv_moi)}")
@@ -1348,8 +1680,30 @@ def cmd_thaydoi(goc):
     for k in list(sc)[:15]:
         print(f"     {k}: {'; '.join(sc[k])}")
     print(f"MAT có nguồn spec đổi/mất: {mat or '—'}")
-    print(f"TCQ chưa phân loại (câu mới): {len(tcq)} {tcq[:12]}")
+    print(f"MAT được TCQ mới/đổi nhắc: {len(mat_tcq)} " + ("; ".join(f"{m} ({', '.join(v[:3])})" for m, v in list(mat_tcq.items())[:15]) or "—"))
+    mat = list(dict.fromkeys(mat + list(mat_tcq)))
+    print(f"TCQ mới/đổi của đợt + chưa phân loại: {len(tcq)} {tcq[:12]}")
     print(f"Link bản vẽ trỏ bản cũ (sau khi chạy dwg): {len(cu)}")
+    boq_dot = sorted(glob.glob(p.f(os.path.join("_dot", "boq_*.json"))))
+    boq_doi = {}
+    bd = jload(boq_dot[-1]) if boq_dot else {}
+    if bd and s(bd.get("ngay"))[:6] >= td["ngay"][2:].replace("-", ""):  # BOQ đổi từ ngày kiemke đợt này: dòng mới chưa có kết quả, dòng đổi nội dung cần xem lại
+        boq_doi = {k: ["dòng BOQ mới"] for k in bd.get("moi", [])}
+        boq_doi.update({k: ["BOQ đổi " + ", ".join(x["cot"])] for k, x in bd.get("doi_noi_dung", {}).items()})
+        print(f"BOQ bản mới lần gần nhất ({bd.get('ngay')}): {len(bd.get('moi', []))} dòng mới · {len(bd.get('doi_noi_dung', {}))} đổi nội dung · "
+              f"{len(bd.get('xoa', []))} dòng cũ không còn -> {boq_dot[-1]}")
+        for k, ly in boq_doi.items():
+            if k in res["SCOPE"]:
+                sc[k] = sorted(set(sc.get(k, []) + ly))
+    if tcq_dot:  # dòng đã nối (doichieu) với TCQ mới/đổi của đợt
+        tm = set(tcq_dot)
+        n = 0
+        for k, r in res["SCOPE"].items():
+            x = [m for m in split_list(r.get("Mã TCQ")) if m in tm]
+            if x:
+                sc[k] = sorted(set(sc.get(k, []) + [f"TCQ mới/đổi {m}" for m in x]))
+                n += 1
+        print(f"SCOPE nối với TCQ mới/đổi của đợt: {n} dòng" + ("" if n else " (chưa chạy doichieu thì chạy, doichieu tự thêm dòng vào đây)"))
     td["anh_huong"] = {"SCOPE": sc, "MAT": mat, "TCQ_LOG": tcq}
     jdump(p.f("_thaydoi.json"), td)
 
@@ -1417,7 +1771,9 @@ def ma_cua_dong(r, area):
     out = [ma_chuan(m) or (m if re.fullmatch(r"[A-Z]{2}-\d{4}", m) else None) for c in ("Mã VL", "Mã spec/FF&E") for m in split_list(r.get(c))]
     for c in ("Mục phụ", "Mô tả BOQ"):
         out += [x[0] for x in tach_ma(s(r.get(c))) if x[3] == "ffe" and x[0][:2] in area]
-    return list(dict.fromkeys(m for m in out if m))
+    out = list(dict.fromkeys(m for m in out if m))
+    mo_ta = s(r.get("Mô tả BOQ"))
+    return sorted(out, key=lambda m: mo_ta.find(m) if m in mo_ta else len(mo_ta))  # link theo thứ tự mã trong mô tả (cửa: vật liệu trước, phụ kiện sau)
 
 
 RX_NGU_VL = re.compile(r"marble|stone|granite|limestone|travertine|quartz|terrazzo|honed|veneer|timber|\bđá\b|\bgỗ\b", re.I)
@@ -1634,8 +1990,20 @@ def cmd_loc(goc, sheet, args):
 def run_check(p, den=None):
     errs, xem = [], []
     lim = STEPS.index(den) + 1 if den in STEPS else len(STEPS)
-    res, src = merge(p)
+    gl = []
+    res, src = merge(p, bao_giao_lai=gl)
     fidx = res["FILE_INDEX"]
+    if gl:  # file giao lại đã bỏ kết quả nhóm cũ cùng bước ở các dòng nó chạm tới
+        theo_file = defaultdict(list)
+        for fn, kk, bo in gl:
+            theo_file[fn].append((kk, bo))
+        for fn, ds in theo_file.items():
+            bo = sorted({b for _, x in ds for b in x}, key=so_tu_nhien)
+            xem.append(f"{fn} (giao_lai): bỏ kết quả {', '.join(bo)} ở {len(ds)} dòng")
+            chung = [kk for kk, _ in ds if len(phong_of(res["SCOPE"].get(kk, {}).get("Mã phòng"))) > 1] if fn.startswith("SCOPE.") else []
+            if chung:
+                xem.append(f"{fn} (giao_lai): {len(chung)} dòng dùng chung nhiều mã phòng — nhóm giao lại phải ghi đủ link/mã cho cả dòng "
+                           f"(phần phòng khác của nhóm cũ đã bị bỏ), vd: {', '.join(chung[:6])}")
     tool_keys = {sh: set(merge_keys) for sh, merge_keys in _tool_keys(p).items()}
     rc = set((jload(p.f("_boq_map.json")) or {}).get("ma_phong", []))
     for prio, fn, path, sheet, buoc, base in data_files(p):
@@ -1860,8 +2228,19 @@ def pull_user(p):
             for r in u["rows"]:
                 users[sheet][s(r.get(SHEETS[sheet]["khoa"]))] = r
 
+    cho = (jload(p.f("_boq_cho_build.json")) or {}).get("map")  # boq chạy lại sau build trước: file build trước mang khóa dòng cũ
+    rx_cho = _rx_khoa({k.rsplit("!", 1)[0] for k in cho}) if cho else None
+    mat_sua = []
+
     def note(sheet, key, col, val):
         nonlocal n
+        if cho:
+            key = doi_khoa(key, cho, rx_cho)
+            if "(đã xóa:" in key:
+                mat_sua.append(f"{sheet} {key} · {col}")
+                return
+            if isinstance(val, str):
+                val = doi_khoa(val, cho, rx_cho)
         k = SHEETS[sheet]["khoa"]
         row = users[sheet].setdefault(key, {k: key})
         x = SHEETS[sheet]["cot"][col]
@@ -1936,6 +2315,8 @@ def pull_user(p):
     for sheet, rows in users.items():
         if rows:
             jdump(p.f(f"{sheet}.user.json"), {"rows": list(rows.values())})
+    if mat_sua:
+        print(f"XEM: {len(mat_sua)} ô user sửa ở dòng BOQ đã không còn trong BOQ mới — không nhận: " + "; ".join(mat_sua[:10]) + (" …" if len(mat_sua) > 10 else ""))
     return n
 
 
@@ -2651,6 +3032,9 @@ def cmd_build(goc, args):
         sys.exit("LỖI: chưa chạy boq")
     snap_old = jload(p.f("_snapshot.json"))
     n_user = pull_user(p) if not ra else 0
+    cho = (jload(p.f("_boq_cho_build.json")) or {}).get("map")
+    if cho and snap_old:  # Ngày cập nhật: so dòng mới với chính dòng đó ở lần build trước (khóa cũ)
+        snap_old = doi_khoa(snap_old, cho, _rx_khoa({k.rsplit("!", 1)[0] for k in cho}))
     f_dmvt = loi_dmvt = None
     if not ra and os.path.exists(p.f("SCOPE.ben-tool.json")):  # nháp bên phải né ô user vừa sửa
         cmd_ben(goc)
@@ -2742,6 +3126,8 @@ def cmd_build(goc, args):
     if not ra:
         snap.update(boq_track=out, file_index=f_idx)
         jdump(p.f("_snapshot.json"), snap)
+        if cho:  # sửa tay theo khóa cũ đã nhận; snapshot mới mang khóa mới
+            os.replace(p.f("_boq_cho_build.json"), p.f(os.path.join("_dot", f"_boq_cho_build_da_dung_{datetime.datetime.now():%y%m%d-%H%M%S}.json")))
     print("Đã ghi:\n  " + "\n  ".join(x for x in (out, f_dmvt, f_idx, f_cdt) if x))
     print(f"Dòng BOQ {len(res['SCOPE'])} · TCQ {len(res['TCQ_LOG'])} · MAT {len(res['MAT'])} · DWG {len(res['DWG'])} · việc mở {len(vm)} · sửa tay user giữ {n_user}")
     print(f"{len(errs)} LỖI, {len(xem)} XEM (chi tiết ở sheet DASHBOARD)")
@@ -2927,7 +3313,7 @@ def main(a):
     if c == "gemini":
         return _docsau().cmd_gemini(rest)
     goc, rest = rest[0], rest[1:]
-    fn = {"init": lambda: cmd_init(goc, rest), "kiemke": lambda: cmd_kiemke(goc), "boq": lambda: cmd_boq(goc),
+    fn = {"init": lambda: cmd_init(goc, rest), "kiemke": lambda: cmd_kiemke(goc, rest), "boq": lambda: cmd_boq(goc, rest),
           "phanloai": lambda: cmd_phanloai(goc, rest), "ben": lambda: cmd_ben(goc), "goi": lambda: cmd_goi(goc, rest),
           "tcq": lambda: cmd_tcq(goc), "dwg": lambda: cmd_dwg(goc), "mat": lambda: cmd_mat(goc),
           "doichieu": lambda: cmd_doichieu(goc), "zip": lambda: cmd_zip(goc, rest[0], rest[1:]),

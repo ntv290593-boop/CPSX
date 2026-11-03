@@ -13,7 +13,7 @@
    | `Loại thay đổi` | KL / VL / Bản vẽ / Phạm vi / Không (nhiều: `VL; Bản vẽ`) |
    | `Trạng thái phạm vi` | Bao gồm / Loại trừ / Omit / VE / MEP / Owner / Chờ / Không đổi — chỉ khi câu nói về phạm vi của hạng mục |
    | `Mã VL` | mã vật liệu nêu trong câu/trả lời (WD-01; ST-07) |
-   | `Mã phòng/Khu` | mã phòng hoặc khu câu áp dụng (theo **mã phòng**, không theo số Area) |
+   | `Mã phòng/Khu` | mã phòng hoặc khu câu áp dụng (theo **mã phòng**, không theo số Area; khu ghi đúng tên ở sổ `KHU`). Câu phạm vi chỉ nói theo phòng/khu ("loại khu X khỏi gói"): ghi cột này + `Trạng thái phạm vi`, để trống `Dòng BOQ`, `Mã VL` → `doichieu` nối mọi dòng BOQ của phòng đó |
    | `Dòng BOQ` | khóa SCOPE khi câu chỉ rõ dòng BOQ (tìm: `loc <GOC> SCOPE "Mô tả BOQ~<từ khóa>" --cot Khóa,Mô tả BOQ,Mã phòng`). Không chắc → bỏ, đừng đoán |
    | `Nội dung cuối (VN)` | 1–2 câu: **kết luận cuối cùng** nhà thầu phải làm theo, có mã nguồn: "Veneer gỗ Walnut cho base; loại khác chào ở VE (TCQ06-1)". Câu bị thay → "Bị TCQ05-24 thay: …" |
    | `Câu hỏi (VN)`, `Trả lời (VN)` | chỉ khi tool chưa có bản dịch (dịch sát, giữ mã/số) |

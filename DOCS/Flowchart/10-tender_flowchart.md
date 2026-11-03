@@ -1,10 +1,10 @@
 # Flowchart skill 10-tender
 
-> Cập nhật lần cuối: 2026-11-01 · Theo code: `SKILL/10-tender/` (SKILL.md, `buoc/*.md`, `tool/td.py`)
-> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm + đọc sâu toàn gói chuyển từ 01-scan (`docsau`, `gemini`, `neo`, `tincay`, `so`, `do`; phần 10) đã làm, kiểm thử bằng dữ liệu mẫu và thử lệnh trên bản sao CTX, các bước LLM 7c–7e chưa chạy trên dự án thật. Main Lobby (BOQ thứ 2) chưa làm.
+> Cập nhật lần cuối: 2026-11-03 (2a BOQ ra bản mới; 2 cập nhật theo đợt: kiemke cộng dồn, tcq ghi câu mới/đổi, giao lại bước 6, TCQ phạm vi theo phòng/khu; vẽ lại phụ thuộc phần 0) · Theo code: `SKILL/10-tender/` (SKILL.md, `buoc/*.md`, `tool/td.py`, `tool/lap_boq.py` và các tool phần 9, `tool/docsau.py`)
+> Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm + đọc sâu toàn gói chuyển từ 01-scan (`docsau`, `gemini`, `neo`, `tincay`, `so`, `do`; phần 10) đã làm, kiểm thử bằng dữ liệu mẫu và thử lệnh trên bản sao CTX, các bước LLM 7c–7e chưa chạy trên dự án thật + dự án chưa có BOQ CĐT (mẫu `tu_lap_vn`, `lap_boq.py`; phần 9) đã build thật CTX, dòng cửa lấy vật liệu từ tag tờ cửa, `cua_ma_khung` (02/11, chưa commit) + add-in `SRC_LINKS` mở được khi chuyển file, mở từ SharePoint, máy khác cài bằng xlam rời. Main Lobby SOFITEL (BOQ thứ 2) chưa làm, chờ user quyết.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
-Sơ đồ gồm 10 phần (phần 9: dự án chưa có BOQ CĐT; phần 10: đọc sâu): luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu, danh mục vật tư.
+Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi có đợt mới, gộp dữ liệu và build, điểm thiết kế, phân loại Code ID, bên thực hiện và gửi nhà thầu phụ, sổ xuất hiện vật liệu, danh mục vật tư, dự án chưa có BOQ CĐT, đọc sâu toàn gói.
 
 # 0. LUỒNG TỔNG (phiên điều phối)
 
@@ -24,43 +24,56 @@ Sơ đồ gồm 10 phần (phần 9: dự án chưa có BOQ CĐT; phần 10: đ�
         │
         ▼   Mỗi bước: tool chạy trước, rồi subagent mới ghi JSON của bước.
             Sau bước: check --den <buoc>; LỖI → subagent sửa, tối đa 2 vòng.
+            Còn LỖI sau 2 vòng → ghi vào báo cáo, làm tiếp (LỖI "thiếu cột" của bước SAU là bình thường).
+            Đợt đầu chưa có TCQ: gần như mọi dòng là Base → báo user số nhóm 7d trước khi giao đọc sâu.
 
   1 kiemke ──► (xong bước) trang: đọc chữ PDF, chỉ file mới/đổi
      │
-     ├──────────────┬──────────────┐
-     ▼              ▼              ▼
-  2 boq          3 tcq          4 dwg
-  2b phanloai    ≤ 3 subagent   (sau 1)
-  (mục 5)        (sau 1, 2)
-     │              │              │
-     └──────┬───────┘              │
-            ▼                      │
-   HỎI USER 1 câu gộp (sau bước 1–3)
-            │                      │
-            ▼                      │
-         5 mat (sau 3)             │
-            │                      │
-            ├──────────────────────┘
-            ▼
-         6 banve  mỗi nhóm mã phòng/khu 1 subagent, song song (sau 4, 5)
-            │
-            ▼
-         doichieu (tool: nháp từ TCQ_LOG)
-            │
-            ▼
-         7 doichieu  mỗi 1–2 sheet BOQ 1 subagent (sau 3, 5, 6)
-            │
-            ▼
-         docsau (tool: gom cụm, chia nhóm ≤ 8 cụm) ──► 7c spec  1 subagent
-            │                                          7d docsau  mỗi nhóm 1 subagent, song song; Gemini đọc lại; neo
-            ▼                                          7e tincay  tool nháp rồi 1 subagent (mục 10)
-         8 dmvt  bóc A:I + ảnh, LLM dịch, chọn ảnh ca khó (mục 8; cần 5 mat)
-            │
-            ▼
+     ├─────────────────────────────┐
+     ▼                             ▼
+  2 boq                         4 dwg (sau 1, song song 2, 3)
+  2b phanloai (mục 5)              │  Ngoài scope lấy từ TCQ_LOG/README lúc chạy
+     │                             │
+     ▼                             │
+  3 tcq  ≤ 3 subagent (sau 2: Dòng BOQ lọc từ SCOPE)
+     │                             │
+     └──────────────┬──────────────┘
+                    ▼
+   HỎI USER 1 câu gộp (câu hỏi của bước 1–4)
+     user trả lời → README "Việc chưa quyết", *.user.json; vá Trạng thái DWG/KHU của bước 4
+                    │
+                    ▼
+                 5 mat (sau 3)
+                    │
+     ┌──────────────┼───────────────────────────┐
+     ▼              ▼                           ▼
+  6 banve        8 dmvt  bóc A:I + ảnh,      7b ben  dự án có
+  mỗi nhóm mã    LLM dịch, chọn ảnh ca khó   _data\_ben.json: nháp
+  phòng/khu 1    (mục 8; chỉ cần 5; Area     bên, tender duyệt (mục 6;
+  subagent,      lấy Mã VL dòng BOQ, build   build tự chạy lại ben)
+  song song      dựng lại nên 6, 7 sửa sau
+  (sau 4, 5)     vẫn đúng)
+     │              │                           │
+     ▼              │                           │
+  doichieu (tool: nháp từ TCQ_LOG theo Dòng BOQ, Mã VL, câu phạm vi theo phòng/khu)
+     │              │                           │
+     ▼              │                           │
+  7 doichieu  mỗi 1–2 sheet BOQ 1 subagent (sau 3, 5, 6)
+     │              │                           │
+     ▼              │                           │
+  docsau (tool: gom cụm, chia nhóm ≤ 8 cụm)     │
+     ├─► 7c spec    1 subagent (sau 5, 7)       │
+     ├─► 7d docsau  mỗi nhóm 1 subagent, song song (sau 6, 7)
+     │      → gemini --cum (người đọc thứ 2) → neo: NEO LỆCH gửi lại nhóm, ≤ 2 vòng
+     ▼              │                           │
+  7e tincay  tool nháp rồi 1 subagent (sau 7c, 7d; mục 10)
+     │              │                           │
+     └──────────────┴───────────────┬───────────┘
+                                    ▼
          9 build  (luôn dựng DMVT trước để có số hàng; không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi)
             │
             ├─► 03_boq\<DA>_DMVT_<yymmdd>.xlsx
-            ├─► 03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (cột Link vật tư trỏ dòng DMVT)
+            ├─► 03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (cột Link vật tư trỏ dòng DMVT; bản cùng ngày tự sao _backup)
             ├─► 01_index\FILE_INDEX.xlsx
             ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx (không tự gửi)
             └─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
@@ -90,7 +103,10 @@ Sơ đồ gồm 10 phần (phần 9: dự án chưa có BOQ CĐT; phần 10: đ�
         │
         ├─► FILE_INDEX.kiemke-tool.json
         ├─► _chuky.json
-        └─► _thaydoi.json (từ lần 2: file mới / đổi / mất)
+        ├─► _thaydoi.json (từ lần 2: file mới / đổi / mất, CỘNG DỒN các lần cùng đợt)
+        │     --dot-moi (lần đầu của đợt mới): danh sách cũ → _dot\_thaydoi_dot_truoc_<giờ>.json
+        └─► _dot\kiemke_<giờ>.json (từng lần, không ghi đè)
+              tcq_moi / tcq_doi trong _thaydoi.json (do lệnh tcq ghi) được giữ qua các lần kiemke
 ```
 
 Subagent bước 1 gán `Vai trò` cho file còn trống, đọc mail từng đợt, ghi `README.md` của `10_TENDER`.
@@ -117,23 +133,76 @@ Subagent bước 1 gán `Vai trò` cho file còn trống, đọc mail từng đ�
 
 ```
  Đặt thư mục đợt vào hồ sơ
-   → init --tcq (nếu đổi) → kiemke → bước 1 (file mới) → trang → tcq
+   → init --tcq (nếu đổi)
+   → kiemke --dot-moi (lần đầu của đợt; chạy lại trong đợt thì không thêm cờ, danh sách cộng dồn)
+   → bước 1 (file mới) → trang
+   → tcq: so với TCQ_LOG.tcq-tool.json cũ → câu mới / đổi câu hỏi, trả lời → _thaydoi.json (tcq_moi, tcq_doi)
+   → BOQ ra bản mới? init --boq <file mới> (tu_lap_vn: lap_boq.py tự trỏ) → boq (xem 2a)
    → bước 3 (đợt mới) → dwg, mat
-   → thaydoi: dòng SCOPE/MAT/TCQ bị ảnh hưởng
-   → bước 4, 5 (phần mới) → bước 6 (mã phòng thaydoi báo)
-   → doichieu → bước 7 (dòng có Mã TCQ mới hoặc thaydoi báo) → build
+   → thaydoi ─► _thaydoi.json anh_huong:
+        SCOPE: link tới file đổi/mất · Số BV có bản mới · dòng BOQ mới / đổi nội dung (_dot\boq_*.json)
+               · dòng đã nối với TCQ mới/đổi
+        MAT:   nguồn spec đổi/mất · mã được TCQ mới/đổi nhắc (cột Mã VL hoặc chữ câu hỏi/trả lời, regex_ma)
+        TCQ:   mới/đổi của đợt + chưa phân loại
+   → bước 4 (phần mới), bước 5 (mã MAT thaydoi báo, kể cả khi đã có JSON)
+   → bước 6 giao lại (mã phòng thaydoi báo): SCOPE.banve-<n lớn hơn nhóm cũ>.json + "giao_lai": true
+        dòng file chạm tới: bỏ kết quả nhóm banve cũ (ô về nháp tool) rồi ghi → tờ bỏ, mã VL đổi không sót
+        dòng dùng chung nhiều mã phòng: nhóm mới ghi đủ cả dòng; check báo XEM
+   → doichieu: nháp Mã TCQ / Trạng thái
+        Dòng BOQ của câu · trùng Mã VL (khác phòng thì bỏ)
+        câu phạm vi chỉ có Mã phòng/Khu (khu → mã phòng qua sổ KHU), không Dòng BOQ / Mã VL
+          → mọi dòng của phòng đó; Trạng thái nháp chỉ khi mọi phòng của dòng nằm trong câu
+          → dòng dùng chung phòng khác: chỉ Mã TCQ, XEM; câu không khớp dòng nào: XEM
+        dòng nối với TCQ mới/đổi → thêm vào anh_huong.SCOPE
+   → bước 7 (dòng trong anh_huong.SCOPE) → docsau --thaydoi → 7c, 7d (cụm bị ảnh hưởng) → tincay → 7e
+   → build
 ```
 
 Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy lại. Không xóa `*.user.json`, `_snapshot.json`.
+
+## 2a. BOQ ra bản mới: chuyển kết quả theo nội dung dòng
+
+```
+ Khóa dòng = '<sheet>!<hàng>' (vị trí). BOQ chèn/xóa hàng → khóa cũ trỏ sang dòng khác.
+ boq chạy lại, có SCOPE.boq-tool.json cũ
+        │
+        ▼
+ Khớp dòng cũ ↔ mới (theo từng sheet, giữ thứ tự)
+   giống:      Vùng + Nhóm + Mục phụ + Mô tả BOQ + ĐV trùng (không xét Item, KL)
+   gần giống:  ở đúng đoạn bị sửa, cùng ĐV, Mô tả giống ≥ 85%
+   khác sheet: còn lại, nội dung trùng, cùng số lần ở hai bên
+   còn lại:    cũ không còn / dòng mới
+        │
+        ├─ boq --thu: chỉ in, không ghi
+        ▼
+ Đổi khóa trong mọi *.json của _data (trừ SCOPE.boq-tool, _boq_map, _snapshot, _chuky,
+   _thaydoi, _lap_boq_dong), kể cả _gemini_so\<cụm>.json (đổi cả tên file)
+   bản gốc → _data\_dot\boq_<giờ>\
+   dòng có Khóa của dòng đã xóa → bỏ, lưu _dot\boq_<giờ>\_dong_bo.json
+   khóa đã xóa ở cột khác (TCQ_LOG Dòng BOQ…) → "(đã xóa: <sheet> dòng <n>)", check báo LỖI để sửa
+   _loc theo Khóa/Dòng/Cụm đọc → XEM, sửa tay
+        │
+        ▼
+ _dot\boq_<giờ>.json: bản đồ khóa, dòng xóa, dòng mới, dòng đổi nội dung (cột nào)
+ _boq_cho_build.json: bản đồ từ khóa của lần build trước (ghép nếu boq chạy nhiều lần trước build)
+        │
+        ▼
+ build: pull_user đổi khóa sửa tay trong BOQ_TRACK cũ theo bản đồ; sửa ở dòng đã xóa → XEM, không nhận
+        Ngày cập nhật so với chính dòng đó ở lần build trước; xong → chuyển _boq_cho_build vào _dot
+```
 
 # 3. GỘP DỮ LIỆU VÀ BUILD
 
 ```
  Ưu tiên theo ô:  *.<buoc>-tool.json  <  *.<buoc>.json (LLM)  <  *.user.json
+ Cùng bước nhiều nhóm: xếp theo số nhóm (banve = nhóm 0 < banve-2 < banve-10), file sau thắng;
+   ô LINK / cột mã của nhóm khác cùng bước: GỘP (hợp link, hợp mã)
+   file có "giao_lai": true: dòng nó chạm tới bỏ kết quả các nhóm trước cùng bước, không gộp
         │
         ▼
  build: kéo chỗ user sửa trong xlsx vào *.user.json
-        (hàng BOQ bị chèn/xóa → dừng, không nhận sửa tay)
+        (hàng sheet BOQ trong BOQ_TRACK bị user chèn/xóa → dừng, không nhận sửa tay;
+         BOQ CĐT ra bản mới thì đi đường 2a, không dừng)
         Ô được kéo ngược từ sheet BOQ: 3 cột chính thức + Mã cấp 3 + Bên thực hiện + Mã cấu tạo
         Sheet CAU_TAO: thêm, sửa, xóa dòng đều nhận
         │
@@ -272,13 +341,14 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
      Link vật liệu thêm trang tập FF&E (file không có Số BV) mà bước banve đã ghi
      Bản vẽ hiệu lực gốc không đổi (goi đọc số BV, Ngày cập nhật so theo cột này)
      DASHBOARD đếm dòng FF&E không có link sản phẩm
+   Thứ tự mã trong ô = thứ tự mã trong Mô tả BOQ (cửa: vật liệu trước, phụ kiện sau); mã không có trong mô tả xếp cuối
    1 trang chỉ 1 link
 ```
 
 # 8. DANH MỤC VẬT TƯ (td.py dmvt → dmvt.py, dmvt_xlsx.py)
 
 ```
- _dmvt.json (không bắt buộc: tiêu đề, tiền tố FF&E, item_spec, mục I, II…, chon_anh)   MAT, AREA, SCOPE, TCQ_LOG, VL_XUATHIEN
+ _dmvt.json (không bắt buộc: tiêu đề, tiền tố FF&E, item_spec, mục I, II…, chon_anh)   MAT, AREA, SCOPE, TCQ_LOG
         │                                                                     │
         ▼                                                                     │
  Quét trang spec, bản mới nhất THEO TỪNG MÃ                                   │
@@ -345,8 +415,20 @@ soi_tag.py                    vẽ 1 tờ để xem riêng
         ▼
 lap_boq.py <GOC>              cấu hình riêng dự án: _data/_lap_boq.json; tự trỏ boq trong _cauhinh.json sang file vừa ghi
   phạm vi tick (cột X, gói) + tag theo khu + spec + lịch cửa
+  Dòng cửa (vl_cua_tu_tag): mô tả "Rộng x Cao mm. Vật liệu: <mã>. Phụ kiện: <HD>"
+    → Mã VL, Link vật liệu, Link vật tư có đủ gỗ, kim loại, kính, phụ kiện
+    Vật liệu = tag trên ô cửa của tờ lịch (chữ mã cửa cỡ lớn gần nhất bên trái, cùng hàng)
+             + mặt cắt tờ chi tiết (cột khung hình; bỏ tag mặt bằng chi tiết vì chỉ cả tường hai bên)
+             DOOR 10 không chữ cái → áp cho D10a, D10b. Sắp WD, SP, WC, UP, MT, GL, ST
+    Bộ HD = ghi chú lịch; lịch không ghi → tag mặt đứng
+    Nguồn tờ của dòng thêm các tờ cửa có tag
+    Cờ [XEM]: mã gỗ, bộ HD lệch giữa 2 tờ; mã chưa chốt (WD-XX, WD-0x); xếp cửa gỗ mà tag không có mã gỗ;
+              không có tag vật liệu; bộ HD lấy từ mặt đứng
+    Máy không phân biệt tag chỉ cánh hay khung → khai cua_ma_khung (mã cửa → mã → ghi chú) trong _lap_boq.json:
+      mã rời khỏi dòng, ghi chú vào cờ
   → 0.BOQ_TU_LAP/<DA>_BOQ_tu_lap_<yymmdd>.xlsx, chép từ form của user
   Mỗi sheet: công tác (A) → khu (A.1) → mã. Cột Ghi chú: gói, nguồn tờ, cờ [XEM]
+  Kích thước cột E, F → BOQ_TONGHOP qua cột Kích thước BoQ
   Sheet "Ghi chú & ngoài phạm vi": mã có trên bản vẽ nhưng không được tick
         │
         ▼
@@ -360,6 +442,7 @@ phanloai → check (cấu trúc)
 kiem_boq.py <GOC>             kiểm đúng sai, độc lập với lap_boq.py → _kiem_boq.json, VIEC_MO
   K1 tờ link có mã không · K2 không nguồn · K3 PDF khớp số tờ · K4, K5 sót
   K6 đếm lại · K7 kích thước · K8 mã trùng
+  check, kiem_boq không đọc xlsx đã build → trước khi giao đọc lại BOQ_TONGHOP, xem ảnh dòng có cờ của DMVT
         │
         ▼
 build (dmvt: _dmvt.json "nguon_spec": "spec_boc" → nội dung và ảnh từ _spec_boc.json,

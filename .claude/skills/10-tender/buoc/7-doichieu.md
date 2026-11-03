@@ -2,7 +2,7 @@
 
 **Ghi:** `SCOPE.doichieu-<n>.json` (`Trạng thái`, `Mã TCQ`, `Nội dung cuối (VN)`, `Loại thay đổi`, `Việc còn mở`, `Mô tả NT – Base`, `Mã VL`, `Nguồn`), `VIEC_MO.doichieu-<n>.json`.
 Không ghi `Bên thực hiện`, `Mã cấp 3`: 2 chiều này độc lập với bước này (`Bên thực hiện` do tender quyết định, nằm ở `SCOPE.ben.json`; `Mã cấp 3` do `phanloai`). Không suy `Trạng thái` từ chúng.
-**Chỉ làm các sheet được giao.** Tool `doichieu` đã nháp: `Mã TCQ` (TCQ còn hiệu lực có `Dòng BOQ` = dòng này, hoặc trùng `Mã VL`) và `Trạng thái` khi TCQ nói rõ (Bao gồm→Base, Loại trừ, Omit, VE, Chờ).
+**Chỉ làm các sheet được giao.** Tool `doichieu` đã nháp: `Mã TCQ` (TCQ còn hiệu lực có `Dòng BOQ` = dòng này, trùng `Mã VL`, hoặc câu phạm vi không có `Dòng BOQ`/`Mã VL` mà `Mã phòng/Khu` trùng phòng của dòng; dòng dùng chung phòng khác thì chỉ có `Mã TCQ`, bạn quyết `Trạng thái`) và `Trạng thái` khi TCQ nói rõ (Bao gồm→Base, Loại trừ, Omit, VE, Chờ).
 
 ## Làm
 1. Đọc README (thứ tự ưu tiên, phạm vi loại trừ, bẫy). Dòng của nhóm: `loc <GOC> SCOPE "Sheet=<sheet>" --cot "Khóa,Vùng,Nhóm,Mô tả BOQ,Mã phòng,Ghi chú BOQ,Mã VL,Mã TCQ,Trạng thái,Bản vẽ hiệu lực" --max 400`.

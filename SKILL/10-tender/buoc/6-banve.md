@@ -16,6 +16,10 @@
 5. `02_extract\<mã>.md` — trích gọn để người khác đọc thay bản vẽ (≤ 80 dòng): bộ tờ hiệu lực (Số BV – tên – ngày), vật liệu theo khu vực (sàn/tường/trần/WC), đồ built-in & FF&E chính (mã), điểm khác BOQ, điểm khác bản cũ/TCQ. Mỗi ý có Số BV hoặc mã TCQ.
 6. Hạng mục thấy trên bản vẽ mà không có dòng BOQ, hoặc dòng BOQ không thấy trên bản vẽ → VIEC_MO (Liên quan = mã phòng + Số BV/khóa).
 
+## Giao lại (đợt mới, mã phòng `thaydoi` báo)
+- File mới `SCOPE.banve-<n>.json` với `<n>` lớn hơn mọi nhóm cũ, thêm `"giao_lai": true` (xem `JSON.md`). Ghi **đủ** `Bản vẽ hiệu lực`, `Mã VL`, `Mã spec/FF&E`, `Nguồn` cho mọi dòng của mã phòng được giao. Kết quả nhóm cũ ở các dòng đó bị bỏ, nên tờ đã bỏ hay mã VL đã đổi không còn sót lại.
+- Dòng dùng chung với mã phòng khác (cột `Mã phòng` có nhiều mã): xem giá trị hiện tại bằng `loc`, giữ phần của phòng khác trong file của bạn.
+
 ## Trước khi trả kết quả
 - Mọi dòng của nhóm có `Bản vẽ hiệu lực` (link hoặc "KHÔNG THẤY – …"); `check --den banve` không còn LỖI ở file của bạn.
 - Trả về: số dòng đã gán, số dòng KHÔNG THẤY, file extract đã ghi, lệch BOQ ↔ bản vẽ chính.

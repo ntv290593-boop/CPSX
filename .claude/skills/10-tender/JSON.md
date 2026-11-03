@@ -44,6 +44,7 @@ DMVT không qua `merge`: `_dmvt.json` (cấu hình dự án), `_dmvt_boc.json` v
 ]}
 ```
 - Sheet KHÓA: mỗi dòng có cột khóa, chỉ ghi các cột của bạn; tool ghép theo khóa. Với SCOPE / TCQ_LOG / DWG **không được thêm khóa mới** (khóa phải có trong nháp tool — xem bằng `loc`).
+- **Giao lại một phần bước** (vd bước 6 cho mã phòng `thaydoi` báo): file nhóm mới đánh số lớn hơn mọi nhóm cũ của bước, thêm `"giao_lai": true` cạnh `"rows"`. Mỗi dòng file này chạm tới (khóa cụ thể hoặc `_loc`) bỏ hết kết quả các nhóm trước cùng bước (ô quay về nháp tool), rồi mới ghi. Không có cờ thì nhóm cùng bước được **gộp** (link, mã cộng dồn). Dòng dùng chung nhiều mã phòng: nhóm giao lại phải ghi đủ cho cả dòng; `check` báo XEM các dòng này. Chỉ áp cho sheet có khóa (không áp VIEC_MO).
 - **Dòng mẫu `_loc`** (tiết kiệm token): `{"_loc": {"cột": "regex", …}, "cột A": "giá trị"}` → áp cho mọi dòng khớp tất cả regex (không phân biệt hoa thường). Dòng có khóa cụ thể luôn ghi đè dòng mẫu trong cùng file. Dùng cho gán hàng loạt (vd mọi file trong 1 thư mục, mọi dòng 1 nhóm BOQ), rồi ghi dòng cụ thể cho ngoại lệ.
 - Số (SO) ghi dạng số. Danh sách (DS) đúng 1 giá trị; DSN nhiều giá trị cách `; `. Ngày `yyyy-mm-dd`. Nhiều mã trong 1 ô (Mã VL, Dòng BOQ, Mã TCQ): cách nhau `; `.
 - Không có giá trị → **bỏ cột**, đừng ghi `""`, `0`, `"?"`. Muốn **xóa** giá trị nháp sai của tool (vd `Mã TCQ` không liên quan) → ghi `"(xóa)"`.
