@@ -152,13 +152,23 @@ Public Function SL_UrlToLocal(ByVal url As String) As String
     Dim reg As Object, fso As Object, names As Variant, n As Variant, ns As Variant, mp As Variant
     Dim u As String, ns2 As String, best As String, bestMp As String, cand As String, mounts As New Collection
     Dim segs() As String, i As Long, j As Long, m As Variant, duoi As String
-    On Error GoTo Ket
     Set fso = CreateObject("Scripting.FileSystemObject")
-    Set reg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
-    reg.EnumKey HKCU, KEY_OD, names
-    If Not IsArray(names) Then Exit Function
     u = Replace(url, "%20", " ")
     If Right$(u, 1) <> "/" Then u = u & "/"
+    'Du phong khi WMI/registry bi chan: thu muc OneDrive lay tu bien moi truong (doc Unicode qua WScript.Shell)
+    On Error Resume Next
+    Dim sh As Object, ev As Variant, evp As String
+    Set sh = CreateObject("WScript.Shell")
+    For Each ev In Array("OneDriveCommercial", "OneDrive", "OneDriveConsumer")
+        evp = sh.ExpandEnvironmentStrings("%" & ev & "%")
+        If Len(evp) > 0 And Left$(evp, 1) <> "%" Then
+            If fso.FolderExists(evp) Then mounts.Add evp
+        End If
+    Next ev
+    Set reg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
+    If Not reg Is Nothing Then reg.EnumKey HKCU, KEY_OD, names
+    On Error GoTo Ket
+    If Not IsArray(names) Then names = Array()
     For Each n In names
         ns = Null: mp = Null
         reg.GetStringValue HKCU, KEY_OD & "\" & n, "UrlNamespace", ns

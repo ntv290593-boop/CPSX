@@ -74,6 +74,7 @@ DUOI_SCOPE = {".xlsx", ".xlsm", ".xls", ".pdf", ".doc", ".docx"}
 RX_DWG = r"(?<![A-Z0-9])([A-Z]{1,4}(?:-[A-Z0-9]{1,5}){1,3}-\d{3}[A-Z]?)(?![0-9])"
 RX_VL = re.compile(r"(?<![\w-])([A-Z]{2,3}-\d{2}[A-Z]?)(?![\w-])")
 RX_FFE = re.compile(r"(?<![\w-])(\d{2}-\d{3}[A-Z]?)(?![\w-])")
+RX_FFE4 = re.compile(r"(?<![\w.-])([A-Z]{2}-\d{4}(?:\.\d{1,2})?[A-Z]?)(?![\w-])")  # mã FF&E 4 số (mẫu spec AID: CG-2102, SX-2200.1)
 RX_ROOM = re.compile(r"^([A-Z]{2,3}-\d{2}[A-Z]?)")
 RX_URL = re.compile(r"https?://\S+")
 RX_NGU_PHONG = re.compile(r"\b(rooms?|units?|suites?|room type|căn|phòng|loại phòng)\b", re.I)
@@ -89,6 +90,23 @@ def ma_vl(text, rc, tien_to):
             continue
         out.add(c)
     return sorted(out)
+
+
+RX_TU_MA = re.compile(r"(?<![\w-])([A-Za-z]{1,4}-?\d{1,4}[A-Za-z]?)(?![\w-])")
+
+
+def ma_vl_da_biet(p, out, room_codes):
+    """Bảng mã VL đã biết: mã ở cột mã riêng của BOQ (mẫu cot_ma) + sổ MAT (bước mat/LLM đọc spec, material schedule)."""
+    biet = {m for r in out for m in r.get("_ma_cot", [])}
+    for f in ("MAT.mat.json", "MAT.mat-tool.json"):
+        biet |= {s(x.get("Mã VL")).upper() for x in (jload(p.f(f)) or {}).get("rows", []) if s(x.get("Mã VL"))}
+    return {m for m in biet if re.search(r"\d", m) and m not in room_codes}
+
+
+def ma_vl_theo_bang(text, biet):
+    """Mã trong chữ khớp nguyên từ với bảng mã đã biết (không phân biệt hoa thường: PT1a = PT1A), theo thứ tự xuất hiện."""
+    out = (m.group(1).upper() for m in RX_TU_MA.finditer(text) if m.group(1).upper() in biet)
+    return list(dict.fromkeys(m for m in out if not (RX_FFE.fullmatch(m) or RX_FFE4.fullmatch(m))))  # mã FF&E thuộc cột Mã spec/FF&E
 
 
 def phong_of(v):
@@ -123,6 +141,9 @@ class P:
         self.cfg = json.load(open(f, encoding="utf-8")) if os.path.exists(f) else None
         self.inp = os.path.join(self.goc, self.cfg["input"]) if self.cfg else None
         self.mau = nap_mau((self.cfg or {}).get("mau") or "cdt_item")
+        if (self.cfg or {}).get("rx_phong"):  # dự án đặt mã phòng khác dạng XX-01 (vd Blanca: STUDIO, 1BR, TYPE 1A)
+            global RX_ROOM
+            RX_ROOM = re.compile(self.cfg["rx_phong"])
 
     def need(self):
         if not self.cfg:
@@ -708,6 +729,7 @@ def cmd_boq(goc, args=()):
         unit = next((j for j in range(width) if cells[j] in td["dv"] or sub_l[j] in td["dv"]), None)
         qty = next((j for j in range(width) if any(k in cells[j] for k in td["kl"])), None)
         remarks = [j for j in range(width) if cells[j] in td.get("ghi_chu", ["remark"])]
+        cot_ma = [j for j in range(width) if cells[j] in p.mau.get("cot_ma", [])]  # mẫu có cột mã riêng (vd MÃ SP): lấy thẳng vào Mã VL
         ve = next((j for j in range(width) if re.match(r"ve\b", low(top[j]))), None)
         last = max(j for j in range(width) if any(s(x[j]) for x in (top, hr, sub))) + 1
         rooms, grp = [], ""
@@ -727,6 +749,9 @@ def cmd_boq(goc, args=()):
                           "phong": [[L(j + 1), lab] for j, lab in rooms], "ghi_chu": [L(j + 1) for j in remarks]}
         vung = nhom = muc = None
         n = 0
+        phong_sheet = (p.cfg.get("phong_theo_sheet") or {}).get(ws.title)  # BOQ không có cột phòng, mỗi sheet = 1 loại căn
+        if phong_sheet and not rooms:
+            room_codes.add(phong_sheet)
         for i in range(h + 2, len(rows)):
             r = rows[i]
             item = s(r[ic])
@@ -756,13 +781,18 @@ def cmd_boq(goc, args=()):
                 ph = [f"{lab}:{s(num(r[j]))}" for j, lab in rooms if num(r[j])]
                 if ph:
                     row["Mã phòng"] = " | ".join(ph)
+                elif phong_sheet and not rooms:
+                    row["Mã phòng"] = phong_sheet
                 gc = []
                 for j in remarks:
                     if s(r[j]):
                         gc.append(s(r[j]) if "ghi_chu" in td else ("VE: " if ve is not None and j >= ve else "Base: ") + s(r[j]))
                 if gc:
                     row["Ghi chú BOQ"] = " | ".join(gc)
-                ffe = sorted(set(RX_FFE.findall(full)))
+                ma_cot = [m for j in cot_ma for m in re.split(r"[;,/\s]+", s(r[j]).upper()) if m]
+                if ma_cot:
+                    row["_ma_cot"] = ma_cot
+                ffe = sorted(set(RX_FFE.findall(full)) | set(RX_FFE4.findall(full)))
                 if ffe:
                     row["Mã spec/FF&E"] = "; ".join(ffe)
                 out.append(row)
@@ -770,7 +800,9 @@ def cmd_boq(goc, args=()):
             else:
                 c1, c2 = s(r[ic + 1]) if ic + 1 < dend else "", s(r[ic + 2]) if ic + 2 < dend else ""
                 c3 = " ".join(s(x) for x in r[ic + 3:dend] if s(x))
-                if c1 and not c2 and not c3:
+                if c1 and not c2 and not c3 and p.mau.get("c1_la_muc") and nhom:
+                    muc = c1  # mẫu cdt_vn: dòng chỉ có tên ở cột B dưới mục La Mã (SÀN, TƯỜNG…) là mục phụ
+                elif c1 and not c2 and not c3:
                     vung, nhom, muc = c1, None, None
                 elif c2:
                     nhom, muc = c2, None
@@ -780,8 +812,12 @@ def cmd_boq(goc, args=()):
     # Mã VL tính sau khi biết mọi mã phòng (mã phòng có thể nằm ở sheet sau) và mọi họ mã VL
     tien_to = set(p.cfg.get("vl_tien_to", [])) | {c.split("-")[0] for r in out for c in RX_VL.findall(r["_full"]) if c not in room_codes}
     trung = set()
+    biet = ma_vl_da_biet(p, out, room_codes)
     for r in out:
-        vl = ma_vl(r.pop("_full"), room_codes, tien_to)
+        full = r.pop("_full")
+        vl = ma_vl(full, room_codes, tien_to)
+        # mã không gạch nối (WO1, FR1, LM4a) regex chung không bắt: nhận khi là mã đã biết (cột mã của BOQ, sổ MAT)
+        vl = list(dict.fromkeys(r.pop("_ma_cot", []) + list(vl) + ma_vl_theo_bang(full, biet)))
         trung |= set(vl) & room_codes
         if vl:
             r["Mã VL"] = "; ".join(vl)
@@ -1207,6 +1243,48 @@ def cmd_tcq(goc):
 
 
 # ---------------------------------------------------------------- dwg
+def dwg_trang(p, res, ver):
+    """Bản vẽ là PDF nhiều tờ (file không có Số BV): tách sổ DWG theo từng trang, số tờ lấy ở khung tên (cache `trang`).
+    Bật bằng _cauhinh `dwg_theo_trang`: {"rx": regex số tờ, "tien_to": [[regex đường dẫn, tiền tố], …]} — tiền tố
+    (vd loại căn) ghép trước số tờ khi số tờ lặp giữa các bộ (Blanca: ID-01-02 có ở mọi Type 2PN)."""
+    cf = p.cfg.get("dwg_theo_trang")
+    if not cf:
+        return
+    rx = re.compile(cf["rx"])
+    tt = [(re.compile(a, re.I), b) for a, b in cf.get("tien_to", [])]
+    n = 0
+    for fid, r in pdf_rows(res).items():
+        if s(r.get("Số BV")) or s(r.get("Vai trò")) in ("Ngoài scope", "Mail"):
+            continue
+        c = jload(p.f(os.path.join("_text", fid + ".json")))
+        if not c:
+            continue
+        path = s(r.get("Đường dẫn")) + "/" + s(r.get("Trong zip"))
+        pre = next((b for a, b in tt if a.search(path)), "")
+        k = (s(r.get("Ngày issue")), dot_of(s(r.get("Đường dẫn")))[2], s(r.get("Ngày đợt")), s(r.get("Đợt")))
+        parts = path.strip("/").split("/")
+        for i, pg in enumerate(c.get("pages", [])):
+            so = s(pg.get("so")).upper()
+            if not rx.fullmatch(so):
+                t = s(pg.get("text")).upper()
+                duoi = list(dict.fromkeys(m.group(0) for m in rx.finditer(t[-700:])))  # khung tên nằm cuối lớp chữ
+                ms = list(dict.fromkeys(m.group(0) for m in rx.finditer(t)))
+                if len(duoi) == 1:
+                    so = duoi[0]
+                elif ms and len(ms) <= 3:
+                    so = ms[-1]
+                else:  # không có số, hoặc trang danh mục BV
+                    continue
+            bv = f"{pre} {so}".strip()
+            v = ver[bv][k]
+            v.setdefault("trang", []).append((fid, i + 1))
+            v["pdf"].append(fid)
+            v["cu"] = v["cu"] and s(r.get("Vai trò")) == "Bản cũ/Trùng"
+            v["khu"] = pre or (parts[-2] if len(parts) > 1 else "")
+            n += 1
+    print(f"dwg_theo_trang: {n} trang có số tờ")
+
+
 def cmd_dwg(goc):
     p = P(goc).need()
     res, _ = merge(p)
@@ -1224,6 +1302,7 @@ def cmd_dwg(goc):
         v["cu"] = v["cu"] and s(r.get("Vai trò")) == "Bản cũ/Trùng"
         parts = (s(r.get("Đường dẫn")) + "/" + s(r.get("Trong zip"))).strip("/").split("/")
         v["khu"] = parts[-2] if len(parts) > 1 else ""
+    dwg_trang(p, res, ver)
     rows, nghi = [], []
     for bv in sorted(ver):
         vs = ver[bv]
@@ -1239,7 +1318,9 @@ def cmd_dwg(goc):
         r = {"Số BV": bv, "Khu (thư mục)": v["khu"], "Đợt hiệu lực": k[3], "Số bản": len(ks), "Trạng thái": "Hiệu lực"}
         if k[0] or k[2]:
             r["Ngày issue hiệu lực"] = k[0] or k[2]
-        if v["pdf"]:
+        if v.get("trang"):
+            r["File PDF"] = [[f"{bv} PDF", f, t] for f, t in v["trang"]]
+        elif v["pdf"]:
             r["File PDF"] = [[f"{bv} PDF", f] for f in v["pdf"]]
         if v["dwg"]:
             r["File DWG"] = [[f"{bv} DWG", f] for f in v["dwg"]]
@@ -1269,15 +1350,26 @@ def cmd_mat(goc):
         t = s(r.get("Câu hỏi (EN)")) + " " + s(r.get("Trả lời (EN)"))
         for m in ma_vl(t, rc, tien_to):
             tcq[m].append(k)
-    rows = []
+    rows, khac_nghia = [], []
     for m in sorted(set(boq) | set(tcq)):
         r = {"Mã VL": m, "Số dòng BOQ": len(boq[m])}
         if boq[m]:
             r["Dòng BOQ (mẫu)"] = "; ".join(boq[m][:4]) + (" …" if len(boq[m]) > 4 else "")
+            # dự án đặt mã riêng từng loại căn (phong_theo_sheet): cùng mã, mỗi loại căn 1 vật khác -> liệt kê theo loại căn
+            if p.cfg.get("phong_theo_sheet"):
+                theo = defaultdict(list)
+                for k in boq[m]:
+                    theo[s(res["SCOPE"][k].get("Mã phòng"))].append(k)
+                dau = {re.sub(r"\W+", " ", s(res["SCOPE"][k].get("Mô tả BOQ")).lower())[:25] for k in boq[m]}
+                if len(theo) > 1 and len(dau) > 1:
+                    r["Dòng BOQ (mẫu)"] = "KHÁC NGHĨA THEO LOẠI CĂN — " + " | ".join(f"{ph}: {'; '.join(ks[:2])}" for ph, ks in sorted(theo.items()))
+                    khac_nghia.append(m)
         if tcq[m]:
             r["TCQ nhắc tới"] = "; ".join(tcq[m])
         rows.append(r)
     write_tool(p, "MAT", "mat", rows)
+    if khac_nghia:
+        print(f"XEM: {len(khac_nghia)} mã có mô tả BOQ khác nhau giữa các loại căn (bước mat ghi Mô tả theo từng loại căn): {', '.join(khac_nghia)}")
     print(f"Mã chỉ có trong TCQ (không thấy trong mô tả BOQ): {', '.join(m for m in sorted(tcq) if not boq[m]) or '—'}")
 
 
@@ -1768,7 +1860,9 @@ def ma_cua_dong(r, area):
     """Mã VL/FF&E của 1 dòng SCOPE. Mã FF&E rug, rèm thường nằm ở Mục phụ; mã viết cách (51 - 500B) không có ở cột Mã spec/FF&E.
     Mã FF&E đọc từ chữ chỉ nhận khi tiền tố có trong bảng AREA, tránh bắt nhầm kích thước (15-200)."""
     # mã FF&E 4 số (SX-2000, mẫu spec AID) ma_chuan không nhận, nhưng cột này đã là mã nên giữ nguyên
-    out = [ma_chuan(m) or (m if re.fullmatch(r"[A-Z]{2}-\d{4}", m) else None) for c in ("Mã VL", "Mã spec/FF&E") for m in split_list(r.get(c))]
+    # mã viết liền (WO1, LM4A) là mã đúng như sổ MAT ghi; ma_chuan sẽ đổi thành WO-01 và không khớp MAT/DMVT nên giữ nguyên
+    out = [m if re.fullmatch(r"[A-Z]{1,4}\d{1,4}[A-Z]?", m) else ma_chuan(m) or (m if re.fullmatch(r"[A-Z]{2}-\d{4}", m) else None)
+           for c in ("Mã VL", "Mã spec/FF&E") for m in split_list(r.get(c))]
     for c in ("Mục phụ", "Mô tả BOQ"):
         out += [x[0] for x in tach_ma(s(r.get(c))) if x[3] == "ffe" and x[0][:2] in area]
     out = list(dict.fromkeys(m for m in out if m))
@@ -3008,18 +3102,149 @@ def dashboard(wb, res, errs, xem, p, n_user):
     return ws
 
 
-PART_GOC = re.compile(r"^xl/(externalLinks|drawings)/")
+PART_GOC = re.compile(r"^xl/externalLinks/")
+RX_REL = re.compile(r"<Relationship\b[^>]*>")
+
+
+def _rel_target(base, t):
+    """Đích tuyệt đối trong gói của 1 Target (tương đối theo thư mục part, hoặc tuyệt đối '/xl/...')."""
+    if t.startswith("/"):
+        return t[1:]
+    return os.path.normpath(os.path.join(os.path.dirname(base), t)).replace("\\", "/")
+
+
+def _rels_cua(part):
+    d, f = part.rsplit("/", 1)
+    return f"{d}/_rels/{f}.rels"
+
+
+def _sheet_parts(z):
+    """{tên sheet: part xml của sheet} của 1 file xlsx."""
+    wb = z.read("xl/workbook.xml").decode("utf-8")
+    rid_part = {}
+    for m in RX_REL.findall(z.read("xl/_rels/workbook.xml.rels").decode("utf-8")):
+        i, t = re.search(r'Id="([^"]+)"', m), re.search(r'Target="([^"]+)"', m)
+        if i and t:
+            rid_part[i.group(1)] = _rel_target("xl/workbook.xml", t.group(1))
+    out = {}
+    for m in re.finditer(r"<sheet\b[^>]*>", wb):
+        nm, rid = re.search(r'name="([^"]*)"', m.group(0)), re.search(r'r:id="([^"]+)"', m.group(0))
+        if nm and rid and rid.group(1) in rid_part:
+            out[unescape_xml(nm.group(1))] = rid_part[rid.group(1)]
+    return out
+
+
+def _drawing_theo_sheet(z):
+    """{tên sheet: part drawing} của 1 file xlsx."""
+    names = set(z.namelist())
+    out = {}
+    for nm, sp in _sheet_parts(z).items():
+        sr = _rels_cua(sp)
+        if sr not in names:
+            continue
+        for r in RX_REL.findall(z.read(sr).decode("utf-8")):
+            if "/drawing\"" in r:
+                out[nm] = _rel_target(sp, re.search(r'Target="([^"]+)"', r).group(1))
+    return out
+
+
+def unescape_xml(t):
+    return t.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"').replace("&apos;", "'")
+
+
+MIME_ANH = {"png": "image/png", "jpeg": "image/jpeg", "jpg": "image/jpeg", "gif": "image/gif", "emf": "image/x-emf", "wmf": "image/x-wmf",
+            "bmp": "image/bmp", "tif": "image/tiff", "tiff": "image/tiff", "svg": "image/svg+xml"}
+RICH_WB = ("sheetMetadata", "rdRichValue", "richValueRel", "rdRichValueTypes", "rdRichValueStructure")  # quan hệ workbook của ảnh trong ô
 
 
 def tra_part_goc(src, out):
-    """openpyxl ghi hỏng externalLink (mất Id rels) và drawing (mất extLst) → Excel báo 'found a problem'.
-    Chép nguyên văn các part đó từ BOQ gốc (cùng tên ở cả 2 file) vào file ra."""
-    with zipfile.ZipFile(src) as a:
-        goc = {n: a.read(n) for n in a.namelist() if PART_GOC.match(n)}
+    """openpyxl ghi hỏng/bỏ 3 thứ của BOQ CĐT, chép lại từ BOQ gốc:
+    - externalLink (mất Id rels): chép nguyên văn theo tên.
+    - drawing (mất extLst, và openpyxl đổi tên ảnh image1..N nên rels gốc trỏ sai): ghép theo TÊN SHEET, chép kèm ảnh gốc
+      đặt tên xl/media/goc_<tên>; ảnh openpyxl không còn ai trỏ thì bỏ.
+    - ảnh đặt trong ô (Place in Cell: xl/metadata.xml + xl/richData, ô có thuộc tính vm): openpyxl bỏ hẳn → ô thành #VALUE!.
+      Chép metadata + richData, nối quan hệ workbook, gắn lại vm cho đúng ô của sheet cùng tên."""
+    with zipfile.ZipFile(src) as a, zipfile.ZipFile(out) as b:
+        an, bn = set(a.namelist()), b.namelist()
+        moi = {n: a.read(n) for n in an if PART_GOC.match(n) and n in bn}
+
+        def chep_rels(p_src, p_dich):
+            """rels của part gốc -> rels của part đích; đích là ảnh thì chép ảnh với tên goc_."""
+            rs = _rels_cua(p_src)
+            if rs not in an:
+                return
+
+            def doi(m):
+                r = m.group(0)
+                if "TargetMode=\"External\"" in r:
+                    return r
+                t = re.search(r'Target="([^"]+)"', r).group(1)
+                goc = _rel_target(p_src, t)
+                if goc in an and "/media/" in goc:
+                    dich = "xl/media/goc_" + goc.rsplit("/", 1)[1]
+                    moi[dich] = a.read(goc)
+                    return r.replace(f'Target="{t}"', f'Target="/{dich}"')
+                return r
+            moi[_rels_cua(p_dich)] = RX_REL.sub(doi, a.read(rs).decode("utf-8")).encode("utf-8")
+
+        dg, do = _drawing_theo_sheet(a), _drawing_theo_sheet(b)
+        for sh, dp_out in do.items():
+            dp_src = dg.get(sh)
+            if dp_src and dp_src in an:
+                moi[dp_out] = a.read(dp_src)
+                chep_rels(dp_src, dp_out)
+        ct = b.read("[Content_Types].xml").decode("utf-8")
+        # ảnh trong ô
+        wrel_a = a.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+        rich = [r for r in RX_REL.findall(wrel_a) if any(f"/{k}\"" in r for k in RICH_WB)]
+        if rich and not any(n.startswith("xl/richData/") for n in bn):
+            wrel_b = b.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+            ct_a = a.read("[Content_Types].xml").decode("utf-8")
+            them_rel = []
+            for k, r in enumerate(rich, 1):
+                p = _rel_target("xl/workbook.xml", re.search(r'Target="([^"]+)"', r).group(1))
+                if p not in an:
+                    continue
+                moi[p] = a.read(p)
+                chep_rels(p, p)
+                typ = re.search(r'Type="([^"]+)"', r).group(1)
+                them_rel.append(f'<Relationship Id="rIdGocRich{k}" Type="{typ}" Target="/{p}"/>')
+                ov = re.search(rf'<Override[^>]*PartName="/{re.escape(p)}"[^>]*/>', ct_a)
+                if ov and f'PartName="/{p}"' not in ct:
+                    ct = ct.replace("</Types>", ov.group(0) + "</Types>")
+            moi["xl/_rels/workbook.xml.rels"] = wrel_b.replace("</Relationships>", "".join(them_rel) + "</Relationships>").encode("utf-8")
+            sa, sb = _sheet_parts(a), _sheet_parts(b)
+            for sh, p_b in sb.items():
+                p_a = sa.get(sh)
+                if not p_a or p_a not in an:
+                    continue
+                vm = dict(re.findall(r'<c r="([A-Z]+\d+)"[^>]*?\svm="(\d+)"', a.read(p_a).decode("utf-8")))
+                if not vm:
+                    continue
+                xb = b.read(p_b).decode("utf-8")
+                xb = re.sub(r'<c r="([A-Z]+\d+)"(?![^>]*\svm=)', lambda m: m.group(0) + (f' vm="{vm[m.group(1)]}"' if m.group(1) in vm else ""), xb)
+                moi[p_b] = xb.encode("utf-8")
+        tat_ca = {n: (moi[n] if n in moi else b.read(n)) for n in bn}
+        tat_ca.update({n: v for n, v in moi.items() if n not in tat_ca})
+        # ảnh còn được rels nào trỏ tới; ảnh openpyxl bị thay thì bỏ
+        tro = set()
+        for n, v in tat_ca.items():
+            if n.endswith(".rels"):
+                part = n.replace("_rels/", "")[:-5]
+                for r in RX_REL.findall(v.decode("utf-8", "ignore")):
+                    t = re.search(r'Target="([^"]+)"', r)
+                    if t and "TargetMode=\"External\"" not in r:
+                        tro.add(_rel_target(part or "x", t.group(1)))
+        for e in sorted({n.rsplit(".", 1)[-1].lower() for n in tat_ca if "/media/" in n and n in tro}):
+            if f'Extension="{e}"' not in ct and e in MIME_ANH:
+                ct = ct.replace("</Types>", f'<Default Extension="{e}" ContentType="{MIME_ANH[e]}"/></Types>')
+        tat_ca["[Content_Types].xml"] = ct.encode("utf-8")
     tmp = out + ".tmp"
-    with zipfile.ZipFile(out) as b, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as c:
-        for n in b.namelist():
-            c.writestr(n, goc[n] if n in goc else b.read(n))
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as c:
+        for n, v in tat_ca.items():
+            if "/media/" in n and n not in tro:
+                continue
+            c.writestr(n, v)
     os.replace(tmp, out)
 
 

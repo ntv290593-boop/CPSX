@@ -3,6 +3,8 @@ $ErrorActionPreference = 'Stop'
 $root = 'D:\COSTING EXCEL\_MASTER\vba'
 $src  = Join-Path $root 'src'
 $out  = Join-Path $root 'SRC_LINKS.xlam'
+# Excel dang mo thi xlam cu dang bi giu (khoa OPEN): khong ghi de duoc, may nay se chay ban cu. Dung lai.
+if (Get-Process EXCEL -ErrorAction SilentlyContinue) { throw 'Dong het Excel truoc khi build SRC_LINKS.xlam (Excel dang giu ban cu).' }
 $key  = 'HKCU:\Software\Microsoft\Office\16.0\Excel\Security'
 if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
 $old = (Get-ItemProperty -Path $key -Name AccessVBOM -ErrorAction SilentlyContinue).AccessVBOM
@@ -24,6 +26,7 @@ try {
     if ($null -eq $old) { Remove-ItemProperty -Path $key -Name AccessVBOM -ErrorAction SilentlyContinue }
     else { Set-ItemProperty -Path $key -Name AccessVBOM -Value $old -Type DWord }
 }
+if ((Get-Item $out).LastWriteTime -lt (Get-Item (Join-Path $src 'modSrcLinks.bas')).LastWriteTime) { throw "Build khong ghi duoc $out" }
 # Goi cho nguoi khac (chep tay vao XLSTART, xem HUONG DAN CAI.txt): chi can ban xlam moi nhat
 Copy-Item $out (Join-Path $root 'GUI_CHO_NGUOI_KHAC\SRC_LINKS.xlam') -Force
 # May da nap add-in qua khoa OPEN thi khong chep them vao XLSTART, neu khong add-in nap 2 lan.

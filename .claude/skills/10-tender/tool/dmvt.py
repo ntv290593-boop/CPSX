@@ -313,7 +313,154 @@ def boc_nguon_spec_boc(p, res):
     return moi, defaultdict(list), tk, mo, docs
 
 
+# ---------------------------------------------------------------- spec dạng bảng xlsx (Material Schedule, cột Minh họa)
+COT_XLSX = {  # nhận cột theo chữ tiêu đề (đã bỏ dấu, chữ thường); thứ tự thử: khớp đầu tiên
+    "ma": r"item code|ma vl\b|ma vat lieu|^ma sp\b|^code\b",
+    "loai": r"item type|loai vat lieu",
+    "ten": r"hang muc cong viec|ten hang muc|^item name",
+    "mo_ta": r"^description|mo ta",
+    "vi_tri": r"^location|vi tri",
+    "anh": r"illustrat|minh hoa|hinh anh|^image",
+    "ma_ncc": r"supplier.?s code|ma cua n",
+    "ncc": r"^supplier(?!.?s code)|nha cung cap|^brand",
+    "note": r"^note|chu thich|ghi chu",
+}
+
+
+def _bo_dau(t):
+    import unicodedata
+    t = unicodedata.normalize("NFD", s(t).lower().replace("đ", "d"))
+    return re.sub(r"\s+", " ", "".join(c for c in t if unicodedata.category(c) != "Mn")).strip()
+
+
+def anh_theo_o(f, sheet):
+    """{(hàng, cột) 1-based: [(bytes, đuôi)]} của ảnh neo trong sheet, đọc thẳng từ zip (kể cả ảnh openpyxl không nạp)."""
+    import xml.etree.ElementTree as ET
+    NS = {"x": "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing", "a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
+    R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+    out = defaultdict(list)
+    with zipfile.ZipFile(f) as z:
+        nm = set(z.namelist())
+        wb = ET.fromstring(z.read("xl/workbook.xml"))
+        rel_wb = {r.get("Id"): r.get("Target") for r in ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))}
+        rid = next((x.get(R + "id") for x in wb.iter() if x.tag.endswith("}sheet") and x.get("name") == sheet), None)
+        if not rid:
+            return out
+        p_sh = rel_wb[rid].lstrip("/")
+        p_sh = p_sh if p_sh.startswith("xl/") else "xl/" + p_sh
+        p_rel = os.path.dirname(p_sh) + "/_rels/" + os.path.basename(p_sh) + ".rels"
+        if p_rel not in nm:
+            return out
+        dr = next((r.get("Target") for r in ET.fromstring(z.read(p_rel)) if r.get("Type").endswith("/drawing")), None)
+        if not dr:
+            return out
+        p_dr = dr.lstrip("/") if dr.startswith("/") else os.path.normpath(os.path.join(os.path.dirname(p_sh), dr)).replace("\\", "/")
+        p_drr = os.path.dirname(p_dr) + "/_rels/" + os.path.basename(p_dr) + ".rels"
+        if p_drr not in nm:
+            return out
+        rel_dr = {r.get("Id"): r.get("Target") for r in ET.fromstring(z.read(p_drr))}
+        for a in ET.fromstring(z.read(p_dr)):
+            hang, cot = a.find("x:from/x:row", NS), a.find("x:from/x:col", NS)
+            for blip in a.iter("{%s}blip" % NS["a"]):  # ảnh trong nhóm (grpSp) cũng neo theo ô của nhóm
+                t = rel_dr.get(blip.get(R + "embed"), "")
+                t = t.lstrip("/") if t.startswith("/") else os.path.normpath(os.path.join(os.path.dirname(p_dr), t)).replace("\\", "/")
+                if hang is not None and t in nm:
+                    out[(int(hang.text) + 1, int(cot.text) + 1)].append((z.read(t), t.rsplit(".", 1)[-1].lower()))
+    return out
+
+
+def boc_xlsx(path, fid, ngay, la_boq=False):
+    """Bảng mã trong 1 file xlsx -> {mã: bản ghi loai XLSX}. Mỗi sheet: tìm hàng tiêu đề có cột mã + cột mô tả trong 15 hàng đầu."""
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out = {}
+    for ws in wb.worksheets:
+        rows = [list(r) for r in ws.iter_rows(max_row=min(ws.max_row or 0, 3000), values_only=True)]
+        hdr = None
+        for h, r in enumerate(rows[:15]):
+            cot = {}
+            for j, v in enumerate(r):
+                t = _bo_dau(v)
+                if not t:
+                    continue
+                for k, rx in COT_XLSX.items():
+                    if k not in cot and re.search(rx, t):
+                        cot[k] = j
+                        break
+            if "ma" in cot and "mo_ta" in cot:
+                hdr = (h, cot)
+                break
+        if not hdr:
+            continue
+        h, cot = hdr
+        anh = anh_theo_o(path, ws.title)
+        nhom = ""
+        for i, r in enumerate(rows[h + 1:], h + 2):
+            v = lambda k: s(r[cot[k]]) if k in cot and cot[k] < len(r) and r[cot[k]] is not None else ""
+            ma_o = v("ma")
+            if not ma_o:
+                chu = [s(x) for x in r if s(x)]
+                if len(chu) == 1 and len(chu[0]) < 60:
+                    nhom = chu[0]  # dòng nhóm: PAINT/ SƠN
+                continue
+            cac_ma = [m.upper() for m in re.split(r"[\s;,/]+", ma_o) if re.search(r"\d", m)]
+            if not cac_ma:
+                continue
+            ca = [x for (hh, cc), xs in anh.items() if hh == i and cc == cot.get("anh", -1) + 1 for x in xs]
+            if not ca:  # ảnh neo lệch cột: lấy ảnh cùng hàng ở cột bất kỳ
+                ca = [x for (hh, cc), xs in anh.items() if hh == i for x in xs]
+            o = f"'{ws.title}'!{openpyxl.utils.get_column_letter(cot['ma'] + 1)}{i}"
+            for m in cac_ma:
+                if m in out:
+                    continue
+                out[m] = {"loai": "XLSX", "fid": fid, "trang": None, "o": o, "ngay": ngay, "bo": "FF&E" if la_boq else "FINISHES",
+                          "mo_ta": v("mo_ta").lstrip("'"), "kv": {"loai": v("loai") or v("ten"), "vi_tri": v("vi_tri"), "ma_ncc": v("ma_ncc"), "ncc": v("ncc"),
+                                                    "note": v("note"), "nhom": nhom, "sheet": ws.title, "hang": i},
+                          "anh_xlsx": ca, "la_boq": la_boq}
+    wb.close()
+    return out
+
+
+def them_nguon_xlsx(p, res, cfg, moi):
+    """Spec dạng bảng xlsx bổ sung cho mã chưa có trang spec PDF. File: _dmvt.json 'spec_xlsx' (list FID) hoặc tự tìm mọi xlsx
+    có cột mã + mô tả. BOQ CĐT xét sau cùng: chỉ cho mã hạng mục (cột MÃ SP + HÌNH ẢNH) chưa có ở file khác."""
+    fidx = res["FILE_INDEX"]
+    boq = s(p.cfg.get("boq")).replace("\\", "/")
+    ds = cfg.get("spec_xlsx") or [k for k, r in fidx.items() if s(r.get("Loại")).lower() in ("xlsx", "xlsm") and not s(r.get("Trong zip"))]
+    ds = [k for k in ds if k in fidx]
+    ds = sorted(sorted(ds, key=lambda k: s(ngay_file(fidx, k)), reverse=True),  # file mới trước: mã có ở 2 file lấy bản mới
+                key=lambda k: s(fidx[k].get("Đường dẫn")).replace("\\", "/") == boq)
+    them = Counter()
+    for fid in ds:
+        r = fidx.get(fid)
+        if not r:
+            continue
+        path = os.path.join(p.inp, s(r.get("Đường dẫn")))
+        if not os.path.exists(path):
+            continue
+        la_boq = s(r.get("Đường dẫn")).replace("\\", "/") == boq
+        try:
+            bang = boc_xlsx(path, fid, ngay_file(fidx, fid), la_boq)
+        except Exception as e:  # file hỏng/khóa: bỏ, không chặn DMVT
+            print(f"XEM: không đọc được {fid} làm spec xlsx ({str(e)[:80]})")
+            continue
+        for m, x in bang.items():
+            if m in moi or (m not in res["MAT"]):
+                continue
+            moi[m] = x
+            them[fid] += 1
+    if them:
+        print("Spec xlsx bổ sung:", ", ".join(f"{k} {v} mã" for k, v in them.items()))
+
+
 def boc_nguon(p, res, cfg):
+    kq = _boc_nguon(p, res, cfg)
+    if cfg.get("spec_xlsx") is not False:
+        them_nguon_xlsx(p, res, cfg, kq[0])
+    return kq
+
+
+def _boc_nguon(p, res, cfg):
     """Quét mọi trang spec, lấy bản mới nhất theo từng mã (không theo cả file). Trả {mã: bản ghi}."""
     import pymupdf
     if cfg.get("nguon_spec") == "spec_boc":
@@ -411,7 +558,7 @@ def dong_dmvt(p, res, cfg):
     ghi_chu_gop = defaultdict(list)
     for ma in sorted(moi, key=sap_xep_ma):
         r = moi[ma]
-        if r["loai"] in ("DR", "AID"):
+        if r["loai"] in ("DR", "AID", "XLSX"):
             nhom[ma] = [ma]
         elif r["loai"] == "MR":
             d = dict(r["kv"])
@@ -458,7 +605,8 @@ def so_nhom(cfg, cac_ma, moi):
             if any(moi.get(m, {}).get("bo", "FINISHES" if not m[:2].isdigit() else "") == n["bo"] for m in cac_ma):
                 return n
             continue
-        if n.get("khop") and any(re.search(n["khop"], m) for m in cac_ma):
+        # mục FF&E: mã dạng 51-500 hoặc mã hạng mục lấy từ BOQ CĐT (spec xlsx, bo FF&E: LF-02, BU-01)
+        if n.get("khop") and any(re.search(n["khop"], m) or (moi.get(m, {}).get("loai") == "XLSX" and moi[m].get("bo") == "FF&E") for m in cac_ma):
             return n
     return {"so": "", "ten": "CHƯA XẾP MỤC"}
 
@@ -512,13 +660,20 @@ def viet_dong(cac_ma, moi, res, cfg, ghi_chu_gop_k):
     elif r0["loai"] == "AID":
         kv = r0["kv"]
         ma0 = cac_ma[0]
-        tt = [(n, bo_ma_rac(s(kv.get(k)), ma0)) for n, k in (("Dimensions", "dimensions"), ("Finishes", "finishes"), ("Material", "material"), ("Content", "content"), ("Prod. Code", "prod. code"), ("Brand", "brand"))]
+        tt = [(n, bo_ma_rac(s(kv.get(k)), ma0)) for n, k in (("Dimensions", "dimensions"), ("Finishes", "finishes"), ("Material", "material"), ("Content", "content"), ("Prod. Code", "prod. code"), ("Colour", "colour"), ("Brand", "brand"))]
         chinh = {"Dimensions": lambda v: _RX_NHAN_FFE.sub(lambda m: "\n" + m.group(1) + ": ", v), "Finishes": lambda v: _RX_MA_VL.sub("\n", v), "Brand": chu_hd}
         mo_ta = [f"{n}: {chinh.get(n, str)(v)}" for n, v in tt if v and v not in TRONG]
         if r0.get("con"):
             mo_ta.append("Kèm:\n" + "\n".join(dict.fromkeys(f"- {x['ma']} {s(x.get('item desc'))}"[:90] for x in r0["con"])))  # 1 mã con có cả ở trang schedule và trang chi tiết
         ncc = [y for y in (chu_ncc(s(kv.get(k))) for k in ("manufacturer", "supplier", "contact", "address")) if y]
-        d.update(Material=chu_material(s(r0.get("mo_ta"))), Location=s(kv.get("area")), Description="\n".join(mo_ta), NCC="\n".join(ncc), Remarks=bo_ma_rac(s(kv.get("remarks")), ma0))
+        d.update(Material=chu_material(s(r0.get("mo_ta"))), Location=s(kv.get("area") or kv.get("location")), Description="\n".join(mo_ta), NCC="\n".join(ncc), Remarks=bo_ma_rac(s(kv.get("remarks")), ma0))
+    elif r0["loai"] == "XLSX":  # bảng xlsx: Material Schedule (loại + mô tả + mã NCC) hoặc BOQ CĐT (mô tả hạng mục)
+        kv = r0["kv"]
+        mo_ta = [s(r0.get("mo_ta"))] + ([f"Mã NCC: {kv['ma_ncc']}"] if kv.get("ma_ncc") else [])
+        d.update(Material=kv.get("loai") or (s(r0.get("mo_ta")).split(chr(10))[0] if r0.get("la_boq") else kv.get("nhom", "")),
+                 Location=kv.get("vi_tri", ""), Description=chr(10).join(x for x in mo_ta if x), NCC=kv.get("ncc", ""), Remarks=kv.get("note", ""))
+        if r0.get("la_boq"):
+            d["Cờ"].append("Lấy từ BOQ CĐT (không có spec riêng)")
     elif r0["loai"] == "DR":
         ref = list(r0.get("ref") or [])
         fin = list(r0.get("finish") or [])
@@ -588,6 +743,15 @@ def ung_vien_anh(ma, r, mo):
     """Ứng viên ảnh theo khối của mã. Trả (ứng viên, cách lấy)."""
     if not r:
         return [], ""
+    if r["loai"] == "XLSX":  # ảnh nhúng ở cột Minh họa cùng hàng; WMF/EMF PIL không mở được thì bỏ
+        from PIL import Image
+        out = []
+        for b, duoi in r.get("anh_xlsx", []):
+            try:
+                out.append({"xref": None, "img": Image.open(io.BytesIO(b)).convert("RGB"), "trang": None})
+            except Exception:
+                continue
+        return out, "ô xlsx"
     doc = mo(r["fid"])
     if r["loai"] == "AID":  # ảnh trên trang chi tiết của mã; thiếu thì dùng khối của mã trên trang schedule
         out = []
@@ -646,7 +810,8 @@ def cmd_boc(p, res, cfg, nap_lai_anh=True):
         n = so_nhom(cfg, cac_ma, moi)
         d["Mục"], d["Tên mục"] = n["so"], n["ten"]
         r0 = moi.get(cac_ma[0])
-        d["Nguồn"] = [{"ma": m, "fid": moi[m]["fid"], "trang": moi[m]["trang"], "ngay": moi[m]["ngay"], "loai": moi[m]["loai"]} for m in cac_ma if m in moi]
+        d["Nguồn"] = [{"ma": m, "fid": moi[m]["fid"], "trang": moi[m]["trang"], "ngay": moi[m]["ngay"], "loai": moi[m]["loai"], **({"o": moi[m]["o"]} if moi[m].get("o") else {})}
+                      for m in cac_ma if m in moi]
         cu_ma = [x for m in cac_ma for x in cu.get(m, [])]
         if cu_ma:
             d["Bản cũ"] = cu_ma[:6]

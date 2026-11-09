@@ -3,15 +3,86 @@
   "cdt_item": {
     "mo_ta": "Có BOQ CĐT tiếng Anh (cột Item, Description, Unit, Quantity) và TCQ gộp",
     "du_an_mau": "SOFITEL",
-    "bat_buoc": ["boq", "tcq"],
-    "tieu_de": {"item": ["item"], "mo_ta": ["description"], "dv": ["unit"], "kl": ["quantity"]}
+    "bat_buoc": [
+      "boq",
+      "tcq"
+    ],
+    "tieu_de": {
+      "item": [
+        "item"
+      ],
+      "mo_ta": [
+        "description"
+      ],
+      "dv": [
+        "unit"
+      ],
+      "kl": [
+        "quantity"
+      ]
+    }
   },
   "tu_lap_vn": {
     "mo_ta": "Chưa có BOQ CĐT, tự lập BOQ theo form tiếng Việt (STT, Kí hiệu, Nội dung công việc, Chi tiết vật liệu...); chưa có TCQ",
     "du_an_mau": "CTX",
     "bat_buoc": [],
-    "tieu_de": {"item": ["stt"], "mo_ta": ["nội dung công việc"], "dv": ["đơn vị"], "kl": ["khối lượng"], "ghi_chu": ["ghi chú"]},
-    "cot_mo_ta": ["kí hiệu", "nội dung công việc", "chi tiết vật liệu"],
-    "dau_muc": {"vung": "^[A-Z]$", "nhom": "^[A-Z]\\.\\d+$"}
+    "tieu_de": {
+      "item": [
+        "stt"
+      ],
+      "mo_ta": [
+        "nội dung công việc"
+      ],
+      "dv": [
+        "đơn vị"
+      ],
+      "kl": [
+        "khối lượng"
+      ],
+      "ghi_chu": [
+        "ghi chú"
+      ]
+    },
+    "cot_mo_ta": [
+      "kí hiệu",
+      "nội dung công việc",
+      "chi tiết vật liệu"
+    ],
+    "dau_muc": {
+      "vung": "^[A-Z]$",
+      "nhom": "^[A-Z]\\.\\d+$"
+    }
+  },
+  "cdt_vn": {
+    "mo_ta": "Có BOQ CĐT tiếng Việt (STT, HẠNG MỤC CÔNG VIỆC, MÃ SP, MÔ TẢ VẬT LIỆU, KÍCH THƯỚC, ĐVT, KHỐI LƯỢNG, GHI CHÚ), mỗi loại căn 1 sheet; TCQ không bắt buộc",
+    "du_an_mau": "Blanca_City",
+    "bat_buoc": [
+      "boq"
+    ],
+    "tieu_de": {
+      "item": [
+        "stt"
+      ],
+      "mo_ta": [
+        "hạng mục công việc"
+      ],
+      "dv": [
+        "đvt"
+      ],
+      "kl": [
+        "khối lượng"
+      ],
+      "ghi_chu": [
+        "ghi chú"
+      ]
+    },
+    "dau_muc": {
+      "nhom": "^[IVX]+$"
+    },
+    "_ghi_chu": "Không khai cot_mo_ta: mô tả lấy mọi cột từ sau STT tới trước KHỐI LƯỢNG (gồm MÃ SP, MÔ TẢ VẬT LIỆU, DÀI/RỘNG/CAO; cột AA - MÔ TẢ VẬT LIỆU của nhà thầu nằm sau nên không lấy)",
+    "cot_ma": [
+      "mã sp"
+    ],
+    "c1_la_muc": true
   }
 }

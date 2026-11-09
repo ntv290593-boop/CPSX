@@ -1,0 +1,1770 @@
+[
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::m and m.start() > 0 and (not web) and (not lh)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::ext in DUOI_SCOPE",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::inner or ''",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::inner or rel",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::ext in DUOI_SCOPE and re.search('(?<![a-z0-9])pvcv(?![a-z0-9])', name)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::RX_LH.match(dong) or '@' in dong or (ten and re.match('\\\\d{1~5fd86a3a",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::web and (not lh) and (not dong[:1].isupper())",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/dmvt_xlsx.py::tap_ma::phan and all((re.fullmatch('[A-Z0-9]{1,5}(?:-[A-Z0-9]{1,5})?~14e7116e",
+"quyet": "chon",
+"ma_diem": "DMVT.TAP_MA",
+"ly_do": "điểm luật thuần đang có case trong phích (tap_ma)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::RX_T.match(dong) or re.match('(?i)indicative|lead\\\\s*time|page \\\\d', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::RX_WEB.search(dong) or re.match('(?i)url\\\\s*:', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::ten and re.match('\\\\d{1,5}[A-Z]?\\\\s+\\\\w', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not web and (not lh)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::dong and dong not in ten",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl::c.split('-')[0] not in tien_to or RX_NGU_PHONG.search(text[m~e20ce12f",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_VL",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl::c in rc and (c.split('-')[0] not in tien_to or RX_NGU_PHONG.~928f9b1a",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_VL",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl_theo_bang::not (RX_FFE.fullmatch(m) or RX_FFE4.fullmatch(m))",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_BANG",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl_theo_bang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::'tender quer' in name or re.search('\\\\btcq', name)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::('tender quer' in name or re.search('\\\\btcq', name)) and ext~15ee2d0c",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::ext == '.msg'",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::return 'Mail'",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::return 'Scope'",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::'@' in dong",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::inner",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::inner#2",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::re.search('(?<![a-z0-9])pvcv(?![a-z0-9])', name)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/dmvt_xlsx.py::tap_ma::phan",
+"quyet": "chon",
+"ma_diem": "DMVT.TAP_MA",
+"ly_do": "điểm luật thuần đang có case trong phích (tap_ma)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/dmvt_xlsx.py::tap_ma::all((re.fullmatch('[A-Z0-9]{1,5}(?:-[A-Z0-9]{1,5})?(?:\\\\.\\\\d~f00beb59",
+"quyet": "chon",
+"ma_diem": "DMVT.TAP_MA",
+"ly_do": "điểm luật thuần đang có case trong phích (tap_ma)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::RX_WEB.search(dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::re.match('(?i)url\\\\s*:', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::RX_LH.match(dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::ten",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::re.match('\\\\d{1,5}[A-Z]?\\\\s+\\\\w', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::re.match('(?i)technical drawings|all dimensions', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not web#2",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not lh#2",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::tham_chieu::m.group(2)",
+"quyet": "chon",
+"ma_diem": "TD.TCQ.THAM_CHIEU",
+"ly_do": "điểm luật thuần đang có case trong phích (tham_chieu)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/dmvt_xlsx.py::tap_ma::x[3] in ('ffe', 'gach')",
+"quyet": "chon",
+"ma_diem": "DMVT.TAP_MA",
+"ly_do": "điểm luật thuần đang có case trong phích (tap_ma)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::ext in ('.xlsx', '.pdf')",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/dmvt_xlsx.py::tap_ma::return frozenset((x[0] for x in tach_ma(s(chu)) if x[3] in (~9447bbb3",
+"quyet": "chon",
+"ma_diem": "DMVT.TAP_MA",
+"ly_do": "điểm luật thuần đang có case trong phích (tap_ma)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::return {'manufacturer': gon(' '.join(ten[:2])), 'web': ' '.j~c1546532",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::m.start() > 0",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::dot_of::'/' not in rel.replace('\\\\', '/')",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DOT_OF",
+"ly_do": "điểm luật thuần đang có case trong phích (dot_of)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::'tender quer' in name",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::dot_of::return ('(gốc)', None, 0)",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DOT_OF",
+"ly_do": "điểm luật thuần đang có case trong phích (dot_of)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::dot_of::return (first, ymd('20' + m.group(2), m.group(3), m.group(4)), int(m.group(1)))",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DOT_OF",
+"ly_do": "điểm luật thuần đang có case trong phích (dot_of)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::dot_of::return (first, None, 999)",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DOT_OF",
+"ly_do": "điểm luật thuần đang có case trong phích (dot_of)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::return 'Làm rõ'",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::return 'Tham khảo'",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::return 'Ngoài scope'",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::return 'Tham khảo'#2",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::loai_trang::'DRAWING REFERENCE:' in t",
+"quyet": "chon",
+"ma_diem": "TD.SPEC.LOAI_TRANG",
+"ly_do": "điểm luật thuần đang có case trong phích (loai_trang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::loai_trang::return 'DR'",
+"quyet": "chon",
+"ma_diem": "TD.SPEC.LOAI_TRANG",
+"ly_do": "điểm luật thuần đang có case trong phích (loai_trang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/dmvt_xlsx.py::tap_ma::x.strip()",
+"quyet": "chon",
+"ma_diem": "DMVT.TAP_MA",
+"ly_do": "điểm luật thuần đang có case trong phích (tap_ma)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not dong",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::dong.lstrip(': ').strip()",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::RX_T.match(dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::re.match('(?i)indicative|lead\\\\s*time|page \\\\d', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::re.match('(?i)(manufacturer|supplier|brand)\\\\s*:', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::m",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::re.search('(?i)\\\\burl\\\\s*:', dong)",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not web",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not lh",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::dong",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::dong not in ten",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::web",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not lh#3",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not dong[:1].isupper()",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/spec_boc.py::doc_ncc::not ten",
+"quyet": "chon",
+"ma_diem": "SPEC.DOC_NCC",
+"ly_do": "điểm luật thuần đang có case trong phích (doc_ncc)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl::c in rc",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_VL",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl::c.split('-')[0] not in tien_to",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_VL",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl::RX_NGU_PHONG.search(text[max(0, m.start() - 25):m.end() + 25])",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_VL",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl_theo_bang::m.group(1).upper() in biet",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_BANG",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl_theo_bang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl_theo_bang::RX_FFE.fullmatch(m)",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_BANG",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl_theo_bang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::ma_vl_theo_bang::RX_FFE4.fullmatch(m)",
+"quyet": "chon",
+"ma_diem": "TD.VL.MA_BANG",
+"ly_do": "điểm luật thuần đang có case trong phích (ma_vl_theo_bang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::date_in::d",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DATE_IN",
+"ly_do": "điểm luật thuần đang có case trong phích (date_in)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::date_in::ymd(*m.groups())",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DATE_IN",
+"ly_do": "điểm luật thuần đang có case trong phích (date_in)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::date_in::ymd('20' + m.group(1), m.group(2), m.group(3))",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DATE_IN",
+"ly_do": "điểm luật thuần đang có case trong phích (date_in)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::date_in::m",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DATE_IN",
+"ly_do": "điểm luật thuần đang có case trong phích (date_in)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::date_in::re.match('^(\\\\d{2})(\\\\d{2})(\\\\d{2})[_ \\\\-]', part)",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DATE_IN",
+"ly_do": "điểm luật thuần đang có case trong phích (date_in)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::date_in::d#2",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DATE_IN",
+"ly_do": "điểm luật thuần đang có case trong phích (date_in)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::dot_of::m",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DOT_OF",
+"ly_do": "điểm luật thuần đang có case trong phích (dot_of)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::dot_of::re.match('^(\\\\d+)\\\\.(\\\\d{2})(\\\\d{2})(\\\\d{2})', first)",
+"quyet": "chon",
+"ma_diem": "TD.NGAY.DOT_OF",
+"ly_do": "điểm luật thuần đang có case trong phích (dot_of)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::re.search('\\\\btcq', name)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::re.search('as-?built', t)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::re.search('(^|/)(mep|lighting)\\\\.zip|/(elek|elv|fire|hvac|plum)/', t)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::vai_tro_doan::re.search('project schedule|rules and regulations|logistic|annex', t)",
+"quyet": "chon",
+"ma_diem": "TD.DOAN.VAITRO",
+"ly_do": "điểm luật thuần đang có case trong phích (vai_tro_doan)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::loai_trang::dau.startswith(k)",
+"quyet": "chon",
+"ma_diem": "TD.SPEC.LOAI_TRANG",
+"ly_do": "điểm luật thuần đang có case trong phích (loai_trang)"
+},
+{
+"ung_vien_id": "SKILL/10-tender/tool/td.py::chuan_ben::raw in gop",
+"quyet": "chon",
+"ma_diem": "TD.BEN.CHUAN_BEN",
+"ly_do": "điểm luật thuần đang có case trong phích (chuan_ben)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/bench.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/bench_ext.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/eval_ungvien.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/eval_v2.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/make_kiem_mau.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo01_d1d3.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo01_d4.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo01_n32.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo01_n33.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo01_regress.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo_test2.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo_test3.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo_test4.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo_test5.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo_test6.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/neo-test/neo_test7.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/norton_cache.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/norton_rank.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/old_base.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/proto_rank.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/sofitel_cache.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/sofitel_rank.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/chuyen_ben.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/do_area.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/do_codeid.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/do_dmvt.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/kiemthu.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/lam_form_dmvt.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "DOCS/scan-toi-uu/tender-test/nap_codeid.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-27.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-28_truocB.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-28_truocB3.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-29_truoc-neo.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-30_truoc-n32.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-30_truoc-n33.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/_backup/pd_2026-10-31_truoc-vaGemini.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/01-scan/tool/pd.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/be_mat.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/chuan_bi_soat.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/docsau.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/kiem_boq.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/lap_boq.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/lap_boq_buoc.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/mau_soat.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/soi_tag.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/_core/code_id.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/_core/doc_file.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/_core/dwg_tag.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/_core/gemini_doc.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/_core/neo.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/_core/scan_core.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/scan/build_project_data_NORTON.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/scan/build_project_data_VANITY.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/scan/scan_schedules.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/scan/scan_spec.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/scan/split_from_map.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/scan/split_sheets.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_ai_input_SOFITEL_2a.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_ai_input_SOFITEL_2b.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_ai_input_SOFITEL_2b2.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_bedside_REV04_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_loose_REV04_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_loose_REV04b_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_loose_REV04c_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_minibar2_REV04_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/build_minibar3_REV04_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/check_ai_input.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/cpsx_blocks.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/doi_wd02_bedside_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/doi_wd02_bedside_cu_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/door_phieu_NORTON.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/extract_ai_input.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/fix_minibar2.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/ghi_ke_F053_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/ghi_ke_F053_ghephop_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/ghi_mo_ta_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/go_mau_da_lam_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/gom_bo_to.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/gom_loai_do_vat.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/hoc_ke_F053_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/mo_ta_SOFITEL_2a.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/module_catalog.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/phieu_boc_VANITY.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/quan_sat_SOFITEL_2a.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/roundtrip_check.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/sua_foam_ghe_gang_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/takeoff/xoa_block_thua_L012_com.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_MASTER/tools/scan_pages.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/scan/build_project_data_NORTON.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/scan/scan_pages.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/scan/scan_schedules.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/scan/scan_spec.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/scan/split_from_map.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/scan/split_sheets.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/takeoff/check_ai_input.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/takeoff/cpsx_blocks.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/takeoff/door_phieu_NORTON.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/takeoff/extract_ai_input.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/takeoff/module_catalog.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_SCRIPTS/takeoff/roundtrip_check.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/chk6.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/chk6b.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/diff4.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/diff4b.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/dump6.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/dumpblk.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/dumpblk2.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "_TEST/dumpkey.py",
+"quyet": "bo",
+"ly_do": "ngoài phạm vi: user chọn chỉ test hàm luật thuần của skill 10-tender (td.py, dmvt_xlsx.py, spec_boc.py)"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::<mức file>",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::P.__init__",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::P.need",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_docsau",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_drawing_theo_sheet",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_rel_target",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_rx_khoa",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_sheet_parts",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_tool_keys",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::_txt",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::add_boq_cols",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::ban_ve_hien",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::ben_tu_mat",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::boq_header",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::boq_tonghop",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::can_ma",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cat_khai_cot",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::check_val",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::chi_muc_tender",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::chu_vat_lieu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::chuan_bo_thu_muc",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::chuyen_dot_boq",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_area",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_ben",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_boq",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_build",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_check",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_cot",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_dmvt",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_doc_file",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_doichieu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_dwg",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_goi",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_init",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_kiemke",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_loc",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_mat",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_phanloai",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_tcq",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_thaydoi",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_tim",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_trang",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_ungvien",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_xuathien",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_xuathien.ngay_cua",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_xuathien.them",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::cmd_zip",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::dashboard",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::dashboard.line",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::data_files",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::derive",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::doi_khoa",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::doi_khoa.thay",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::dwg_trang",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::file_bo",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::file_buoc",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::gan_droplist",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::gan_link_vat_lieu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::gan_link_vat_tu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::gop_nhom",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::is_link",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::jload",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::khop_dong_boq",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::khop_dong_boq.ghep_gan",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::khu_cua_file",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::la_ma_ffe",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::lan_cum",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::latest_track",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::link_cu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::link_item",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::links_of",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::low",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::ma_cua_dong",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::ma_dinh_nghia",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::ma_vl_da_biet",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::main",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::merge",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::mo_ta_goi",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::moi_trang_mot_link",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::nap_ben",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::nap_mau",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::nap_trang",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::num",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::o_vat_lieu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::opt",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::pdf_rows",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::phan_cua_dong",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::phong_of",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::pull_user",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::pull_user.note",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::put",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::rank_dong",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::row_match",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::row_sig",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::run_check",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::s",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::set_links",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::sheet_phan_viec",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::so_tu_nhien",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::soat_goi",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::split_list",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tach_ben",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tach_cham_phay",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tcq_chain.la",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tcq_parse",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::thu_tu_file",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tra_part_goc",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tra_part_goc.chep_rels",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::tra_part_goc.chep_rels.doi",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::unzip",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::write_reg",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::write_tool",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/td.py::ymd",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::an_toan_o",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::anh_trong_file",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::build",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::cao_dong",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::chu_cuoi",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::chuan_o",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::cung_anh",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::dau_anh",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::doc_file_cu",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::ghi_links",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::ghi_o",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::ghi_soi_anh",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::gop_sua_tay",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::gop_sua_tay.co_sua",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::khoa_cua_tap",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::kiem_anh",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::link_cua_dong",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::moc_snapshot",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/dmvt_xlsx.py::ten_file",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::<mức file>",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::boc_file",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::boc_schedule",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::gon",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::ma_cot_trai",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::ncc_cot_phai",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+},
+{
+"nhom": "SKILL/10-tender/tool/spec_boc.py::tach_truong",
+"quyet": "bo",
+"ly_do": "hàm đọc/ghi file hoặc điều phối lệnh; phương án A: không test lệnh ghi trên dữ liệu thật"
+}
+]

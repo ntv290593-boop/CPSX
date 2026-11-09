@@ -28,6 +28,14 @@ BAM LINK THI SAO
 - May chua dong bo (mo file tu tren web): mo PDF tren trinh duyet Edge
   (can co quyen xem thu muc do). Co the khong nhay dung trang.
 
+DA CAI BAN CU - THAY BAN MOI
+---------------------------
+Dau hieu ban cu: bam link bao "Khong tim thay file: C:\Users\...\Documents\https:\..."
+1. Dong het Excel (ca cua so an: Task Manager > tat het EXCEL.EXE).
+2. Lam lai buoc 2-6 o tren, chon "Replace" de ghi de file SRC_LINKS.xlam cu
+   trong XLSTART. Kiem tra ngay sua cua file trong XLSTART la ngay cua ban moi.
+3. Mo lai file, bam lai link.
+
 KHONG CHAY DUOC
 ---------------
 - Bam link khong thay gi: add-in chua cai (lam lai cac buoc tren), hoac

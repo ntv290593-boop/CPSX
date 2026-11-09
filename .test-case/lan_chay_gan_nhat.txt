@@ -1,0 +1,148 @@
+# Lần chạy 2026-11-09 12:05 — D:\COSTING EXCEL
+
+
+Kiểm chọn điểm: PASS — 13488 ứng viên: chọn 88 (10 mã điểm), bỏ 13400 (13400 theo nhóm), sót 0 · 10/10 điểm phích khớp
+
+# Kiểm oracle độc lập: D:\COSTING EXCEL
+
+## Kết luận: PASS
+
+Hàm oracle: oracle_chuan_ben, oracle_date_in, oracle_dot_of, oracle_loai_trang, oracle_ma_bang, oracle_ma_vl, oracle_vai_tro
+Hàm thuộc hệ thống đang test: *.replace, _can, _chuoi, _duong, chay, chay_chuan_ben, chay_date_in, chay_doc_ncc, chay_dot_of, chay_loai_trang, chay_ma_bang, chay_ma_vl, chay_tap_ma, chay_tham_chieu, chay_vai_tro, dmvt_xlsx, dmvt_xlsx.tap_ma, f, ma, nhanh, nhanh_chuan_ben, nhanh_date_in, nhanh_doc_ncc, nhanh_dot_of, nhanh_loai_trang, nhanh_ma_bang, nhanh_ma_vl, nhanh_tap_ma, nhanh_tham_chieu, nhanh_vai_tro, spec_boc, spec_boc.doc_ncc, td, td.chuan_ben, td.date_in, td.dot_of, td.loai_trang, td.ma_vl, td.ma_vl_theo_bang, td.tham_chieu, td.vai_tro_doan
+Đáp án viết tay trong bộ test: đã xét 1 chỗ điền `cho`
+
+## Vân tay nguồn: KHAI RỖNG
+
+## Cảnh báo
+  ⚠ oracle không đọc dữ liệu nào: đáp án chuẩn đang là số viết tay? viết tay thì dữ liệu đổi mà đáp án không đổi theo
+
+## Giới hạn của công cụ này
+  · AST chứng minh phụ thuộc TĨNH, không chứng minh độc lập NGỮ NGHĨA.
+  · Truy vết hàm phụ tới hết, nhưng chỉ trong file phích.
+  · Thư viện cài ngoài nhận ra theo môi trường Python đang chạy công cụ này.
+  · Đáp án viết tay: lần theo biến, tham số hàm dựng case, biến cấp file TRONG phích. Đáp án đọc từ file case ngoài phích là dữ liệu — máy không biết file đó có từng được sinh bằng cách chạy chính hệ thống hay không.
+  · Oracle đọc đúng nguồn nhưng hiểu sai quy tắc nghiệp vụ vẫn qua được mọi kiểm ở đây — chỗ đó cần người.
+
+
+· vân tay nguồn: khớp mốc ghi ngày 2026-11-06.
+
+
+· vân tay hàm: khớp mốc ghi ngày 06/11/2026 (10 điểm).
+· 3 điểm MỚI chưa có mốc: TD.VL.MA_BANG, DMVT.TAP_MA, SPEC.DOC_NCC (ghi mốc bằng `--da-xem-xet`)
+
+
+# Kiểm trùng lặp — COSTING EXCEL
+  116 case · tầng đã chạy: 1, 2
+
+## ĐỎ — trùng chắc chắn (0)
+  (không có)
+
+## CẢNH BÁO — có thể trùng bản chất (0)
+  (không có)
+
+## CHƯA KIỂM ĐƯỢC — 0 cặp
+  (tầng ③ không chạy lượt này)
+
+## Máy KHÔNG kết luận
+  · case trùng về mặt NGHĨA (hai cách nói của một tình huống) — máy không đọc được ý; đó là việc người xem
+  · case nào đáng bỏ — máy chỉ chỉ chỗ nghi
+
+· vân tay nguồn: khớp mốc ghi ngày 2026-11-06.
+
+## LỚP LUẬT
+
+USER :  116/116  đạt   ✗ sai 0   ⚠ chờ người 0   ! vỡ 0   · chưa chạy 0
+PROBE:    0/0    đạt   (không tính vào kết luận nghiệp vụ)   ✗ sai 0   ⚠ chờ người 0   ! vỡ 0   · chưa chạy 0
+  · 33/116 case USER chưa có người gật (nguon khác 'nguoi') — chưa được vào bộ vàng.
+  (4.05 giây)
+
+| ID | Vai | Điểm | Nhánh | Đầu vào | Nhận được | Chuẩn | KQ | Vì sao |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | ✓ | không có dòng nào cần xem |
+
+Đã ghi: D:\COSTING EXCEL\.test-case\bang_quyet_dinh.md
+
+
+
+## vai_tro_doan   (SKILL/10-tender/tool/td.py:528)
+   mã điểm      : TD.DOAN.VAITRO
+   case         : 24 dựng cho điểm này (USER 24 · PROBE 0) + 92 case khác trong bộ
+   đường chạy   : 24 đi qua · 92 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 6/6   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/6   ← chỉ chứng minh code chạy được
+
+## loai_trang   (SKILL/10-tender/tool/td.py:1880)
+   mã điểm      : TD.SPEC.LOAI_TRANG
+   case         : 10 dựng cho điểm này (USER 10 · PROBE 0) + 106 case khác trong bộ
+   đường chạy   : 10 đi qua · 106 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 6/6   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/6   ← chỉ chứng minh code chạy được
+
+## tham_chieu   (SKILL/10-tender/tool/td.py:1175)
+   mã điểm      : TD.TCQ.THAM_CHIEU
+   case         : 8 dựng cho điểm này (USER 8 · PROBE 0) + 108 case khác trong bộ
+   đường chạy   : 29 đi qua · 87 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+## date_in   (SKILL/10-tender/tool/td.py:203)
+   mã điểm      : TD.NGAY.DATE_IN
+   case         : 11 dựng cho điểm này (USER 11 · PROBE 0) + 105 case khác trong bộ
+   đường chạy   : 11 đi qua · 105 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+## dot_of   (SKILL/10-tender/tool/td.py:218)
+   mã điểm      : TD.NGAY.DOT_OF
+   case         : 8 dựng cho điểm này (USER 8 · PROBE 0) + 108 case khác trong bộ
+   đường chạy   : 8 đi qua · 108 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 3/3   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/3   ← chỉ chứng minh code chạy được
+
+## ma_vl   (SKILL/10-tender/tool/td.py:84)
+   mã điểm      : TD.VL.MA_VL
+   case         : 14 dựng cho điểm này (USER 14 · PROBE 0) + 102 case khác trong bộ
+   đường chạy   : 33 đi qua · 83 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+## chuan_ben   (SKILL/10-tender/tool/td.py:2433)
+   mã điểm      : TD.BEN.CHUAN_BEN
+   case         : 8 dựng cho điểm này (USER 8 · PROBE 0) + 108 case khác trong bộ
+   đường chạy   : 8 đi qua · 108 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+## ma_vl_theo_bang   (SKILL/10-tender/tool/td.py:108)
+   mã điểm      : TD.VL.MA_BANG
+   case         : 11 dựng cho điểm này (USER 11 · PROBE 0) + 105 case khác trong bộ
+   đường chạy   : 11 đi qua · 105 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+## tap_ma   (SKILL/10-tender/tool/dmvt_xlsx.py:49)
+   mã điểm      : DMVT.TAP_MA
+   case         : 12 dựng cho điểm này (USER 12 · PROBE 0) + 104 case khác trong bộ
+   đường chạy   : 12 đi qua · 104 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+## doc_ncc   (SKILL/10-tender/tool/spec_boc.py:114)
+   mã điểm      : SPEC.DOC_NCC
+   case         : 10 dựng cho điểm này (USER 10 · PROBE 0) + 106 case khác trong bộ
+   đường chạy   : 10 đi qua · 106 không đi qua · 0 chưa có bằng chứng
+   độ tin cậy   : CHẮC — dấu vết từ đường chạy thật
+   nhánh phủ (USER) : 2/2   ← con số có ý nghĩa nghiệp vụ
+   nhánh phủ (PROBE): 0/2   ← chỉ chứng minh code chạy được
+
+============================================================
+Lớp luật đã phủ hết nhánh và hết mốc bằng case USER, đo bằng dấu vết hoặc mã nhánh.

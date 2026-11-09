@@ -46,7 +46,11 @@ def chuan_o(v):
 
 def tap_ma(chu):
     """Tập mã ở cột B. tach_ma không nhận mã 4 số (SX-5200, SX-1104A) nên lấy thêm ở đây, nếu không thì build lại coi các dòng này là 'dòng user thêm' và nhân đôi."""
-    return frozenset(x[0] for x in tach_ma(s(chu)) if x[3] in ("ffe", "gach")) | frozenset(re.findall(r"\b[A-Z]{2}-\d{4}[A-Z]?\b", s(chu)))
+    # mã viết liền (FR1, LM4A, 401PL) tach_ma cũng không nhận -> dòng bị coi là 'dòng đuôi' của dòng trên và nhân đôi mỗi lần build.
+    # Cột B chỉ chứa mã (máy ghi mỗi mã 1 dòng): ô mà mọi phần đều có dạng mã thì nhận cả ô.
+    phan = [x.strip().upper() for x in re.split(r"[\n/;,]+", s(chu)) if x.strip()]
+    vien = frozenset(phan) if phan and all(re.fullmatch(r"[A-Z0-9]{1,5}(?:-[A-Z0-9]{1,5})?(?:\.\d{1,2})?", x) and re.search(r"[A-Z]", x) and re.search(r"[\d-]", x) for x in phan) else frozenset()
+    return frozenset(x[0] for x in tach_ma(s(chu)) if x[3] in ("ffe", "gach")) | frozenset(re.findall(r"\b[A-Z]{2}-\d{4}[A-Z]?\b", s(chu))) | vien
 
 
 # ---------------------------------------------------------------- đọc file cũ
@@ -267,7 +271,10 @@ def link_cua_dong(r, res, p):
     fidx = res["FILE_INDEX"]
     sp, bv = [], []
     for n in r.get("Nguồn", []):
-        sp.append([f"{n['ma']} · {dmvt.ten_file(fidx, n['fid'])[:40]} p{n['trang']}", n["fid"], n["trang"]])
+        if n.get("o"):  # nguồn là ô trong file xlsx
+            sp.append([f"{n['ma']} · {dmvt.ten_file(fidx, n['fid'])[:40]} {n['o']}", n["fid"], None, n["o"]])
+        else:
+            sp.append([f"{n['ma']} · {dmvt.ten_file(fidx, n['fid'])[:40]} p{n['trang']}", n["fid"], n["trang"]])
     tap = set(r["Mã"])
     for x in res["VL_XUATHIEN"].values():
         if x.get("Mã VL") in tap:
@@ -537,8 +544,9 @@ def ghi_soi_anh(wb, soi, p, res, thu_muc):
             dc = o.Address.replace("$", "")
             t = ng[0]
             pg = r.get("Trang ảnh") or t["trang"]
-            them_link(ws, o, f"'_SOI_ANH'!{dc}", f"{t['fid']} p{pg}")
-            it = link_item(p, [f"{t['ma']} p{pg}", t["fid"], pg], res["FILE_INDEX"])
+            vt = t.get("o") or f"p{pg}"
+            them_link(ws, o, f"'_SOI_ANH'!{dc}", f"{t['fid']} {vt}")
+            it = link_item(p, [f"{t['ma']} {vt}", t["fid"], pg, t.get("o")], res["FILE_INDEX"])
             p.links.append(("_SOI_ANH", dc, it[0], it[1], it[2], it[3]))
 
 

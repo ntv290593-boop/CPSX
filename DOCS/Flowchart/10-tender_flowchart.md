@@ -18,6 +18,9 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
 │  Chưa có _cauhinh.json → init (hồ sơ, BOQ CĐT, TCQ gộp, bản dịch)   │
 │  init --mau <tên>: mẫu dự án trong form/MAU_DU_AN.json              │
 │    cdt_item (mặc định): có BOQ CĐT, TCQ. tu_lap_vn: xem phần 9      │
+│    cdt_vn: BOQ CĐT tiếng Việt, 1 sheet = 1 loại căn, mã từ MÃ SP;   │
+│      _cauhinh: rx_phong, phong_theo_sheet, dwg_theo_trang (DWG theo  │
+│      từng trang PDF), mat cờ KHÁC NGHĨA THEO LOẠI CĂN               │
 │  Thư mục không phải hồ sơ thầu → init --bo-thu-muc                  │
 │  DỪNG nếu: ~$<DA>_BOQ_TRACK_*.xlsx hoặc ~$FILE_INDEX.xlsx tồn tại   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -74,6 +77,8 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
             │
             ├─► 03_boq\<DA>_DMVT_<yymmdd>.xlsx
             ├─► 03_boq\<DA>_BOQ_TRACK_<yymmdd>.xlsx (cột Link vật tư trỏ dòng DMVT; bản cùng ngày tự sao _backup)
+            │     tra_part_goc: drawing ghép theo TÊN SHEET + chép ảnh gốc (goc_*), ảnh trong ô
+            │     (metadata + richData, thuộc tính vm) chép lại — openpyxl đổi tên/bỏ các phần này
             ├─► 01_index\FILE_INDEX.xlsx
             ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx (không tự gửi)
             └─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
@@ -227,10 +232,12 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
             · TCQ_LOG · MAT · DWG · KHU · AREA · VL_XUATHIEN (chỉ xem) · CAU_TAO · SCOPE · _CODE
             _LINKS cho add-in SRC_LINKS (mở PDF đúng trang, không còn cột mở dự phòng; H1:H2 BASE_DIR = thư mục file lúc build)
               Add-in tìm đích: file mở từ https → đổi sang thư mục OneDrive đồng bộ trên máy
+                (registry SyncEngines; dự phòng %OneDriveCommercial%/%OneDrive% khi registry bị chặn)
                 → tương đối theo chỗ đặt file → theo BASE_DIR → bỏ ..\ rồi thử từng thư mục cha
               File mở từ https mà máy chưa đồng bộ → mở thẳng địa chỉ web
               Máy khác: chép SRC_LINKS.xlam vào %APPDATA%\Microsoft\Excel\XLSTART
                 (gói _MASTER\vba\GUI_CHO_NGUOI_KHAC: xlam + HUONG DAN CAI.txt; Cortex chặn file .bat tự giải mã)
+                Bản cũ (trước 02/11) báo "Khong tim thay file: C:\...\Documents\https:\..." → thay xlam mới
             Ẩn sheet: SCOPE, DWG, KHU, AREA, VL_XUATHIEN (không dựng hyperlink), _LINKS, _CODE;
                       CAU_TAO, PHAN_VIEC ẩn khi chưa có mẫu. Sửa ở sheet ẩn vẫn được kéo vào
         │
@@ -355,6 +362,10 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
    MATERIAL REFERENCE → từng khối ITEM (khối này thắng trang SPEC của cùng mã)│
    DRAWING REFERENCE  → đọc cột theo đường kẻ bảng                            │
    SPECIFICATION      → mã khớp item_spec, bỏ Fabrication/Installation        │
+ + spec dạng bảng xlsx (09/11) cho mã chưa có trang PDF: file có cột mã + mô tả│
+   (Material Schedule: loại, mô tả, mã NCC, NCC, ảnh cột Minh họa cùng hàng)  │
+   BOQ CĐT xét sau cùng: mã hạng mục (MÃ SP + HÌNH ẢNH) → mục FF&E, có cờ     │
+   _dmvt.json "spec_xlsx": [FID] chọn file, false tắt                         │
         │                                                                     │
         ▼                                                                     │
  Gộp dòng: FF&E theo Design + Colour (cùng mã màu, khác vài chữ: gộp, có cờ)  │
@@ -366,7 +377,7 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
                      Chưa có ở MAT: cờ, không suy. Area luôn có cờ.
         │
         ▼
- Ảnh: khối ITEM / vùng Sample Swatch / trang minh họa (ca khó)
+ Ảnh: khối ITEM / vùng Sample Swatch / trang minh họa (ca khó) / ô xlsx cùng hàng
       nhiều ảnh: ảnh chụp trước rồi lớn nhất; dòng có cờ vào _SOI_ANH
         │
         ├─► --chi-boc: _dmvt_boc.json, _dmvt_anh\  ──► bước 8: LLM ghi _dmvt_llm.json
@@ -375,6 +386,8 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
  Bản DMVT trước + _dmvt_snapshot.json → gop_sua_tay
    ô A:I / ảnh khác snapshot: giữ; spec đổi: ghi Spec mới khác, không đè
    J:AF, từ AK: giữ. Dòng không mã: đi theo dòng có mã phía trên
+   (cột B mọi phần có dạng mã — FR1, LM4A, D-WC — là dòng có mã; trước 09/11 bị coi
+    là dòng đuôi nên nhân đôi mỗi lần build)
    tập mã đổi: cờ, không tự chuyển; dòng cũ có công người: mục DÒNG CŨ GIỮ LẠI
         │
         ▼
@@ -401,6 +414,10 @@ _core/dwg_tag.py <CAD>        DWG → DXF (ODA) → _data/_dwg_tag.json
   mũi tên, viewport, goc (gốc khung tên, để đổi tọa độ sang ảnh)
 spec_boc.py <pdf...>          spec kiểu AID → _data/_spec_boc.json
   mã ghép với khối theo vị trí trên trang schedule; trang chi tiết bổ sung trường
+  cột chữ / cột NCC đo theo trang (09/11; trước cố định x 80/255, file SW lệch → mất cả khối)
+  khối NCC không nhãn (tên, URL, T/E/M/C) đọc theo vị trí: schedule = cột giữa,
+  trang chi tiết = cột phải giữa tiêu đề SPECIFICATION và ô CODE; có nhãn Manufacturer
+  mà cột phải ghi tên khác → supplier
         │
         ▼
 be_mat.py                     bề mặt từng tag: tuong, tran, san, cua, portal, joinery, khac

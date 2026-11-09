@@ -1,0 +1,88 @@
+{
+  "van_tay": {
+    "TD.DOAN.VAITRO": {
+      "ten": "vai_tro_doan",
+      "ham": "vai_tro_doan",
+      "than": "d122e4825b4a504b",
+      "ham_con": {},
+      "nguon": {},
+      "bam": "ddb6ec8425a2160d",
+      "khong_du": false
+    },
+    "TD.SPEC.LOAI_TRANG": {
+      "ten": "loai_trang",
+      "ham": "loai_trang",
+      "than": "13daff5521484473",
+      "ham_con": {},
+      "nguon": {},
+      "bam": "69ec7476fdfef78a",
+      "khong_du": false
+    },
+    "TD.TCQ.THAM_CHIEU": {
+      "ten": "tham_chieu",
+      "ham": "tham_chieu",
+      "than": "2dc1bd7e3a7dc0ea",
+      "ham_con": {},
+      "nguon": {},
+      "bam": "62d71adc67feb652",
+      "khong_du": false
+    },
+    "TD.NGAY.DATE_IN": {
+      "ten": "date_in",
+      "ham": "date_in",
+      "than": "2f1a0385c2333a0d",
+      "ham_con": {
+        "ymd": {
+          "cap": 1,
+          "bam": "23e6d0947a6cba19"
+        }
+      },
+      "nguon": {},
+      "bam": "bfb5e488db9e5a08",
+      "khong_du": false
+    },
+    "TD.NGAY.DOT_OF": {
+      "ten": "dot_of",
+      "ham": "dot_of",
+      "than": "6620196b31fb78f0",
+      "ham_con": {
+        "ymd": {
+          "cap": 1,
+          "bam": "23e6d0947a6cba19"
+        }
+      },
+      "nguon": {},
+      "bam": "03f0e8f462025244",
+      "khong_du": false
+    },
+    "TD.VL.MA_VL": {
+      "ten": "ma_vl",
+      "ham": "ma_vl",
+      "than": "bfc0b01ab68f569f",
+      "ham_con": {},
+      "nguon": {},
+      "bam": "ffb69e90434081a1",
+      "khong_du": false
+    },
+    "TD.BEN.CHUAN_BEN": {
+      "ten": "chuan_ben",
+      "ham": "chuan_ben",
+      "than": "363b2e408bb54a97",
+      "ham_con": {
+        "s": {
+          "cap": 1,
+          "bam": "0b9d5e2dd8619683"
+        },
+        "tach_ben": {
+          "cap": 1,
+          "bam": "77d98809cb58fe2e"
+        }
+      },
+      "nguon": {},
+      "bam": "3b59300fcb579d33",
+      "khong_du": false
+    }
+  },
+  "ngay_ghi": "2026-11-06",
+  "ghi_chu": ""
+}
