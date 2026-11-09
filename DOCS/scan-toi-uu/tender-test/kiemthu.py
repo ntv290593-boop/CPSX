@@ -1004,7 +1004,7 @@ def gd3_khai_bao_cot_goc_khong_lan_cot_them(tmp):
     ws.column_dimensions["C"] = ColumnDimension(ws, index="C", min=3, max=4, width=9)  # không lấn, phải giữ
     ws.column_dimensions["I"] = ColumnDimension(ws, index="I", min=9, max=60, width=7, hidden=True)
     wb.save(src)
-    td_ok("build", goc)
+    td_ok("build", goc, "--cdt")
     import glob
     for f, cuoi_it in ((file_track(goc), 19), (glob.glob(os.path.join(goc, "10_TENDER", "04_out", "*_CDT.xlsx"))[0], 3)):
         wb = openpyxl.load_workbook(f)
@@ -1146,13 +1146,167 @@ def gd3_chen_hang_thi_dung_khong_nhan_sua(tmp):
 
 
 @kiem(3, "mau")
+def gd3_doi_cho_hang_trung_mo_ta_van_dung(tmp):
+    """Rà soát 09/11: hàng 11, 12 cùng mô tả 'Cai ke' nên chữ ký mô tả như nhau — đổi chỗ 2 hàng thì trước đây lọt và sửa tay
+    gắn nhầm dòng. Khóa dòng trong công thức cột nội bộ bắt được."""
+    import openpyxl
+    goc, cd, data = dung_boq(tmp)
+    td_ok("build", goc)
+    f = file_track(goc)
+    wb = openpyxl.load_workbook(f)
+    ws = wb[SH]
+    ws[f"{cot_cua(ws)['Bên thực hiện']}11"] = "NTP-X"
+    for j in range(1, ws.max_column + 1):
+        a, b = ws.cell(row=11, column=j), ws.cell(row=12, column=j)
+        a.value, b.value = b.value, a.value
+    wb.save(f)
+    rc, out = td("build", goc)
+    assert rc != 0 and "bị dời" in out and f"{SH}!11" in out, f"đổi chỗ 2 hàng trùng mô tả mà build vẫn chạy:\n{out}"
+    assert not os.path.exists(os.path.join(data, "SCOPE.user.json")), "hàng lệch mà vẫn nhận sửa tay"
+
+
+@kiem(3, "mau")
+def gd3_xoa_o_noi_bo_khong_tinh_la_doi_hang(tmp):
+    """User xóa các ô công thức nội bộ của 1 hàng (không chèn/xóa hàng): không có khóa thì so chữ ký mô tả, vẫn nhận sửa tay."""
+    import openpyxl
+    goc, cd, data = dung_boq(tmp)
+    td_ok("build", goc)
+    f = file_track(goc)
+    wb = openpyxl.load_workbook(f)
+    ws = wb[SH]
+    for o in ws[10]:
+        if isinstance(o.value, str) and "SCOPE!$A:$A" in o.value:
+            o.value = None
+    ws[f"{cot_cua(ws)['Bên thực hiện']}10"] = "NTP-Y"
+    wb.save(f)
+    td_ok("build", goc)
+    u = {r["Khóa"]: r for r in doc_json(goc, "SCOPE.user.json")["rows"]}
+    assert u.get(f"{SH}!10", {}).get("Bên thực hiện") == "NTP-Y", u
+
+
+@kiem(3, "mau")
+def gd3_chen_cot_thi_dung(tmp):
+    """Chèn cột trước các cột tool thêm: trước đây đọc nhầm cột (giá trị cột bên cạnh thành 'sửa tay'). Giờ dừng."""
+    import openpyxl
+    goc, cd, data = dung_boq(tmp)
+    td_ok("build", goc)
+    f = file_track(goc)
+    wb = openpyxl.load_workbook(f)
+    wb[SH].insert_cols(3)
+    wb.save(f)
+    rc, out = td("build", goc)
+    assert rc != 0 and "chèn/xóa cột" in out, f"chèn cột mà build vẫn chạy:\n{out}"
+    assert not os.path.exists(os.path.join(data, "SCOPE.user.json")), "cột lệch mà vẫn nhận sửa tay"
+
+
+@kiem(3, "mau")
+def gd3_json_hong_check_bao_khong_van_loi(tmp):
+    """JSON bước LLM hỏng / dòng không phải object: check báo LỖI có cấu trúc, không văng traceback lúc ghép."""
+    goc, cd, data = dung_boq(tmp)
+    with open(os.path.join(data, "SCOPE.banve-1.json"), "w", encoding="utf-8") as fh:
+        fh.write('{"rows": [{"Khóa": "x",')
+    ghi(os.path.join(data, "SCOPE.banve-2.json"), {"rows": ["không phải object"]})
+    ghi(os.path.join(data, "SCOPE.banve-3.json"), {"rows": [{"_loc": {"Mô tả BOQ": "(hỏng"}, "Việc còn mở": "x"}]})
+    rc, out = td("check", goc)
+    assert rc == 1 and "Traceback" not in out, out
+    assert "SCOPE.banve-1.json: JSON hỏng" in out and "SCOPE.banve-2.json: thiếu 'rows'" in out, out
+
+
+@kiem(3, "mau")
+def gd3_sheet_boq_bi_bo_thi_check_bao(tmp):
+    """Sheet có số liệu mà boq không nhận ra tiêu đề: trước chỉ in lúc chạy boq; giờ check báo XEM tới khi khai boq_bo_sheet."""
+    import openpyxl
+    goc, cd, data = dung_boq(tmp)
+    f = os.path.join(goc, "hoso", "boq.xlsx")
+    wb = openpyxl.load_workbook(f)
+    w = wb.create_sheet("Phu luc")
+    for i in range(8):
+        w.append([f"Hang muc {i}", i + 1, 10 * i])
+    wb.save(f)
+    td_ok("boq", goc)
+    rc, out = td("check", goc)
+    assert "sheet 'Phu luc' bị bỏ" in out, out
+    assert "1. GR&Prelims' bị bỏ" not in out, out
+
+
+def nap_td():
+    tool = os.path.join(ROOT, "SKILL", "10-tender", "tool")
+    if tool not in sys.path:
+        sys.path.insert(0, tool)
+    import td as td_mod
+    return td_mod
+
+
+@kiem(3, "mau")
+def gd3_tcq_trung_stt_khong_mat_cau(tmp):
+    """Rà soát 09/11: 2 câu cùng (đợt, STT) khác nội dung — trước câu trước bị ghi đè mất. Câu sau giữ mã, câu trước mã có đuôi @hàng.
+    Trùng y hệt thì không thêm dòng."""
+    import openpyxl
+    t = nap_td()
+    f = os.path.join(tmp, "tcq.xlsx")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "TC No.3"
+    for r in (["No.", "Query", "Response"], [1, "Q1", "A1"], [2, "Q2", "A2"], [1, "Q1 khac", "A1 khac"], [2, "Q2", "A2"]):
+        ws.append(r)
+    wb.save(f)
+    out = t.tcq_parse(f)
+    assert out[(3, "1")]["q"] == "Q1 khac" and out[(3, "1@2")]["q"] == "Q1", dict(out)
+    assert len(out) == 3, list(out)
+
+
+@kiem(3, "mau")
+def gd3_ngay_phai_co_that(tmp):
+    t = nap_td()
+    assert t.check_val("Ngày", {"kieu": "NGAY"}, "2026-13-45", {}), "ngày 2026-13-45 lọt"
+    assert not t.check_val("Ngày", {"kieu": "NGAY"}, "2026-11-09", {})
+
+
+@kiem(5, "mau")
+def gd5_spec_boc_khong_mat_ma_phu_cua_khoi(tmp):
+    """Rà soát 09/11: khối schedule có 2 mã ở cột trái — mã sau (ma_khac) trước bị bỏ. Giờ thành bản ghi riêng, cung_khoi = mã đầu;
+    mã sau đã có khối riêng thì giữ khối riêng."""
+    tool = os.path.join(ROOT, "SKILL", "10-tender", "tool")
+    if tool not in sys.path:
+        sys.path.insert(0, tool)
+    import spec_boc
+    ds = [{"ma": "LX-2001", "item desc": "Ghe", "ma_khac": ["LX-2002", "LX-2003"]}, {"ma": "LX-2003", "item desc": "Ban"}]
+    bang = {k["ma"]: k for k in ds}
+    spec_boc.them_ma_khac(ds, bang)
+    assert bang["LX-2002"]["item desc"] == "Ghe" and bang["LX-2002"]["cung_khoi"] == "LX-2001", bang
+    assert bang["LX-2003"]["item desc"] == "Ban" and "cung_khoi" not in bang["LX-2003"], bang
+    assert len(ds) == 3 and all("ma_khac" not in k for k in ds if k.get("cung_khoi")), ds
+
+
+@kiem(5, "mau")
+def gd5_bang_xlsx_qua_3000_hang(tmp):
+    """Rà soát 09/11: boc_xlsx cắt cứng 3000 hàng, mã phía sau mất không báo."""
+    import openpyxl
+    dmvt, _ = nap_dmvt()
+    f = os.path.join(tmp, "ms.xlsx")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Item code", "Description"])
+    for i in range(1, 3201):
+        ws.append([f"PT-{i:04d}", f"Son {i}"])
+    wb.save(f)
+    out = dmvt.boc_xlsx(f, "F0001", None)
+    assert len(out) == 3200 and "PT-3200" in out, len(out)
+
+
+@kiem(3, "mau")
 def gd3_ban_cdt_khong_co_noi_bo(tmp):
-    """Bản gửi CĐT là chỗ lộ thông tin: kiểm cả nội dung XML, không chỉ tên cột."""
+    """Bản gửi CĐT là chỗ lộ thông tin: kiểm cả nội dung XML, không chỉ tên cột.
+    User 09/11: mặc định build không dựng bản CĐT, chỉ khi --cdt."""
     import glob
     import openpyxl
     goc, cd, data = dung_boq(tmp)
     ghi(os.path.join(data, "SCOPE.ben.json"), {"rows": [{"Khóa": f"{SH}!8", "Bên thực hiện": "NTP-BI-MAT"}]})
     td_ok("build", goc)
+    assert not glob.glob(os.path.join(goc, "10_TENDER", "04_out", "*_CDT.xlsx")), "không --cdt mà vẫn dựng bản CĐT"
+    du = [x for d in ("03_boq", "01_index", "04_out") for x in os.listdir(os.path.join(goc, "10_TENDER", d)) if x.startswith("_dang_ghi_")]
+    assert not du, f"còn file tạm: {du}"
+    td_ok("build", goc, "--cdt")
     f = glob.glob(os.path.join(goc, "10_TENDER", "04_out", "T_BOQ_*_CDT.xlsx"))[0]
     wb = openpyxl.load_workbook(f)
     assert set(wb.sheetnames) == {SH, "1. GR&Prelims"}, wb.sheetnames
@@ -1346,7 +1500,7 @@ def gd3_sofitel_build_that_tren_ban_sao(tmp):
     snap_cu.pop("boq_track", None)  # không kéo sửa tay từ file thật; lệch hàng ở file thật là chuyện riêng của build thật
     snap_cu.pop("file_index", None)
     ghi(os.path.join(goc, "10_TENDER", "_data", "_snapshot.json"), snap_cu)
-    out = td_ok("build", goc)
+    out = td_ok("build", goc, "--cdt")
     assert "0 LỖI" in out, out[-800:]
     moi = doc_json(goc, "_snapshot.json")["reg"]["SCOPE"]
     cu = snap_cu["reg"]["SCOPE"]
@@ -1469,7 +1623,7 @@ def gd3b_phan_viec_va_dashboard(tmp):
     import openpyxl
     goc, cd, data = dung_ben(tmp)
     them_mau(goc)
-    td_ok("build", goc)
+    td_ok("build", goc, "--cdt")
     wb = openpyxl.load_workbook(file_track(goc))
     assert wb.sheetnames[:3] == ["DASHBOARD", "BOQ_TONGHOP", "PHAN_VIEC"], wb.sheetnames
     pv = [r for r in wb["PHAN_VIEC"].iter_rows(min_row=2, values_only=True)]
@@ -1820,7 +1974,7 @@ def gd4_link_spec_va_sua_area_qua_build(tmp):
     hd = [c.value for c in wa[1]]
     wa.cell(row=2, column=hd.index("Mã phòng") + 1, value="SK-01")
     wb.save(fn)
-    td_ok("build", goc)
+    td_ok("build", goc, "--cdt")
     a = {r["Tiền tố"]: r for r in doc_json(goc, "AREA.user.json")["rows"]}
     assert a["51"]["Mã phòng"] == "SK-01", a
     td_ok("area", goc)
@@ -1840,7 +1994,7 @@ def gd4_hang_khong_gian(tmp):
     import glob
     import openpyxl
     goc, data, f = dung_xh(tmp)
-    td_ok("build", goc)
+    td_ok("build", goc, "--cdt")
     wb = openpyxl.load_workbook(file_track(goc))
     ws = wb[SH]
     h = cot_cua(ws)
@@ -1932,7 +2086,7 @@ def gd4_sofitel_so_xuat_hien_va_link_spec(tmp):
     snap.pop("boq_track", None)
     snap.pop("file_index", None)
     ghi(os.path.join(goc, "10_TENDER", "_data", "_snapshot.json"), snap)
-    out = td_ok("build", goc)
+    out = td_ok("build", goc, "--cdt")
     assert "0 LỖI, 1 XEM" in out, out[-800:]  # 1 XEM duy nhất: nhắc chưa đọc sâu (GĐ7)
     assert "XEM  Chưa đọc sâu" in td("check", goc)[1]
     rows = doc_json(goc, "VL_XUATHIEN.xuathien-tool.json")["rows"]
@@ -2812,7 +2966,7 @@ def gd7_build_co_doc_sau(tmp):
     wa = wb["ASK_USER"]
     wa.cell(2, [x.value for x in wa[1]].index("Trả lời") + 1, "Tính")
     wb.save(f)
-    td_ok("build", goc)
+    td_ok("build", goc, "--cdt")
     wb = openpyxl.load_workbook(f)
     ws = wb["BOQ_TONGHOP"]
     assert ws.cell(dong[ke[1]], c["Kích thước BV"]).value == "800×400×1000" and ws.cell(dong[ke[0]], c["Kích thước BV"]).value == "900×450×2000"

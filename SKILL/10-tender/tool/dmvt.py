@@ -369,13 +369,35 @@ def anh_theo_o(f, sheet):
     return out
 
 
+def _co_tieu_de(rows):
+    """15 hàng đầu có hàng tiêu đề (cột mã + cột mô tả) không: không có thì khỏi đọc tiếp sheet."""
+    for r in rows[:15]:
+        cot = set()
+        for v in r:
+            t = _bo_dau(v)
+            for k, rx in COT_XLSX.items():
+                if t and k not in cot and re.search(rx, t):
+                    cot.add(k)
+                    break
+        if {"ma", "mo_ta"} <= cot:
+            return True
+    return False
+
+
 def boc_xlsx(path, fid, ngay, la_boq=False):
     """Bảng mã trong 1 file xlsx -> {mã: bản ghi loai XLSX}. Mỗi sheet: tìm hàng tiêu đề có cột mã + cột mô tả trong 15 hàng đầu."""
     import openpyxl
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     out = {}
     for ws in wb.worksheets:
-        rows = [list(r) for r in ws.iter_rows(max_row=min(ws.max_row or 0, 3000), values_only=True)]
+        # đọc hết bảng (trước cắt cứng 3000 hàng, sau đó mất mã không báo); chỉ dừng khi gặp 500 hàng trống liền
+        # (max_row của file có định dạng thừa có thể tới 1 triệu hàng)
+        rows, trong = [], 0
+        for r in ws.iter_rows(values_only=True):
+            rows.append(list(r))
+            trong = 0 if any(x is not None and str(x).strip() for x in r) else trong + 1
+            if trong >= 500 or (len(rows) == 15 and not _co_tieu_de(rows)):
+                break
         hdr = None
         for h, r in enumerate(rows[:15]):
             cot = {}
@@ -667,6 +689,8 @@ def viet_dong(cac_ma, moi, res, cfg, ghi_chu_gop_k):
             mo_ta.append("Kèm:\n" + "\n".join(dict.fromkeys(f"- {x['ma']} {s(x.get('item desc'))}"[:90] for x in r0["con"])))  # 1 mã con có cả ở trang schedule và trang chi tiết
         ncc = [y for y in (chu_ncc(s(kv.get(k))) for k in ("manufacturer", "supplier", "contact", "address")) if y]
         d.update(Material=chu_material(s(r0.get("mo_ta"))), Location=s(kv.get("area") or kv.get("location")), Description="\n".join(mo_ta), NCC="\n".join(ncc), Remarks=bo_ma_rac(s(kv.get("remarks")), ma0))
+        if kv.get("cung_khoi") and not kv.get("trang_ct"):
+            d["Cờ"].append(f"Chung khối schedule với {kv['cung_khoi']} (không có trang chi tiết riêng)")
     elif r0["loai"] == "XLSX":  # bảng xlsx: Material Schedule (loại + mô tả + mã NCC) hoặc BOQ CĐT (mô tả hạng mục)
         kv = r0["kv"]
         mo_ta = [s(r0.get("mo_ta"))] + ([f"Mã NCC: {kv['ma_ncc']}"] if kv.get("ma_ncc") else [])

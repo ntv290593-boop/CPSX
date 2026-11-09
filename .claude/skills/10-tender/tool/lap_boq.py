@@ -229,14 +229,14 @@ def ma_cua_tieu_de(ten):
     return [f"D{x}" for x in re.findall(r"\d+", m[1])] if m else []
 
 
-def vl_cua_tu_tag(thu_muc, tag):
+def vl_cua_tu_tag(thu_muc, tag, ten_thu_muc="8000 Door"):
     """{mã cửa: {'lich': {mã}, 'hd': {mã}, 'hd_ct': {mã}, 'chi_tiet': {mã: {tờ}}, 'chua_chot': {mã}, 'to': {tờ}}} từ tag trên tờ cửa.
     Tờ lịch: tag thuộc ô có chữ mã cửa cỡ lớn gần nhất về bên trái, cùng hàng. Tờ chi tiết: tag thuộc cột khung hình, chỉ lấy phần mặt cắt
     vì tag trên mặt bằng chi tiết còn chỉ cả tường hai bên cửa. Mã cửa ở tờ chi tiết không có chữ cái (DOOR 10) áp cho mọi biến thể (D10a, D10b)."""
     mm = 72 / 25.4
     out = collections.defaultdict(lambda: {"lich": set(), "hd": set(), "hd_ct": set(), "chi_tiet": collections.defaultdict(set), "chua_chot": set(), "to": set()})
     for rel, v in tag.items():
-        if not rel.startswith("8000 Door/"):
+        if not rel.startswith(ten_thu_muc + "/"):
             continue
         la_lich = "_8000_8008" in rel
         for so, l in v["to"].items():
@@ -327,6 +327,11 @@ class Du:
         self.goc = os.path.abspath(goc)
         self.d = os.path.join(self.goc, "10_TENDER", "_data")
         self.cfg = json.load(open(os.path.join(self.d, "_lap_boq.json"), encoding="utf-8"))
+        # quy ước hồ sơ của mẫu tu_lap_vn (CTX), khai lại trong _lap_boq.json nếu dự án khác:
+        self.to_dau = self.cfg.get("so_to_dau", "123")             # chữ số đầu của số tờ mặt bằng/mặt đứng/trần
+        self.tien_to_pdf = self.cfg.get("tien_to_pdf", "AID")      # tên PDF tờ lẻ bắt đầu bằng
+        self.thu_muc_cua = self.cfg.get("thu_muc_cua", "8000 Door")  # thư mục bản vẽ cửa trong thu_muc_ban_ve
+        self.rx_do_roi = re.compile(r"(%s)-\d{4}" % "|".join(self.cfg.get("ho_do_roi", ["BX", "CG", "LX", "SX"])))  # mã đồ rời trên tờ FF&E
         ch = json.load(open(os.path.join(self.d, "_cauhinh.json"), encoding="utf-8"))
         self.inp = os.path.join(self.goc, ch["input"])
         self.bv = os.path.join(self.inp, self.cfg["thu_muc_ban_ve"])
@@ -360,7 +365,7 @@ class Du:
                     continue
                 for x in fs:
                     m = rx.search(x)
-                    if m and x.startswith("AID"):
+                    if m and x.startswith(self.tien_to_pdf):
                         self._pdf.setdefault(m[1], os.path.join(dp, x))
         return [self._pdf[x] for x in ds if x in self._pdf]
 
@@ -425,8 +430,8 @@ def lap_dong(du):
     bang = collections.defaultdict(lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
     ngoai = collections.defaultdict(lambda: collections.defaultdict(set))
     co_chung = collections.Counter()
-    lich = doc_lich_cua(os.path.join(du.bv, "8000 Door"))
-    vl_cua = vl_cua_tu_tag(os.path.join(du.bv, "8000 Door"), du.tag)
+    lich = doc_lich_cua(os.path.join(du.bv, du.thu_muc_cua))
+    vl_cua = vl_cua_tu_tag(os.path.join(du.bv, du.thu_muc_cua), du.tag, du.thu_muc_cua)
     lich_ma = collections.defaultdict(list)
     for x in lich:
         lich_ma[x["ma"].lower() if len(x["ma"]) > 2 else x["ma"]].append(x)
@@ -449,7 +454,7 @@ def lap_dong(du):
         san_tinh, chi_tiet = cfg.get("san_tinh") or {}, cfg.get("chi_tiet") or {}  # tag sàn và chi tiết được user chốt phải có dòng
         chua_ro = collections.defaultdict(set)
         for so, o in tos.items():
-            if so.startswith("model:") or so[0] in "123":
+            if so.startswith("model:") or (so[:1] and so[:1] in du.to_dau):
                 for (c, bm), _ in o["bm"].items():
                     if bm in ("tuong", "can_soat", "khong_ro"):
                         gom["tuong"][c].add(so)

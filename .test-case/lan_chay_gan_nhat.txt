@@ -1,7 +1,9 @@
-# Lần chạy 2026-11-09 12:05 — D:\COSTING EXCEL
+# Lần chạy 2026-11-09 16:28 — D:\COSTING EXCEL
 
 
-Kiểm chọn điểm: PASS — 13488 ứng viên: chọn 88 (10 mã điểm), bỏ 13400 (13400 theo nhóm), sót 0 · 10/10 điểm phích khớp
+Kiểm chọn điểm: ĐỎ — 13703 ứng viên: chọn 88 (10 mã điểm), bỏ 13501 (13501 theo nhóm), sót 114 · CHƯA đối chiếu phích: lượt dừng trước khi nạp phích
+  SÓT 114 ứng viên chưa khai, theo file: SKILL/10-tender/tool/guilink.py 95, SKILL/10-tender/tool/td.py 15, SKILL/10-tender/tool/spec_boc.py 4
+    (bỏ cả file / hàm bằng một dòng: {"nhom": "file.py", "quyet": "bo", "ly_do": "..."})
 
 # Kiểm oracle độc lập: D:\COSTING EXCEL
 
@@ -27,8 +29,56 @@ Hàm thuộc hệ thống đang test: *.replace, _can, _chuoi, _duong, chay, cha
 · vân tay nguồn: khớp mốc ghi ngày 2026-11-06.
 
 
-· vân tay hàm: khớp mốc ghi ngày 06/11/2026 (10 điểm).
-· 3 điểm MỚI chưa có mốc: TD.VL.MA_BANG, DMVT.TAP_MA, SPEC.DOC_NCC (ghi mốc bằng `--da-xem-xet`)
+============================================================
+⚠ LOGIC ĐIỂM QUYẾT ĐỊNH ĐÃ ĐỔI
+  mốc so sánh ghi ngày: 06/11/2026
+
+  TD.DOAN.VAITRO   cũ ddb6ec8425a2160d… -> nay ef788fa83bbab1a9…
+      đổi ở: thân hàm `cmd_init`
+      đổi ở: HÀM CON MỚI `chuan_bo_thu_muc` (cấp 1)
+      đổi ở: HÀM CON MỚI `jdump` (cấp 1)
+      đổi ở: HÀM CON MỚI `khoa_thu_muc` (cấp 2)
+      đổi ở: HÀM CON MỚI `nap_mau` (cấp 1)
+      đổi ở: HÀM CON MỚI `opt` (cấp 1)
+  TD.SPEC.LOAI_TRANG   cũ 69ec7476fdfef78a… -> nay 09796eb035de6caa…
+      đổi ở: thân hàm `khu_cua_file`
+      đổi ở: HÀM CON MỚI `is_link` (cấp 2)
+      đổi ở: HÀM CON MỚI `links_of` (cấp 1)
+      đổi ở: HÀM CON MỚI `s` (cấp 1)
+  TD.TCQ.THAM_CHIEU   cũ 62d71adc67feb652… -> nay a4b79598ff7b9c4f…
+      đổi ở: thân hàm `tcq_parse`
+      đổi ở: HÀM CON MỚI `low` (cấp 1)
+      đổi ở: HÀM CON MỚI `s` (cấp 1)
+  TD.NGAY.DOT_OF   cũ 03f0e8f462025244… -> nay bfb5e488db9e5a08…
+      đổi ở: thân hàm `date_in`
+  TD.BEN.CHUAN_BEN   cũ 3b59300fcb579d33… -> nay 9b82803059ea9786…
+      đổi ở: thân hàm `pull_user`
+      đổi ở: HÀM CON MỚI `_rx_khoa` (cấp 1)
+      đổi ở: HÀM CON MỚI `column_index` (cấp 1)
+      đổi ở: HÀM CON MỚI `doi_khoa` (cấp 1)
+      đổi ở: HÀM CON MỚI `jdump` (cấp 1)
+      đổi ở: HÀM CON MỚI `jload` (cấp 1)
+      đổi ở: HÀM CON MỚI `khoa_trong_hang` (cấp 1)
+      đổi ở: HÀM CON MỚI `note` (cấp 1)
+      đổi ở: HÀM CON MỚI `num` (cấp 1)
+      đổi ở: HÀM CON MỚI `row_sig` (cấp 1)
+      đổi ở: hàm con `tach_ben` KHÔNG CÒN được gọi
+
+  Vân tay chỉ phát hiện logic ĐÃ ĐỔI. Nó KHÔNG nói đổi đúng hay sai, và
+  KHÔNG nói case nào cần xem lại — chỗ đó cần người.
+  Xem xét xong: python van_tay_ham.py <dự án> --da-xem-xet --ghi-chu "..."
+============================================================
+· 2 điểm MỚI chưa có mốc: DMVT.TAP_MA, SPEC.DOC_NCC (ghi mốc bằng `--da-xem-xet`)
+
+⚠ KHÔNG TÌM ĐƯỢC HÀM — 3 điểm (không đo được, KHÔNG phải 'không đổi'):
+    TD.NGAY.DATE_IN  (SKILL/10-tender/tool/td.py:203): dòng 203 của `SKILL/10-tender/tool/td.py` không thuộc hàm nào
+    TD.VL.MA_VL  (SKILL/10-tender/tool/td.py:84): dòng 84 của `SKILL/10-tender/tool/td.py` không thuộc hàm nào
+    TD.VL.MA_BANG  (SKILL/10-tender/tool/td.py:108): dòng 108 của `SKILL/10-tender/tool/td.py` không thuộc hàm nào
+
+⚠ VÂN TAY KHÔNG ĐỦ — 1/7 điểm có lời gọi không truy vết được:
+    TD.DOAN.VAITRO
+        SKILL/10-tender/tool/td.py:522: khởi tạo lớp `P`, không truy vết vào lớp   P(goc)
+  Vân tay không đủ thì KHỚP mốc cũng không chứng minh logic chưa đổi.
 
 
 # Kiểm trùng lặp — COSTING EXCEL
@@ -54,7 +104,7 @@ Hàm thuộc hệ thống đang test: *.replace, _can, _chuoi, _duong, chay, cha
 USER :  116/116  đạt   ✗ sai 0   ⚠ chờ người 0   ! vỡ 0   · chưa chạy 0
 PROBE:    0/0    đạt   (không tính vào kết luận nghiệp vụ)   ✗ sai 0   ⚠ chờ người 0   ! vỡ 0   · chưa chạy 0
   · 33/116 case USER chưa có người gật (nguon khác 'nguoi') — chưa được vào bộ vàng.
-  (4.05 giây)
+  (6.23 giây)
 
 | ID | Vai | Điểm | Nhánh | Đầu vào | Nhận được | Chuẩn | KQ | Vì sao |
 |---|---|---|---|---|---|---|---|---|

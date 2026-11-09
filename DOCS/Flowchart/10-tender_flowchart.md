@@ -1,6 +1,6 @@
 # Flowchart skill 10-tender
 
-> Cập nhật lần cuối: 2026-11-09 (3a `guilink`: viết lại link theo cây hồ sơ của tender khi gửi BOQ_TRACK + DMVT); trước đó 2026-11-03
+> Cập nhật lần cuối: 2026-11-09 chiều (rà soát tool: build không dựng bản CĐT trừ khi `--cdt`, ghi file tạm rồi thay; nhận hàng BOQ_TRACK theo khóa trong công thức, chèn/xóa cột cũng dừng; check báo JSON hỏng thay vì văng lỗi, sheet BOQ bị bỏ, ngày không có thật; TCQ trùng STT không mất câu; DMVT bảng xlsx hết cắt 3000 hàng; spec_boc giữ mã phụ của khối); trước đó 2026-11-09 sáng (3a `guilink`)
 > Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm + đọc sâu toàn gói chuyển từ 01-scan (`docsau`, `gemini`, `neo`, `tincay`, `so`, `do`; phần 10) đã làm, kiểm thử bằng dữ liệu mẫu và thử lệnh trên bản sao CTX, các bước LLM 7c–7e chưa chạy trên dự án thật + dự án chưa có BOQ CĐT (mẫu `tu_lap_vn`, `lap_boq.py`; phần 9) đã build thật CTX, dòng cửa lấy vật liệu từ tag tờ cửa, `cua_ma_khung` (02/11, chưa commit) + add-in `SRC_LINKS` mở được khi chuyển file, mở từ SharePoint, máy khác cài bằng xlam rời. Main Lobby SOFITEL (BOQ thứ 2) chưa làm, chờ user quyết.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
@@ -80,7 +80,8 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
             │     tra_part_goc: drawing ghép theo TÊN SHEET + chép ảnh gốc (goc_*), ảnh trong ô
             │     (metadata + richData, thuộc tính vm) chép lại — openpyxl đổi tên/bỏ các phần này
             ├─► 01_index\FILE_INDEX.xlsx
-            ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx (không tự gửi)
+            │     (BOQ_TRACK, FILE_INDEX ghi ra tên tạm _dang_ghi_*, đủ cả mới thay vào tên thật rồi mới ghi _snapshot)
+            ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx CHỈ KHI build --cdt (user 09/11: chỉ cần BOQ_TRACK; không tự gửi)
             ├─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
             └─► 11 guilink <zip|thư mục hồ sơ của tender> khi gửi BOQ_TRACK + DMVT lên OneDrive tender
                   ─► Downloads\<DA>_GUI_TENDER_<yymmdd>\ (mục 3a, ngoài dự án, không tự up)
@@ -208,8 +209,12 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
         │
         ▼
  build: kéo chỗ user sửa trong xlsx vào *.user.json
-        (hàng sheet BOQ trong BOQ_TRACK bị user chèn/xóa → dừng, không nhận sửa tay;
-         BOQ CĐT ra bản mới thì đi đường 2a, không dừng)
+        Nhận hàng: mỗi hàng BOQ mang khóa dòng trong công thức cột nội bộ MATCH("<sheet>!<hàng>",SCOPE!$A:$A)
+          hàng chứa khóa của dòng khác (chèn/xóa/đổi chỗ/sắp xếp hàng), 1 khóa ở 2 hàng (chép hàng)
+          → dừng, không nhận sửa tay nào (bắt cả hàng trùng mô tả)
+          hàng không còn công thức (user xóa ô nội bộ) → so chữ ký mô tả như cũ
+          tiêu đề cột tool thêm không còn đúng cột (chèn/xóa cột) → dừng
+        (BOQ CĐT ra bản mới thì đi đường 2a, không dừng)
         Ô được kéo ngược từ sheet BOQ: 3 cột chính thức + Mã cấp 3 + Bên thực hiện + Mã cấu tạo
         Sheet CAU_TAO: thêm, sửa, xóa dòng đều nhận
         │
@@ -290,7 +295,10 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
 - Kiểm thử: `DOCS/scan-toi-uu/tender-test/kiemthu.py` (`--mau`, `--sofitel`).
 - Code ID chỉ nói hạng mục thuộc nhóm nào, không suy ra ai làm. Bên thực hiện là chiều riêng, nằm ở `SCOPE.ben.json` chứ không ở file doichieu, để chạy lại bước 7 không làm mất.
 - `Ngày cập nhật` không tính các cột phân loại, Code ID, Bên thực hiện, Mã cấu tạo, Link vật liệu (đổi danh sách bên không làm dòng BOQ hiện như vừa đổi); cột mới chưa có trong snapshot cũ cũng không tính, nên thêm cột không làm mọi dòng BOQ hiện như vừa đổi.
-- Bản `_CDT` không có cột nội bộ, droplist, `_CODE`.
+- Bản `_CDT` không có cột nội bộ, droplist, `_CODE`. Mặc định không dựng (user 09/11), chỉ khi `build --cdt`.
+- Ghép `_data`: file JSON hỏng / dòng không phải object bị bỏ qua khi ghép và `check` báo LỖI "JSON hỏng … chưa được ghép"; `_loc` regex hỏng coi như không khớp. `jdump` ghi file tạm rồi thay.
+- `boq` ghi sheet bị bỏ vì không nhận ra tiêu đề vào `_boq_map.json` (`sheet_bo`); sheet có ≥ 5 hàng có số → `check` báo XEM tới khi sửa mẫu tiêu đề hoặc khai `boq_bo_sheet`.
+- `tcq`: 2 câu cùng (đợt, STT) khác nội dung → câu sau giữ mã, câu trước mã `TCQnn-<STT>@<hàng>` + XEM; trùng y hệt thì 1 dòng.
 
 # 5. PHÂN LOẠI CODE ID (td.py phanloai, SKILL/_core/code_id.py)
 
@@ -402,6 +410,8 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
    (Material Schedule: loại, mô tả, mã NCC, NCC, ảnh cột Minh họa cùng hàng)  │
    BOQ CĐT xét sau cùng: mã hạng mục (MÃ SP + HÌNH ẢNH) → mục FF&E, có cờ     │
    _dmvt.json "spec_xlsx": [FID] chọn file, false tắt                         │
+   đọc hết bảng, dừng khi 500 hàng trống liền (09/11; trước cắt 3000 hàng)     │
+   15 hàng đầu không có tiêu đề mã + mô tả → bỏ sheet, không đọc tiếp          │
         │                                                                     │
         ▼                                                                     │
  Gộp dòng: FF&E theo Design + Colour (cùng mã màu, khác vài chữ: gộp, có cờ)  │
@@ -454,13 +464,18 @@ spec_boc.py <pdf...>          spec kiểu AID → _data/_spec_boc.json
   khối NCC không nhãn (tên, URL, T/E/M/C) đọc theo vị trí: schedule = cột giữa,
   trang chi tiết = cột phải giữa tiêu đề SPECIFICATION và ô CODE; có nhãn Manufacturer
   mà cột phải ghi tên khác → supplier
+  khối có nhiều mã ở cột trái (ma_khac): mã sau thành bản ghi riêng cùng chữ khối, cung_khoi = mã đầu
+    (09/11; trước mã sau mất); mã đã có khối riêng thì giữ khối riêng; DMVT cờ "Chung khối schedule với …"
         │
         ▼
 be_mat.py                     bề mặt từng tag: tuong, tran, san, cua, portal, joinery, khac
   portal (lỗ mở không cánh) → dòng "Ốp portal lỗ mở"
   san, khac → sheet Ghi chú; có khai san_tinh, chi_tiet, ngoai_tick trong _lap_boq.json → có dòng
   block trần → nhãn tag → tên khung hình → còn lại can_soat (không suy từ loại tờ)
-chuan_bi_soat.py <GOC>        ảnh khoanh đỏ tag can_soat → _data/_soat/
+  Quy ước hồ sơ CTX khai lại được trong _lap_boq.json (09/11, mặc định = CTX):
+    so_to_dau "123" (tờ mặt bằng/mặt đứng/trần) · tien_to_pdf "AID" · thu_muc_cua "8000 Door"
+    · ho_do_roi [BX, CG, LX, SX] (K6). Lịch cửa _8000_8008 vẫn theo CTX
+chuan_bi_soat.py <GOC>        ảnh khoanh đỏ tag can_soat → _data/_soat/; tờ không theo so_to_dau → XEM (trước bỏ im lặng)
   người/LLM soát ──► _data/_soat_tag.<n>.json (thắng kết quả máy)
 mau_soat.py <GOC> tao | so    soát lại độc lập → _soat2/kq.json, đo tỉ lệ lệch
 soi_tag.py                    vẽ 1 tờ để xem riêng
@@ -495,6 +510,7 @@ phanloai → check (cấu trúc)
 kiem_boq.py <GOC>             kiểm đúng sai, độc lập với lap_boq.py → _kiem_boq.json, VIEC_MO
   K1 tờ link có mã không · K2 không nguồn · K3 PDF khớp số tờ · K4, K5 sót
   K6 đếm lại · K7 kích thước · K8 mã trùng
+  không có _dwg_tag_cabin.json (dự án không cabin) → bỏ phần cabin; chưa có BOQ tự lập → LỖI rõ ràng
   check, kiem_boq không đọc xlsx đã build → trước khi giao đọc lại BOQ_TONGHOP, xem ảnh dòng có cờ của DMVT
         │
         ▼

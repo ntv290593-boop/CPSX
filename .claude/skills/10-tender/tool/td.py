@@ -66,7 +66,7 @@ LENH = """Lệnh:
   dmvt <GOC> [--chi-boc] [--ra <dir>]  03_boq\\<DA>_DMVT_<yymmdd>.xlsx: bóc A:I + ảnh từ trang spec, áp Trạng thái cuối MAT, giữ sửa tay (cần Excel); --chi-boc: chỉ ra _data\\_dmvt_boc.json
   ben <GOC>                     nháp Bên thực hiện cho dòng chưa có: Mã VL -> Loại (MAT) -> bên theo _data\\_ben.json, luôn gắn cờ
   goi <GOC> "<bên>"             04_out\\<DA>_GOI_<bên>_<yymmdd>.xlsx gửi nhà thầu phụ, chỉ phần việc của bên đó (chạy sau build); máy soát trước khi lưu
-  build <GOC> [--ra <dir>] [--khong-dmvt]  kéo sửa tay + chạy lại phanloai + dựng 03_boq\\<DA>_DMVT_<yymmdd>.xlsx rồi 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi; --khong-dmvt: bỏ DMVT; --ra: chỉ ghi BOQ_TRACK và bản CĐT ra thư mục đó (không DMVT), không kéo sửa tay, không đổi _data
+  build <GOC> [--ra <dir>] [--khong-dmvt] [--cdt]  kéo sửa tay + chạy lại phanloai + dựng 03_boq\\<DA>_DMVT_<yymmdd>.xlsx rồi 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx; DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi; --khong-dmvt: bỏ DMVT; --cdt: thêm 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx (BOQ gốc + 3 cột chính thức; mặc định không dựng); --ra: chỉ ghi BOQ_TRACK (+ bản CĐT nếu --cdt) ra thư mục đó (không DMVT), không kéo sửa tay, không đổi _data
   guilink <GOC> <zip|thư mục hồ sơ của tender> [--ra <dir>] [--ngay yymmdd]
                                 chép BOQ_TRACK + DMVT ra ngoài dự án (mặc định Downloads\\<DA>_GUI_TENDER_<yymmdd>), viết lại _LINKS theo
                                 cây hồ sơ của tender (khớp nội dung file, kể cả file trong zip/rar); không tự up, không tự gửi"""
@@ -164,9 +164,16 @@ def jload(path, default=None):
 
 
 def jdump(path, obj):
+    """Ghi file tạm rồi thay: lỗi giữa chừng (hết chỗ, bị ngắt) không để lại JSON cụt."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(obj, fh, ensure_ascii=False, indent=1)
+    tmp = f"{path}.{os.getpid()}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(obj, fh, ensure_ascii=False, indent=1)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
 
 
 def write_tool(p, sheet, buoc, rows):
@@ -276,9 +283,24 @@ def so_tu_nhien(t):
 
 def row_match(row, loc):
     for c, rx in loc.items():
-        if not re.search(rx, s(_txt(row.get(c))), re.I):
+        try:
+            if not re.search(rx, s(_txt(row.get(c))), re.I):
+                return False
+        except (re.error, TypeError):  # regex hỏng: check báo lỗi _loc, ghép thì coi như không khớp
             return False
     return True
+
+
+def jload_rows(path):
+    """Dòng của 1 file bước; JSON hỏng / thiếu 'rows' / dòng không phải object -> None (check báo, ghép bỏ qua file)."""
+    try:
+        data = jload(path) or {}
+    except (ValueError, OSError):
+        return None, None
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
+        return None, None
+    return data, rows
 
 
 def merge(p, only_tool=False, bao_giao_lai=None):
@@ -292,8 +314,9 @@ def merge(p, only_tool=False, bao_giao_lai=None):
     for prio, fn, path, sheet, buoc, base in data_files(p):
         if sheet not in SHEETS or (only_tool and prio > 0):
             continue
-        data = jload(path) or {}
-        rows = data.get("rows", []) if isinstance(data, dict) else []
+        data, rows = jload_rows(path)
+        if rows is None:  # run_check báo "JSON hỏng"; ghép không văng lỗi giữa chừng
+            continue
         d = SHEETS[sheet]
         if prio == 1 and isinstance(data, dict) and data.get("giao_lai") and d["loai"] == "KHOA":
             k = d["khoa"]
@@ -714,6 +737,7 @@ def cmd_boq(goc, args=()):
     wb = openpyxl.load_workbook(os.path.join(p.inp, p.cfg["boq"]), read_only=True, data_only=True)
     bo = set(p.cfg.get("boq_bo_sheet", []))
     out, bmap, room_codes = [], {}, set()
+    sheet_bo = {}  # sheet bỏ vì không nhận ra tiêu đề (không phải do boq_bo_sheet): check báo XEM để không sót phần BOQ
     for ws in wb.worksheets:
         if ws.title in bo:
             print(f"bỏ sheet {ws.title} (_cauhinh boq_bo_sheet)")
@@ -721,7 +745,9 @@ def cmd_boq(goc, args=()):
         rows = [list(r) for r in ws.iter_rows(values_only=True)]
         h, ic = boq_header(rows, td)
         if h is None:
-            print(f"bỏ sheet {ws.title}: không thấy hàng tiêu đề {td['item'][0]}/{td['mo_ta'][0]}")
+            co_so = sum(1 for r in rows if any(isinstance(c, (int, float)) and not isinstance(c, bool) for c in r))
+            sheet_bo[ws.title] = {"so_hang": len(rows), "hang_co_so": co_so}
+            print(f"bỏ sheet {ws.title}: không thấy hàng tiêu đề {td['item'][0]}/{td['mo_ta'][0]} trong 25 hàng đầu ({co_so} hàng có số)")
             continue
         width = max(len(r) for r in rows)
         for r in rows:
@@ -831,7 +857,7 @@ def cmd_boq(goc, args=()):
         else:
             print("Chưa có SCOPE.boq-tool.json cũ — không có gì để so.")
         return
-    jdump(p.f("_boq_map.json"), {"sheet": bmap, "ma_phong": sorted(room_codes), "vl_tien_to": sorted(tien_to)})
+    jdump(p.f("_boq_map.json"), {"sheet": bmap, "ma_phong": sorted(room_codes), "vl_tien_to": sorted(tien_to), "sheet_bo": sheet_bo})
     if trung:
         print(f"XEM: mã trùng mã phòng nhưng tính là VL (họ mã có VL khác, ngữ cảnh không nói phòng): {', '.join(sorted(trung))}")
     if cu:  # chạy lại boq: chuyển kết quả cũ sang đúng dòng mới TRƯỚC khi ghi nháp mới
@@ -1168,9 +1194,19 @@ def tcq_parse(path):
                     continue
                 k_note += 1
                 stt = f"N{k_note}"
-            out[(dot, stt)] = {"dot": dot, "stt": stt, "ngay": ngay, "q": q, "a": a,
-                               "qv": s(r[c_qv]) if c_qv is not None else "", "av": s(r[c_av]) if c_av is not None else "",
-                               "o": f"'{ws.title}'!{L((c_a if c_a is not None else c_no) + 1)}{i + 1}", "sheet": ws.title, "dong": i + 1}
+            moi = {"dot": dot, "stt": stt, "ngay": ngay, "q": q, "a": a,
+                   "qv": s(r[c_qv]) if c_qv is not None else "", "av": s(r[c_av]) if c_av is not None else "",
+                   "o": f"'{ws.title}'!{L((c_a if c_a is not None else c_no) + 1)}{i + 1}", "sheet": ws.title, "dong": i + 1}
+            cu = out.get((dot, stt))
+            if cu and any(cu[f] != moi[f] for f in ("q", "a", "qv", "av")):
+                # trùng (đợt, STT) mà nội dung khác: trước đây câu trước bị ghi đè mất. Câu sau giữ mã cũ (kết quả đã ghi theo mã đó
+                # không lệch), câu trước nhận mã có đuôi @<hàng>
+                du = f"{stt}@{cu['dong']}"
+                if (dot, du) in out:
+                    du = f"{stt}@{cu['sheet']}!{cu['dong']}"
+                out[(dot, du)] = dict(cu, stt=du)
+                print(f"XEM: TCQ{dot:02d}-{stt} có 2 câu khác nhau ({cu['o']} và {moi['o']}) — câu ở {cu['o']} đổi mã thành TCQ{dot:02d}-{du}")
+            out[(dot, stt)] = moi
     return out
 
 
@@ -2102,7 +2138,12 @@ def run_check(p, den=None):
                 xem.append(f"{fn} (giao_lai): {len(chung)} dòng dùng chung nhiều mã phòng — nhóm giao lại phải ghi đủ link/mã cho cả dòng "
                            f"(phần phòng khác của nhóm cũ đã bị bỏ), vd: {', '.join(chung[:6])}")
     tool_keys = {sh: set(merge_keys) for sh, merge_keys in _tool_keys(p).items()}
-    rc = set((jload(p.f("_boq_map.json")) or {}).get("ma_phong", []))
+    bm = jload(p.f("_boq_map.json")) or {}
+    rc = set(bm.get("ma_phong", []))
+    for ten, x in (bm.get("sheet_bo") or {}).items():
+        if (x.get("hang_co_so") or 0) >= 5:  # bìa, mục lục ít số: không báo
+            xem.append(f"BOQ: sheet '{ten}' bị bỏ vì không nhận ra hàng tiêu đề ({x['hang_co_so']} hàng có số) — nếu là BOQ thì sửa mẫu tiêu đề, "
+                       f"không phải thì thêm vào boq_bo_sheet trong _cauhinh.json")
     for prio, fn, path, sheet, buoc, base in data_files(p):
         if sheet not in SHEETS:
             errs.append(f"{fn}: sheet lạ '{sheet}' (có: {', '.join(SHEETS)})")
@@ -2110,11 +2151,14 @@ def run_check(p, den=None):
         if prio == 1 and base not in STEPS:
             errs.append(f"{fn}: bước lạ '{base}'")
             continue
-        try:
-            rows = json.load(open(path, encoding="utf-8")).get("rows")
-            assert isinstance(rows, list)
-        except Exception as e:
-            errs.append(f"{fn}: JSON hỏng hoặc thiếu 'rows' ({e})")
+        _, rows = jload_rows(path)
+        if rows is None:
+            try:
+                json.load(open(path, encoding="utf-8"))
+                ly_do = "thiếu 'rows' (list các object)"
+            except Exception as e:
+                ly_do = f"JSON hỏng: {e}"
+            errs.append(f"{fn}: {ly_do} — file này chưa được ghép")
             continue
         d = SHEETS[sheet]
         for i, r in enumerate(rows):
@@ -2256,7 +2300,7 @@ def _tool_keys(p):
     for prio, fn, path, sheet, buoc, base in data_files(p):
         if prio == 0 and sheet in SHEETS and SHEETS[sheet]["loai"] == "KHOA":
             k = SHEETS[sheet]["khoa"]
-            out[sheet] |= {s(r.get(k)) for r in jload(path)["rows"]}
+            out[sheet] |= {s(r.get(k)) for r in (jload_rows(path)[1] or [])}
     return out
 
 
@@ -2273,8 +2317,8 @@ def check_val(c, x, v, fidx):
         bad = [t for t in split_list(v) if t not in x["ds"]]
         if bad:
             e.append(f"'{c}' có giá trị lạ {bad} (được: {' | '.join(x['ds'])})")
-    elif k == "NGAY" and not re.match(r"^\d{4}-\d{2}-\d{2}$", s(v)):
-        e.append(f"'{c}' phải dạng yyyy-mm-dd")
+    elif k == "NGAY" and not (re.match(r"^\d{4}-\d{2}-\d{2}$", s(v)) and ymd(*s(v).split("-"))):
+        e.append(f"'{c}' phải là ngày có thật, dạng yyyy-mm-dd (đang là {v!r})")
     elif k == "LINK" and not isinstance(v, str):
         ls = links_of(v)
         if not ls:
@@ -2390,12 +2434,26 @@ def pull_user(p):
             idx = {col: column_index(letter) - 1 for col, letter in info["cols"].items()}
             ji = column_index(info["item"]) - 1 if info.get("item") else None
             want = {int(k.rsplit("!", 1)[1]): k for k in info["rows"]}
-            for i, r in enumerate(wb[sh].iter_rows(values_only=True), 1):  # read_only: không truy cập ô ngẫu nhiên
-                key = want.get(i)
+            hang = list(enumerate(wb[sh].iter_rows(values_only=True), 1))  # read_only: không truy cập ô ngẫu nhiên
+            # chèn/xóa cột: cột tool thêm phải còn đúng chữ tiêu đề ở đúng cột, không thì đọc nhầm cột
+            if idx and not any(all(j < len(r) and s(r[j]) == col for col, j in idx.items()) for _, r in hang[:40]):
+                lech.append(f"{sh}: không thấy hàng tiêu đề có {', '.join(list(idx)[:3])}… ở đúng cột {', '.join(list(info['cols'].values())[:3])}… (chèn/xóa cột?)")
+                continue
+            # mỗi hàng BOQ mang khóa của nó trong công thức cột nội bộ (MATCH("<khóa>",SCOPE!$A:$A)): nhận hàng chính xác,
+            # kể cả các hàng trùng mô tả. Hàng không có công thức (user xóa ô) thì so chữ ký mô tả như trước.
+            khoa_ct = {i: khoa_trong_hang(r) for i, r in hang}
+            for k, n_ in Counter(k for k in khoa_ct.values() if k).items():
+                if n_ > 1:
+                    lech.append(f"{sh}: dòng {k} có ở {n_} hàng {', '.join(str(i) for i, x in khoa_ct.items() if x == k)} (chép hàng?)")
+            for i, r in hang:
+                key, k_ct = want.get(i), khoa_ct[i]
+                if k_ct and k_ct != key:
+                    lech.append(f"{sh} hàng {i}: đang chứa dòng {k_ct}" + (f", bản build để dòng {key} ở hàng này" if key else ""))
+                    continue
                 if not key:
                     continue
                 exp = info["rows"][key].get("_sig")
-                if ji is not None and exp is not None:
+                if not k_ct and ji is not None and exp is not None:
                     cur = row_sig(r[ji + 1:ji + 5])
                     if cur != exp:
                         lech.append(f"{sh} hàng {i}: '{cur}' ≠ '{exp}'")
@@ -2863,6 +2921,19 @@ def add_boq_cols(ws, info, scope, p, fidx, scope_letters, chinh_thuc_only=False,
     return {"cols": {c: letters[c] for c in ct + [x for x in nb if x in cot and cot[x].get("sua")]}, "item": info["cot_item"], "rows": rows_snap}
 
 
+RX_KHOA_CT = re.compile(r'MATCH\("((?:[^"]|"")+)",SCOPE!\$A:\$A')
+
+
+def khoa_trong_hang(r):
+    """Khóa dòng SCOPE trong công thức tra cột nội bộ của hàng (add_boq_cols ghi), None nếu hàng không có."""
+    for v in r:
+        if isinstance(v, str) and v.startswith("=") and "SCOPE!$A:$A" in v:
+            m = RX_KHOA_CT.search(v)
+            if m:
+                return m.group(1).replace('""', '"')
+    return None
+
+
 def row_sig(vals):
     """Chữ thường (không phải công thức) đầu tiên sau cột Item — nhận ra hàng BOQ khi hàng bị dời."""
     for v in vals:
@@ -3291,72 +3362,89 @@ def cmd_build(goc, args):
     for d in (d_boq, d_idx, d_out):
         os.makedirs(d, exist_ok=True)
     out = os.path.join(d_boq, f"{p.cfg['du_an']}_BOQ_TRACK_{stamp}.xlsx")
-    for f in (out, os.path.join(d_idx, "FILE_INDEX.xlsx")):
-        if os.path.exists(os.path.join(os.path.dirname(f), "~$" + os.path.basename(f))):
+    f_idx = os.path.join(d_idx, "FILE_INDEX.xlsx")
+    co_cdt = "--cdt" in args  # bản gửi CĐT chỉ dựng khi yêu cầu (user 09/11: chỉ cần BOQ_TRACK)
+    f_cdt = os.path.join(d_out, f"{p.cfg['du_an']}_BOQ_{stamp}_CDT.xlsx") if co_cdt else None
+    for f in (out, f_idx, f_cdt):
+        if f and os.path.exists(os.path.join(os.path.dirname(f), "~$" + os.path.basename(f))):
             sys.exit(f"LỖI: {f} đang mở trong Excel — đóng file rồi build lại.")
-    if os.path.exists(out):
-        bk = os.path.join(d_boq, "_backup")
-        os.makedirs(bk, exist_ok=True)
-        shutil.copy2(out, os.path.join(bk, f"{os.path.basename(out)[:-5]}_{datetime.datetime.now():%H%M%S}.xlsx"))
     if not p.cfg.get("boq"):
         sys.exit("LỖI: chưa có BOQ — lập BOQ rồi chạy init --boq <rel trong input>.")
     src_boq = os.path.join(p.inp, p.cfg["boq"])
+    # Ghi ra tên tạm, đủ hết mới thay vào tên thật rồi mới ghi _snapshot: lỗi giữa chừng không để BOQ_TRACK mới
+    # đi với snapshot cũ (lần build sau pull_user sẽ coi chỗ máy đổi là user sửa), cũng không để file cụt.
+    tam = {f: os.path.join(os.path.dirname(f), "_dang_ghi_" + os.path.basename(f)) for f in (out, f_idx, f_cdt) if f}
     snap = {"reg": {}, "ct": {}}
     scope_letters = {c: openpyxl.utils.get_column_letter(j) for j, c in enumerate(cols_of("SCOPE"), 1)}
-    # 1. BOQ_TRACK
-    p.base, p.links, p.self_name = d_boq, [], os.path.basename(out)  # link tương đối theo thư mục file ra; đích → sheet _LINKS
-    wb = openpyxl.load_workbook(src_boq)
-    for sh, info in bmap["sheet"].items():
-        if sh in wb.sheetnames:
-            snap["ct"][sh] = add_boq_cols(wb[sh], info, res["SCOPE"], p, fidx, scope_letters, res=res)
-    for sh in ("SCOPE", "TCQ_LOG", "MAT", "DWG", "KHU", "AREA", "VL_XUATHIEN", "CAU_TAO"):
-        write_reg(wb, sh, list(res[sh].values()), p, fidx, snap["reg"])
-    for sh in SO_DOC_SAU:
-        if res[sh]:
-            write_reg(wb, sh, list(res[sh].values()) if isinstance(res[sh], dict) else res[sh], p, fidx, snap["reg"])
-    vm = [dict(v, ID=f"V{i:03d}") for i, v in enumerate(res["VIEC_MO"], 1)]
-    write_reg(wb, "VIEC_MO", vm, p, fidx, snap["reg"])
-    sheet_phan_viec(wb, res, p)
-    boq_tonghop(wb, res, p, fidx)
-    dashboard(wb, res, errs, xem, p, n_user)
-    write_links(wb, p)
-    if BANG_MA:
-        sheet_code(wb, nap_ben(p).get("ds") or (), sorted({s(r.get("Mã cấu tạo")) for r in res["CAU_TAO"].values()}))
-    for sh in AN_DU_LIEU + AN_CHAY_CODE + (() if res["CAU_TAO"] else AN_KHI_TRONG):
-        if sh in wb.sheetnames:
-            wb[sh].sheet_state = "hidden"
-    for sh in ("DASHBOARD", "BOQ_TONGHOP", "TCQ_LOG", "MAT", "VIEC_MO"):
-        wb[sh].sheet_properties.tabColor = "1F4E78"  # không tô tab sheet của CĐT, giữ format gốc
-    wb.active = 0
-    wb.save(out)
-    tra_part_goc(src_boq, out)
-    # 2. FILE_INDEX
-    p.base, p.links, p.self_name = d_idx, [], "FILE_INDEX.xlsx"
-    wf = openpyxl.Workbook()
-    wf.remove(wf.active)
-    write_reg(wf, "FILE_INDEX", list(fidx.values()), p, fidx, snap["reg"])
-    f_idx = os.path.join(d_idx, "FILE_INDEX.xlsx")
-    wf.save(f_idx)
-    # 3. Bản gửi CĐT: BOQ gốc + chỉ cột chính thức
-    p.base, p.links, p.self_name = d_out, [], ""
-    wc = openpyxl.load_workbook(src_boq)
-    for sh, info in bmap["sheet"].items():
-        if sh in wc.sheetnames:
-            add_boq_cols(wc[sh], info, res["SCOPE"], p, fidx, scope_letters, chinh_thuc_only=True)
-    f_cdt = os.path.join(d_out, f"{p.cfg['du_an']}_BOQ_{stamp}_CDT.xlsx")
-    wc.save(f_cdt)
-    tra_part_goc(src_boq, f_cdt)
-    with zipfile.ZipFile(src_boq) as a, zipfile.ZipFile(f_cdt) as b:
-        ma = len([n for n in a.namelist() if "/media/" in n])
-        mb = len([n for n in b.namelist() if "/media/" in n])
-        if mb < ma:
-            print(f"XEM: bản gửi CĐT mất hình ({mb}/{ma}) — kiểm sheet Cover trước khi gửi")
+    try:
+        # 1. BOQ_TRACK
+        p.base, p.links, p.self_name = d_boq, [], os.path.basename(out)  # link tương đối theo thư mục file ra; đích → sheet _LINKS
+        wb = openpyxl.load_workbook(src_boq)
+        for sh, info in bmap["sheet"].items():
+            if sh in wb.sheetnames:
+                snap["ct"][sh] = add_boq_cols(wb[sh], info, res["SCOPE"], p, fidx, scope_letters, res=res)
+        for sh in ("SCOPE", "TCQ_LOG", "MAT", "DWG", "KHU", "AREA", "VL_XUATHIEN", "CAU_TAO"):
+            write_reg(wb, sh, list(res[sh].values()), p, fidx, snap["reg"])
+        for sh in SO_DOC_SAU:
+            if res[sh]:
+                write_reg(wb, sh, list(res[sh].values()) if isinstance(res[sh], dict) else res[sh], p, fidx, snap["reg"])
+        vm = [dict(v, ID=f"V{i:03d}") for i, v in enumerate(res["VIEC_MO"], 1)]
+        write_reg(wb, "VIEC_MO", vm, p, fidx, snap["reg"])
+        sheet_phan_viec(wb, res, p)
+        boq_tonghop(wb, res, p, fidx)
+        dashboard(wb, res, errs, xem, p, n_user)
+        write_links(wb, p)
+        if BANG_MA:
+            sheet_code(wb, nap_ben(p).get("ds") or (), sorted({s(r.get("Mã cấu tạo")) for r in res["CAU_TAO"].values()}))
+        for sh in AN_DU_LIEU + AN_CHAY_CODE + (() if res["CAU_TAO"] else AN_KHI_TRONG):
+            if sh in wb.sheetnames:
+                wb[sh].sheet_state = "hidden"
+        for sh in ("DASHBOARD", "BOQ_TONGHOP", "TCQ_LOG", "MAT", "VIEC_MO"):
+            wb[sh].sheet_properties.tabColor = "1F4E78"  # không tô tab sheet của CĐT, giữ format gốc
+        wb.active = 0
+        wb.save(tam[out])
+        tra_part_goc(src_boq, tam[out])
+        # 2. FILE_INDEX
+        p.base, p.links, p.self_name = d_idx, [], "FILE_INDEX.xlsx"
+        wf = openpyxl.Workbook()
+        wf.remove(wf.active)
+        write_reg(wf, "FILE_INDEX", list(fidx.values()), p, fidx, snap["reg"])
+        wf.save(tam[f_idx])
+        # 3. Bản gửi CĐT (chỉ khi --cdt): BOQ gốc + chỉ cột chính thức
+        if f_cdt:
+            p.base, p.links, p.self_name = d_out, [], ""
+            wc = openpyxl.load_workbook(src_boq)
+            for sh, info in bmap["sheet"].items():
+                if sh in wc.sheetnames:
+                    add_boq_cols(wc[sh], info, res["SCOPE"], p, fidx, scope_letters, chinh_thuc_only=True)
+            wc.save(tam[f_cdt])
+            tra_part_goc(src_boq, tam[f_cdt])
+            with zipfile.ZipFile(src_boq) as a, zipfile.ZipFile(tam[f_cdt]) as b:
+                ma = len([n for n in a.namelist() if "/media/" in n])
+                mb = len([n for n in b.namelist() if "/media/" in n])
+                if mb < ma:
+                    print(f"XEM: bản gửi CĐT mất hình ({mb}/{ma}) — kiểm sheet Cover trước khi gửi")
+        # đủ cả: sao bản cũ cùng ngày, thay vào tên thật, rồi mới ghi snapshot
+        if os.path.exists(out):
+            bk = os.path.join(d_boq, "_backup")
+            os.makedirs(bk, exist_ok=True)
+            shutil.copy2(out, os.path.join(bk, f"{os.path.basename(out)[:-5]}_{datetime.datetime.now():%H%M%S}.xlsx"))
+        for f, t in tam.items():
+            os.replace(t, f)
+    finally:
+        for t in tam.values():
+            if os.path.exists(t):
+                os.remove(t)
     if not ra:
         snap.update(boq_track=out, file_index=f_idx)
         jdump(p.f("_snapshot.json"), snap)
         if cho:  # sửa tay theo khóa cũ đã nhận; snapshot mới mang khóa mới
             os.replace(p.f("_boq_cho_build.json"), p.f(os.path.join("_dot", f"_boq_cho_build_da_dung_{datetime.datetime.now():%y%m%d-%H%M%S}.json")))
     print("Đã ghi:\n  " + "\n  ".join(x for x in (out, f_dmvt, f_idx, f_cdt) if x))
+    if not f_cdt:
+        print("(không dựng bản gửi CĐT — cần thì build lại với --cdt)")
+    elif errs:
+        print(f"XEM: bản gửi CĐT dựng khi còn {len(errs)} LỖI — kiểm DASHBOARD trước khi gửi")
     print(f"Dòng BOQ {len(res['SCOPE'])} · TCQ {len(res['TCQ_LOG'])} · MAT {len(res['MAT'])} · DWG {len(res['DWG'])} · việc mở {len(vm)} · sửa tay user giữ {n_user}")
     print(f"{len(errs)} LỖI, {len(xem)} XEM (chi tiết ở sheet DASHBOARD)")
     if loi_dmvt:

@@ -140,6 +140,18 @@ def doc_ncc(dong_s):
     return {"manufacturer": gon(" ".join(ten[:2])), "web": " ".join(web), "contact": "\n".join(lh)}
 
 
+def them_ma_khac(ds, bang):
+    """Khối schedule có nhiều mã ở cột trái: trước chỉ mã đầu vào kết quả, mã sau (ma_khac) mất mà không báo.
+    Mỗi mã sau thành 1 bản ghi riêng cùng chữ của khối, ghi cung_khoi = mã đầu. Mã đã có khối riêng thì giữ khối riêng."""
+    for k in list(ds):
+        for m2 in k.get("ma_khac") or []:
+            if m2 not in bang:
+                x = {f: v for f, v in k.items() if f != "ma_khac"}
+                x.update(ma=m2, cung_khoi=k["ma"])
+                ds.append(x)
+                bang[m2] = x
+
+
 def boc_file(path):
     d = fitz.open(path)
     ten = os.path.basename(path)
@@ -154,6 +166,7 @@ def boc_file(path):
                 k.update(file=ten, trang=i + 1, nhom=(m.group(2) if m else None))
                 (ds if k["ma"] else khong_ma).append(k)
     bang = {k["ma"]: k for k in ds}
+    them_ma_khac(ds, bang)
     ho_schedule = {m[:2] for m in bang}
     # trang chi tiết: 1 mã/trang, bổ sung trường và gán mã cho khối thiếu
     for i, pg in enumerate(d):

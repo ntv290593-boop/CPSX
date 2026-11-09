@@ -33,13 +33,14 @@ def main(a):
     os.makedirs(d, exist_ok=True)
     rx = re.compile(du.cfg["rx_ten_dwg"])
     da = nap_soat(du.d)
-    ds, thong_ke = {}, collections.Counter()
+    ds, thong_ke, bo_to = {}, collections.Counter(), set()
     for rel, v in du.tag.items():
         if not rx.search(os.path.basename(rel)):
             continue
         for ten, l in v["to"].items():
             so = so_to(ten)
-            if so[0] not in "123":
+            if not so[:1] or so[:1] not in du.to_dau:
+                bo_to.add(so)
                 continue
             for i, t in enumerate(l["tag"]):
                 m = ma_tag(t)
@@ -50,6 +51,8 @@ def main(a):
                 if bm == "can_soat" and f"{so}#{i}" not in da:
                     ds.setdefault(so, []).append({"id": i, "ma": m, "xy": t.get("xy"), "mui": t.get("mui") or [], "ly_do": ly_do, "goc": l.get("goc") or [0, 0, 1]})
     print("Phân loại máy (số tag):", dict(thong_ke))
+    if bo_to:  # tờ không theo quy ước số tờ (so_to_dau trong _lap_boq.json): báo để không sót im lặng
+        print(f"XEM: bỏ {len(bo_to)} tờ không bắt đầu bằng {'/'.join(du.to_dau)}: {', '.join(sorted(bo_to)[:15])}{' …' if len(bo_to) > 15 else ''}")
     print(f"Cần soát: {sum(len(x) for x in ds.values())} tag trên {len(ds)} tờ")
     try:
         font = ImageFont.truetype("arialbd.ttf", 22)

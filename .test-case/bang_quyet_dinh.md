@@ -1,14 +1,18 @@
-# Bảng quyết định — 2026-11-09 12:06
+# Bảng quyết định — 2026-11-09 16:29
 
 ## Các cổng kiểm trước khi chấm
 
 ```
-[1] ✅ chọn điểm            88 chọn (10 mã điểm) / 13400 bỏ (13400 theo nhóm), 10/10 điểm phích khớp
+[1] ⚠ chọn điểm            114 vi phạm (sót 114)
 [2] ✅ oracle độc lập       PASS — 7 hàm oracle độc lập
 [3] ✅ vân tay nguồn        khớp mốc
-[4] ✅ vân tay hàm          khớp mốc (10 điểm)
+[4] ⚠ vân tay hàm          LOGIC điểm quyết định đã đổi
 [5] ✅ case trùng           116 case, không trùng mã/đầu vào
 ```
+
+Cần người:
+- [1] sửa .test-case/chon_diem.json — chi tiết trong lan_chay_gan_nhat.txt (bỏ được cả file / hàm bằng một dòng `nhom`)
+- [4] người xem rồi: van_tay_ham.py <dự án> --da-xem-xet --ghi-chu "..."
 
 
 ## LỚP LUẬT
@@ -16,7 +20,7 @@
 USER :  116/116  đạt   ✗ sai 0   ⚠ chờ người 0   ! vỡ 0   · chưa chạy 0
 PROBE:    0/0    đạt   (không tính vào kết luận nghiệp vụ)   ✗ sai 0   ⚠ chờ người 0   ! vỡ 0   · chưa chạy 0
   · 33/116 case USER chưa có người gật (nguon khác 'nguoi') — chưa được vào bộ vàng.
-  (4.05 giây)
+  (6.23 giây)
 
 | ID | Vai | Điểm | Nhánh | Đầu vào | Nhận được | Chuẩn | KQ | Vì sao |
 |---|---|---|---|---|---|---|---|---|
@@ -113,12 +117,12 @@ Lớp luật đã phủ hết nhánh và hết mốc bằng case USER, đo bằn
 ## Kết luận lượt chạy
 
 ```
-[1] ✅ chọn điểm            88 chọn (10 mã điểm) / 13400 bỏ (13400 theo nhóm), 10/10 điểm phích khớp
+[1] ⚠ chọn điểm            114 vi phạm (sót 114)
 [2] ✅ oracle độc lập       PASS — 7 hàm oracle độc lập
 [3] ✅ vân tay nguồn        khớp mốc
-[4] ✅ vân tay hàm          khớp mốc (10 điểm)
+[4] ⚠ vân tay hàm          LOGIC điểm quyết định đã đổi
 [5] ✅ case trùng           116 case, không trùng mã/đầu vào
 [6] ✅ chấm                 lớp luật xanh
 [7] ✅ độ phủ               phủ đủ theo số đếm
-mã thoát 0
+mã thoát 2
 ```

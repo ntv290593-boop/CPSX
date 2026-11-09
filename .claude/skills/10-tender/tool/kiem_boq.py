@@ -35,7 +35,8 @@ def main(goc):
                 m = ma_tag(t) or ma_cua(t)
                 if m:
                     tag_to[so][m] += 1
-    p = json.load(open(os.path.join(du.d, "_dwg_tag_cabin.json"), encoding="utf-8"))
+    f_cabin = os.path.join(du.d, "_dwg_tag_cabin.json")  # tag cabin thang máy: dự án không có cabin thì không có file
+    p = json.load(open(f_cabin, encoding="utf-8")) if os.path.exists(f_cabin) else {}
     for v in p.values():
         for ten, l in v["to"].items():
             for t in l["tag"]:
@@ -73,7 +74,7 @@ def main(goc):
     for (t, kh, lv), tos in du.khu.items():
         k_ten = f"{du.cfg['thap'][t]['ten']} — {du.cfg['khu'].get(kh, kh)}"
         for so, o in tos.items():
-            if so.startswith("model:") or so[0] not in "123":
+            if so.startswith("model:") or not so[:1] or so[:1] not in du.to_dau:
                 continue
             for (c, bm) in o["bm"]:
                 if (bm not in ("tuong", "tran", "portal", "can_soat", "khong_ro") and not (bm == "san" and c in (du.cfg.get("san_tinh") or {})) and not (bm == "khac" and c in (du.cfg.get("chi_tiet") or {}))) or "XX" in c or not (luat["ma"].get(c) or luat["ho"].get(c.split("-")[0])):
@@ -85,7 +86,7 @@ def main(goc):
         for so, o in tos.items():
             if o["loai"] == "ffe":
                 for c, n in o["tuong"].items():
-                    if re.match(r"(BX|CG|LX|SX)-\d{4}", c):
+                    if du.rx_do_roi.match(c):
                         dem[c] = max(dem[c], n)
         for k, r in canh.items():
             if r["khu"] == k_ten and r["ma"] in dem and r["sl"] != dem[r["ma"]]:
@@ -97,7 +98,10 @@ def main(goc):
         if m[:2] not in bo and m not in dang_co:
             loi["K5 Có trong lịch FF&E, BOQ không có dòng"].append(f"{k} {m} {x.get('item desc', '')[:40]}")
     # K7 kích thước đọc lại từ file BOQ
-    ra = max((os.path.join(dp, f) for dp, _, fs in os.walk(os.path.join(du.inp, "0.BOQ_TU_LAP")) for f in fs if f.endswith(".xlsx")), key=os.path.getmtime)
+    ds_ra = [os.path.join(dp, f) for dp, _, fs in os.walk(os.path.join(du.inp, "0.BOQ_TU_LAP")) for f in fs if f.endswith(".xlsx") and not f.startswith("~$")]
+    if not ds_ra:
+        sys.exit("LỖI: chưa có file BOQ tự lập trong <input>\\0.BOQ_TU_LAP — chạy lap_boq.py trước rồi mới kiem_boq.py")
+    ra = max(ds_ra, key=os.path.getmtime)
     wb = openpyxl.load_workbook(ra, data_only=True)
     thieu = collections.Counter()
     for k, r in canh.items():
