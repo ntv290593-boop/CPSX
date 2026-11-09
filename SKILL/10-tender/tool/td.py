@@ -66,7 +66,10 @@ LENH = """Lệnh:
   dmvt <GOC> [--chi-boc] [--ra <dir>]  03_boq\\<DA>_DMVT_<yymmdd>.xlsx: bóc A:I + ảnh từ trang spec, áp Trạng thái cuối MAT, giữ sửa tay (cần Excel); --chi-boc: chỉ ra _data\\_dmvt_boc.json
   ben <GOC>                     nháp Bên thực hiện cho dòng chưa có: Mã VL -> Loại (MAT) -> bên theo _data\\_ben.json, luôn gắn cờ
   goi <GOC> "<bên>"             04_out\\<DA>_GOI_<bên>_<yymmdd>.xlsx gửi nhà thầu phụ, chỉ phần việc của bên đó (chạy sau build); máy soát trước khi lưu
-  build <GOC> [--ra <dir>] [--khong-dmvt]  kéo sửa tay + chạy lại phanloai + dựng 03_boq\\<DA>_DMVT_<yymmdd>.xlsx rồi 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi; --khong-dmvt: bỏ DMVT; --ra: chỉ ghi BOQ_TRACK và bản CĐT ra thư mục đó (không DMVT), không kéo sửa tay, không đổi _data"""
+  build <GOC> [--ra <dir>] [--khong-dmvt]  kéo sửa tay + chạy lại phanloai + dựng 03_boq\\<DA>_DMVT_<yymmdd>.xlsx rồi 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx + 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx; DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi; --khong-dmvt: bỏ DMVT; --ra: chỉ ghi BOQ_TRACK và bản CĐT ra thư mục đó (không DMVT), không kéo sửa tay, không đổi _data
+  guilink <GOC> <zip|thư mục hồ sơ của tender> [--ra <dir>] [--ngay yymmdd]
+                                chép BOQ_TRACK + DMVT ra ngoài dự án (mặc định Downloads\\<DA>_GUI_TENDER_<yymmdd>), viết lại _LINKS theo
+                                cây hồ sơ của tender (khớp nội dung file, kể cả file trong zip/rar); không tự up, không tự gửi"""
 
 BO_TEN = re.compile(r"^(~\$|\.~)|^(plot\.log|thumbs\.db|desktop\.ini)$", re.I)
 BO_DUOI = {".dwl", ".dwl2", ".bak", ".log", ".tmp", ".lck"}
@@ -3499,6 +3502,13 @@ def cmd_dmvt(goc, args):
     return dmvt.main(goc, args)
 
 
+def cmd_guilink(goc, args):
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import guilink
+    return guilink.main(P(goc).need(), args, opt)
+
+
 def _docsau():
     sys.modules.setdefault("td", sys.modules[__name__])  # như dmvt: docsau.py import lại td
     if HERE not in sys.path:
@@ -3546,6 +3556,7 @@ def main(a):
           "build": lambda: cmd_build(goc, rest), "trang": lambda: cmd_trang(goc), "tim": lambda: cmd_tim(goc, rest),
           "ungvien": lambda: cmd_ungvien(goc, rest), "thaydoi": lambda: cmd_thaydoi(goc),
           "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc), "dmvt": lambda: cmd_dmvt(goc, rest),
+          "guilink": lambda: cmd_guilink(goc, rest),
           "docsau": lambda: _docsau().cmd_docsau(goc, rest), "neo": lambda: _docsau().cmd_neo(goc),
           "tincay": lambda: _docsau().cmd_tincay(goc), "do": lambda: _docsau().do(goc)}.get(c)
     if not fn:

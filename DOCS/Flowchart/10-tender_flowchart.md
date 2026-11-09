@@ -1,6 +1,6 @@
 # Flowchart skill 10-tender
 
-> Cập nhật lần cuối: 2026-11-03 (2a BOQ ra bản mới; 2 cập nhật theo đợt: kiemke cộng dồn, tcq ghi câu mới/đổi, giao lại bước 6, TCQ phạm vi theo phòng/khu; vẽ lại phụ thuộc phần 0) · Theo code: `SKILL/10-tender/` (SKILL.md, `buoc/*.md`, `tool/td.py`, `tool/lap_boq.py` và các tool phần 9, `tool/docsau.py`)
+> Cập nhật lần cuối: 2026-11-09 (3a `guilink`: viết lại link theo cây hồ sơ của tender khi gửi BOQ_TRACK + DMVT); trước đó 2026-11-03
 > Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm + đọc sâu toàn gói chuyển từ 01-scan (`docsau`, `gemini`, `neo`, `tincay`, `so`, `do`; phần 10) đã làm, kiểm thử bằng dữ liệu mẫu và thử lệnh trên bản sao CTX, các bước LLM 7c–7e chưa chạy trên dự án thật + dự án chưa có BOQ CĐT (mẫu `tu_lap_vn`, `lap_boq.py`; phần 9) đã build thật CTX, dòng cửa lấy vật liệu từ tag tờ cửa, `cua_ma_khung` (02/11, chưa commit) + add-in `SRC_LINKS` mở được khi chuyển file, mở từ SharePoint, máy khác cài bằng xlam rời. Main Lobby SOFITEL (BOQ thứ 2) chưa làm, chờ user quyết.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
@@ -81,7 +81,9 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
             │     (metadata + richData, thuộc tính vm) chép lại — openpyxl đổi tên/bỏ các phần này
             ├─► 01_index\FILE_INDEX.xlsx
             ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx (không tự gửi)
-            └─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
+            ├─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
+            └─► 11 guilink <zip|thư mục hồ sơ của tender> khi gửi BOQ_TRACK + DMVT lên OneDrive tender
+                  ─► Downloads\<DA>_GUI_TENDER_<yymmdd>\ (mục 3a, ngoài dự án, không tự up)
 ```
 
 # 1. KIỂM KÊ (td.py kiemke)
@@ -243,6 +245,40 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
         │
         ▼
  File trong zip được link → giải nén vào _data\_zip, link tương đối
+```
+
+## 3a. GỬI BOQ_TRACK + DMVT CHO TENDER (td.py guilink → tool/guilink.py)
+
+```
+ guilink <GOC> <zip OneDrive tender tải về | thư mục> [--ra <dir>] [--ngay yymmdd]
+   Vì sao: cây hồ sơ của tender (vd 01. Ho so thau\Lan 1, Lan 2) khác cây 00_input máy build
+           → link ..\..\00_input\... không mở được trên máy tender
+        │
+        ▼
+ Lấy <DA>_BOQ_TRACK_<ngày> mới nhất (hoặc --ngay) + <DA>_DMVT_<cùng ngày> trong 03_boq
+ Đọc _LINKS cột E → file đích trên máy build (theo thư mục xlsx, rồi BASE_DIR) → CRC32 + kích thước
+        │
+        ▼
+ Chỉ mục cây tender THEO NỘI DUNG (chỉ tính CRC file cùng kích thước với 1 đích):
+   file thường · file trong zip lồng (đọc trong bộ nhớ) · rar/7z lồng (7z l -slt, cần 7-Zip)
+   file trong file nén → đường dẫn như "Extract to <tên>\", ghi lại file nén cần giải
+   bỏ ~$, .tmp, .bak, .dwl
+        │
+        ▼
+ Nhiều chỗ cùng nội dung → chọn: giống đuôi đường dẫn cũ nhất (giữ đúng đợt/bản đã chọn)
+   → file có sẵn trước file phải giải nén → đường dẫn ngắn
+ Không thấy → giữ đường dẫn cũ, báo XEM
+        │
+        ▼
+ --ra (mặc định Downloads\<DA>_GUI_TENDER_<yymmdd>; trong 00_input hoặc 10_TENDER → LỖI)
+ Chép 2 file, Excel COM ghi E2:E<n> = đường dẫn tương đối theo GỐC cây tender (không ..\),
+   link sang file gửi kèm (DMVT) giữ nguyên, xóa BASE_DIR (H2); lưu bằng Excel (giữ ảnh, richData)
+        │
+        ▼
+ Đọc lại file đã lưu: đếm dòng đường dẫn mới / còn cũ (còn cũ → LỖI)
+ Báo tender: đặt 2 file chung 1 chỗ ở gốc cây (đồng bộ về máy thì thư mục con nào cũng được,
+   add-in bỏ ..\ thử từng thư mục cha; mở web chưa đồng bộ thì phải ở gốc),
+   giải nén file nén nào (số đích trong đó), cần add-in SRC_LINKS. Không tự up, không tự gửi.
 ```
 
 # 4. ĐIỂM THIẾT KẾ ĐÁNG CHÚ Ý
