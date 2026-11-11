@@ -1,6 +1,6 @@
 # Flowchart skill 10-tender
 
-> Cập nhật lần cuối: 2026-11-09 chiều (rà soát tool: build không dựng bản CĐT trừ khi `--cdt`, ghi file tạm rồi thay; nhận hàng BOQ_TRACK theo khóa trong công thức, chèn/xóa cột cũng dừng; check báo JSON hỏng thay vì văng lỗi, sheet BOQ bị bỏ, ngày không có thật; TCQ trùng STT không mất câu; DMVT bảng xlsx hết cắt 3000 hàng; spec_boc giữ mã phụ của khối); trước đó 2026-11-09 sáng (3a `guilink`)
+> Cập nhật lần cuối: 2026-11-11 (3b `dongbo` chuyển _data giữa 2 máy); trước đó 2026-11-09 chiều (rà soát tool: build không dựng bản CĐT trừ khi `--cdt`, ghi file tạm rồi thay; nhận hàng BOQ_TRACK theo khóa trong công thức, chèn/xóa cột cũng dừng; check báo JSON hỏng thay vì văng lỗi, sheet BOQ bị bỏ, ngày không có thật; TCQ trùng STT không mất câu; DMVT bảng xlsx hết cắt 3000 hàng; spec_boc giữ mã phụ của khối); trước đó 2026-11-09 sáng (3a `guilink`)
 > Trạng thái: 8 bước + `bo_thu_muc` (GĐ0 plan Code ID/DMVT) + `tim --ma`, vai trò Scope (GĐ1) + `phanloai` Code ID (GĐ2, `nho.json` chờ user duyệt) + droplist, `Code ID`, `Bên thực hiện`, highlight ở sheet BOQ (GĐ3) + `CAU_TAO`, `PHAN_VIEC`, `ben`, `goi`, droplist bên theo `_ben.json` (GĐ3b, danh sách bên đang tạm) + `VL_XUATHIEN`, bảng `AREA`, `Link vật liệu` (GĐ4) + `dmvt`, `Link vật tư` (GĐ5, mục nhóm Finishes, Sanitary đang tạm) + `chu`, `anh`, `mail`, `xem` qua `_core/doc_file.py` (GĐ6) đã làm + đọc sâu toàn gói chuyển từ 01-scan (`docsau`, `gemini`, `neo`, `tincay`, `so`, `do`; phần 10) đã làm, kiểm thử bằng dữ liệu mẫu và thử lệnh trên bản sao CTX, các bước LLM 7c–7e chưa chạy trên dự án thật + dự án chưa có BOQ CĐT (mẫu `tu_lap_vn`, `lap_boq.py`; phần 9) đã build thật CTX, dòng cửa lấy vật liệu từ tag tờ cửa, `cua_ma_khung` (02/11, chưa commit) + add-in `SRC_LINKS` mở được khi chuyển file, mở từ SharePoint, máy khác cài bằng xlam rời. Main Lobby SOFITEL (BOQ thứ 2) chưa làm, chờ user quyết.
 > Quy tắc cập nhật: xem [README.md](README.md). Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
@@ -83,8 +83,9 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
             │     (BOQ_TRACK, FILE_INDEX ghi ra tên tạm _dang_ghi_*, đủ cả mới thay vào tên thật rồi mới ghi _snapshot)
             ├─► 04_out\<DA>_BOQ_<yymmdd>_CDT.xlsx CHỈ KHI build --cdt (user 09/11: chỉ cần BOQ_TRACK; không tự gửi)
             ├─► 10 goi "<bên>" khi tender cần ─► 04_out\<DA>_GOI_<bên>_<yymmdd>.xlsx (mục 6, không tự gửi)
-            └─► 11 guilink <zip|thư mục hồ sơ của tender> khi gửi BOQ_TRACK + DMVT lên OneDrive tender
+            ├─► 11 guilink <zip|thư mục hồ sơ của tender> khi gửi BOQ_TRACK + DMVT lên OneDrive tender
                   ─► Downloads\<DA>_GUI_TENDER_<yymmdd>\ (mục 3a, ngoài dự án, không tự up)
+            └─► 12 dongbo xuat|nhap khi chuyển trạng thái quét sang máy khác (mục 3b)
 ```
 
 # 1. KIỂM KÊ (td.py kiemke)
@@ -284,6 +285,29 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
  Báo tender: đặt 2 file chung 1 chỗ ở gốc cây (đồng bộ về máy thì thư mục con nào cũng được,
    add-in bỏ ..\ thử từng thư mục cha; mở web chưa đồng bộ thì phải ở gốc),
    giải nén file nén nào (số đích trong đó), cần add-in SRC_LINKS. Không tự up, không tự gửi.
+```
+
+## 3b. CHUYỂN TRẠNG THÁI QUÉT GIỮA 2 MÁY (td.py dongbo → tool/dongbo.py)
+
+```
+ Vì sao: máy B nhận hồ sơ cập nhật nhưng không có _chuky.json của máy A → kiemke coi như lần đầu, không báo file đổi → quét lại toàn bộ
+ Chỉ _data cần đi (~5 MB nén); hồ sơ PDF + xlsx hai máy đã có / dựng lại bằng build
+
+ Máy A: dongbo xuat <GOC> [--ra f.zip]
+   gói _data (bỏ _zip, *.tmp) + _dongbo.json (ngày, máy, git skill, số file) → Downloads\<DA>_DATA_<yymmdd-hhmm>.zip
+   --ra trong thư mục dự án → LỖI; ghi _dongbo_state.json (md5 từng file) làm mốc "đã xuất"
+        │
+        ▼ (chép zip: OneDrive/USB/mail)
+ Máy B: pull skill → dongbo nhap <GOC> <zip> [--ghi-de]
+   kiểm zip có _dongbo.json, tên file an toàn (chống zip-slip)
+   _data máy B đã có: so với _dongbo_state.json
+        chưa từng xuat/nhap, hoặc đã có sửa chưa xuất → LỖI, trừ --ghi-de
+        ghi đè: lưu 10_TENDER\_data_truoc_nhap_<giờ>.zip rồi thay; file không có trong zip bị bỏ
+   báo XEM: skill máy B ≠ máy A · file hồ sơ trong FILE_INDEX không có ở máy B (kiemke sẽ coi là MẤT)
+        │
+        ▼
+ kiemke [--dot-moi] → thaydoi → docsau --thaydoi …  (chỉ file đổi; _chuky.json lấy từ A)
+ Luân phiên: A xuất → B nhập, sửa, xuất → A nhập; 2 máy sửa song song thì máy nhập từ chối
 ```
 
 # 4. ĐIỂM THIẾT KẾ ĐÁNG CHÚ Ý

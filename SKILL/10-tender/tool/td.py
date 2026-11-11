@@ -67,6 +67,8 @@ LENH = """Lệnh:
   ben <GOC>                     nháp Bên thực hiện cho dòng chưa có: Mã VL -> Loại (MAT) -> bên theo _data\\_ben.json, luôn gắn cờ
   goi <GOC> "<bên>"             04_out\\<DA>_GOI_<bên>_<yymmdd>.xlsx gửi nhà thầu phụ, chỉ phần việc của bên đó (chạy sau build); máy soát trước khi lưu
   build <GOC> [--ra <dir>] [--khong-dmvt] [--cdt]  kéo sửa tay + chạy lại phanloai + dựng 03_boq\\<DA>_DMVT_<yymmdd>.xlsx rồi 03_boq\\<DA>_BOQ_TRACK_<yymmdd>.xlsx + 01_index\\FILE_INDEX.xlsx; DMVT không dựng được thì vẫn ra BOQ_TRACK nhưng thoát lỗi; --khong-dmvt: bỏ DMVT; --cdt: thêm 04_out\\<DA>_BOQ_<yymmdd>_CDT.xlsx (BOQ gốc + 3 cột chính thức; mặc định không dựng); --ra: chỉ ghi BOQ_TRACK (+ bản CĐT nếu --cdt) ra thư mục đó (không DMVT), không kéo sửa tay, không đổi _data
+  dongbo xuat <GOC> [--ra f.zip] | dongbo nhap <GOC> <f.zip> [--ghi-de]
+                                chuyển trạng thái quét (_data, vài MB, không kèm hồ sơ/xlsx) sang máy khác: máy kia pull skill, nhap, rồi kiemke -> chỉ file đổi bị báo, khỏi quét lại; nhap từ chối khi máy này có sửa chưa xuất
   guilink <GOC> <zip|thư mục hồ sơ của tender> [--ra <dir>] [--ngay yymmdd]
                                 chép BOQ_TRACK + DMVT ra ngoài dự án (mặc định Downloads\\<DA>_GUI_TENDER_<yymmdd>), viết lại _LINKS theo
                                 cây hồ sơ của tender (khớp nội dung file, kể cả file trong zip/rar); không tự up, không tự gửi"""
@@ -3597,6 +3599,13 @@ def cmd_guilink(goc, args):
     return guilink.main(P(goc).need(), args, opt)
 
 
+def cmd_dongbo(goc, args):
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import dongbo
+    return dongbo.main(goc, args, opt, P)
+
+
 def _docsau():
     sys.modules.setdefault("td", sys.modules[__name__])  # như dmvt: docsau.py import lại td
     if HERE not in sys.path:
@@ -3635,6 +3644,10 @@ def main(a):
         return _docsau().so(rest[0], rest[1], opt(rest, "--clip"))
     if c == "gemini":
         return _docsau().cmd_gemini(rest)
+    if c == "dongbo":  # dongbo xuat|nhap <GOC> ...: động từ đứng trước GOC
+        if len(rest) < 2 or rest[0] not in ("xuat", "nhap"):
+            sys.exit(LENH)
+        return cmd_dongbo(rest[1], [rest[0]] + rest[2:])
     goc, rest = rest[0], rest[1:]
     fn = {"init": lambda: cmd_init(goc, rest), "kiemke": lambda: cmd_kiemke(goc, rest), "boq": lambda: cmd_boq(goc, rest),
           "phanloai": lambda: cmd_phanloai(goc, rest), "ben": lambda: cmd_ben(goc), "goi": lambda: cmd_goi(goc, rest),
