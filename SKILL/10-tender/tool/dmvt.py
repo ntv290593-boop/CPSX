@@ -315,12 +315,12 @@ def boc_nguon_spec_boc(p, res):
 
 # ---------------------------------------------------------------- spec dạng bảng xlsx (Material Schedule, cột Minh họa)
 COT_XLSX = {  # nhận cột theo chữ tiêu đề (đã bỏ dấu, chữ thường); thứ tự thử: khớp đầu tiên
-    "ma": r"item code|ma vl\b|ma vat lieu|^ma sp\b|^code\b",
+    "ma": r"item code|ma vl\b|ma vat lieu|^ma sp\b|^code\b|^project code",
     "loai": r"item type|loai vat lieu",
     "ten": r"hang muc cong viec|ten hang muc|^item name",
     "mo_ta": r"^description|mo ta",
     "vi_tri": r"^location|vi tri",
-    "anh": r"illustrat|minh hoa|hinh anh|^image",
+    "anh": r"illustrat|minh hoa|hinh anh|^image|^picture",
     "ma_ncc": r"supplier.?s code|ma cua n",
     "ncc": r"^supplier(?!.?s code)|nha cung cap|^brand",
     "note": r"^note|chu thich|ghi chu",
@@ -384,6 +384,23 @@ def _co_tieu_de(rows):
     return False
 
 
+def ma_o_chuan(ma_o):
+    """Mã trong 1 ô bảng spec: 'WD-01; PT-01' -> 2 mã; 'WP-2/6/7' -> WP-02, WP-06, WP-07 (số trần mượn tiền tố mã trước);
+    'WD-6' -> WD-06 (bảng MAR GBIA viết số 1 chữ số, MAT dùng 2 chữ số)."""
+    out, tt = [], ""
+    for m in re.split(r"[\s;,/]+", s(ma_o).upper()):
+        if tt and re.fullmatch(r"\d{1,2}[A-Z]?", m):
+            m = f"{tt}-{m}"
+        k = re.fullmatch(r"([A-Z]{1,4})-(\d)([A-Z]?)", m)
+        if k:
+            m = f"{k.group(1)}-0{k.group(2)}{k.group(3)}"
+        if re.search(r"\d", m):
+            out.append(m)
+            if "-" in m:
+                tt = m.split("-")[0]
+    return out
+
+
 def boc_xlsx(path, fid, ngay, la_boq=False):
     """Bảng mã trong 1 file xlsx -> {mã: bản ghi loai XLSX}. Mỗi sheet: tìm hàng tiêu đề có cột mã + cột mô tả trong 15 hàng đầu."""
     import openpyxl
@@ -425,7 +442,7 @@ def boc_xlsx(path, fid, ngay, la_boq=False):
                 if len(chu) == 1 and len(chu[0]) < 60:
                     nhom = chu[0]  # dòng nhóm: PAINT/ SƠN
                 continue
-            cac_ma = [m.upper() for m in re.split(r"[\s;,/]+", ma_o) if re.search(r"\d", m)]
+            cac_ma = ma_o_chuan(ma_o)
             if not cac_ma:
                 continue
             ca = [x for (hh, cc), xs in anh.items() if hh == i and cc == cot.get("anh", -1) + 1 for x in xs]

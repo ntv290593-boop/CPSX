@@ -1,5 +1,18 @@
 # Dự án đang active
 
+- **Dự án:** GBIA – VVIP Interior Decoration (Cảng HKQT Gia Bình), gói nội thất liền tường (BUILT IN), BOQ song ngữ B02–B18. Phục vụ **phòng TENDER** (skill `10-tender`, toàn gói).
+- **Thư mục:** `_ACTIVE\GBIA_VVIP` (hồ sơ ở `00_input\01. HSMT_20261114\OneDrive_2026-11-14.zip`; làm việc ở `10_TENDER`)
+- **BOQ CĐT:** `20261107 GBIA-VVIP-INT-ID WORK-BOQ - FINAL.xlsx` trong zip. Bản `_NOI_BO\...FINAL_PVCV BOHO.xlsx` là bản nội bộ, không làm BOQ quét. Chưa có TCQ.
+- **Cập nhật:** 2026-11-14
+
+## Dự án tạm dừng: SL URBAN – PHÁT SINH CỬA GỖ (chưa đóng)
+Muốn quay lại thì đưa khối này lên đầu file.
+- **Dự án:** SL URBAN – PHÁT SINH CỬA GỖ (cửa gỗ chống cháy DW05…, báo giá + PDF bản vẽ 50 trang). Phục vụ **costing bóc KL CPSX** (skill `01-scan`, phạm vi nhà máy, KHÔNG xuất DMVT).
+- **Thư mục:** `_ACTIVE\01. PHÁT SINH CỬA GỖ` (hồ sơ ở `00_input\DOT01`: `SLUC_BÁO GIÁ CỬA GỖ.xlsx` làm BoQ, `SLUC_CỬA GỖ CHỐNG CHÁY, CỬA THƯỜNG.pdf` làm bản vẽ; 2 file gốc còn ở thư mục ngoài)
+- **Cập nhật:** 2026-11-13
+
+## Dự án tạm dừng: Blanca_City (chưa đóng)
+Muốn quay lại thì đưa khối này lên đầu file.
 - **Dự án:** Blanca City – Vũng Tàu, nội thất căn hộ DV2.3-DV2.4. Phục vụ **phòng TENDER** (skill `10-tender`, mẫu `cdt_item`, toàn gói).
 - **Thư mục:** `_ACTIVE\Blanca_City` (hồ sơ ở `00_input`; làm việc ở `10_TENDER`)
 - **Đợt hồ sơ:** `00_input±027_DV2.3-DV2.4` (đợt gốc 27/10, có BOQ CĐT `BOQ NỘI THẤT CĂN HỘ DV2.3-DV2.4 - MT.xlsx`) + `00_input\OneDrive_2026-11-06.zip` (CĐT cập nhật 06/11).

@@ -21,6 +21,8 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
 │    cdt_vn: BOQ CĐT tiếng Việt, 1 sheet = 1 loại căn, mã từ MÃ SP;   │
 │      _cauhinh: rx_phong, phong_theo_sheet, dwg_theo_trang (DWG theo  │
 │      từng trang PDF), mat cờ KHÁC NGHĨA THEO LOẠI CĂN               │
+│    cdt_song_ngu: BOQ CĐT Anh-Việt, 1 sheet Bxx = 1 khu, mã từ Code  │
+│      khoi_bo (bỏ khối SUMMARY), c2_la_muc, trang_thai_theo_dong     │
 │  Thư mục không phải hồ sơ thầu → init --bo-thu-muc                  │
 │  DỪNG nếu: ~$<DA>_BOQ_TRACK_*.xlsx hoặc ~$FILE_INDEX.xlsx tồn tại   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -59,6 +61,7 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
      │              │                           │
      ▼              │                           │
   doichieu (tool: nháp từ TCQ_LOG theo Dòng BOQ, Mã VL, câu phạm vi theo phòng/khu)
+           + Trạng thái nháp theo trang_thai_theo_dong của mẫu khi TCQ không nói
      │              │                           │
      ▼              │                           │
   7 doichieu  mỗi 1–2 sheet BOQ 1 subagent (sau 3, 5, 6)
@@ -436,6 +439,8 @@ Bước đã có `*.<buoc>*.json` thì bỏ qua, trừ khi user bảo chạy l�
    _dmvt.json "spec_xlsx": [FID] chọn file, false tắt                         │
    đọc hết bảng, dừng khi 500 hàng trống liền (09/11; trước cắt 3000 hàng)     │
    15 hàng đầu không có tiêu đề mã + mô tả → bỏ sheet, không đọc tiếp          │
+   tiêu đề mã gồm cả "Project code", ảnh cả "Picture"; mã ô WD-6 → WD-06,     │
+   WP-2/6/7 → WP-02/06/07 (14/11, bảng MAR GBIA)                              │
         │                                                                     │
         ▼                                                                     │
  Gộp dòng: FF&E theo Design + Colour (cùng mã màu, khác vài chữ: gộp, có cờ)  │

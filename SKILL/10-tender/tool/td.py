@@ -783,10 +783,21 @@ def cmd_boq(goc, args=()):
         phong_sheet = (p.cfg.get("phong_theo_sheet") or {}).get(ws.title)  # BOQ không có cột phòng, mỗi sheet = 1 loại căn
         if phong_sheet and not rooms:
             room_codes.add(phong_sheet)
+        khoi_bo, trong_khoi, n_khoi = p.mau.get("khoi_bo"), False, 0
         for i in range(h + 2, len(rows)):
             r = rows[i]
             item = s(r[ic])
             texts = [s(r[j]) for j in cot_mt if s(r[j])] if cot_mt else [s(x) for x in r[ic + 1:dend] if s(x)]
+            if khoi_bo:  # mẫu cdt_song_ngu: khối SUMMARY đầu mỗi sheet lặp tổng các mục -> bỏ tới đề mục vùng đầu tiên không có ĐV
+                if not item and texts and re.match(khoi_bo, texts[0].lower()):
+                    trong_khoi = True
+                    continue
+                if trong_khoi:
+                    if dau_muc.get("vung") and re.match(dau_muc["vung"], item) and not (unit is not None and s(r[unit])):
+                        trong_khoi = False
+                    else:
+                        n_khoi += bool(item)
+                        continue
             if dau_muc.get("vung") and re.match(dau_muc["vung"], item):
                 vung, nhom, muc = " ".join(texts), None, None
                 continue
@@ -833,22 +844,33 @@ def cmd_boq(goc, args=()):
                 c3 = " ".join(s(x) for x in r[ic + 3:dend] if s(x))
                 if c1 and not c2 and not c3 and p.mau.get("c1_la_muc") and nhom:
                     muc = c1  # mẫu cdt_vn: dòng chỉ có tên ở cột B dưới mục La Mã (SÀN, TƯỜNG…) là mục phụ
+                elif p.mau.get("c2_la_muc") and c2 and not c1:
+                    # mẫu cdt_song_ngu: cột B là Code, tên mục ở cột C. Câu dẫn dài ("Supply, deliver…") không phải mục
+                    if len(c2) <= p.mau.get("muc_toi_da", 120):
+                        if nhom:
+                            muc = c2
+                        else:
+                            nhom, muc = c2, None
                 elif c1 and not c2 and not c3:
                     vung, nhom, muc = c1, None, None
                 elif c2:
                     nhom, muc = c2, None
                 elif c3 and len(c3) <= 120:
                     muc = c3
-        print(f"{ws.title}: tiêu đề hàng {h + 1}, cột Item {L(ic + 1)}, {n} dòng hạng mục, {len(rooms)} cột phòng/khu, cột cuối {L(last)}")
+        print(f"{ws.title}: tiêu đề hàng {h + 1}, cột Item {L(ic + 1)}, {n} dòng hạng mục, {len(rooms)} cột phòng/khu, cột cuối {L(last)}"
+              + (f", bỏ {n_khoi} dòng khối {khoi_bo}" if n_khoi else ""))
     # Mã VL tính sau khi biết mọi mã phòng (mã phòng có thể nằm ở sheet sau) và mọi họ mã VL
     tien_to = set(p.cfg.get("vl_tien_to", [])) | {c.split("-")[0] for r in out for c in RX_VL.findall(r["_full"]) if c not in room_codes}
     trung = set()
     biet = ma_vl_da_biet(p, out, room_codes)
+    bo_tt = {x.upper() for x in p.cfg.get("vl_bo_tien_to", [])}
     for r in out:
         full = r.pop("_full")
         vl = ma_vl(full, room_codes, tien_to)
         # mã không gạch nối (WO1, FR1, LM4a) regex chung không bắt: nhận khi là mã đã biết (cột mã của BOQ, sổ MAT)
         vl = list(dict.fromkeys(r.pop("_ma_cot", []) + list(vl) + ma_vl_theo_bang(full, biet)))
+        if bo_tt:  # _cauhinh vl_bo_tien_to: họ mã là mã hạng mục/cửa/vách (GBIA: BF-01B, GD-04, VK1), không phải vật liệu
+            vl = [m for m in vl if re.split(r"[-\d]", m, 1)[0] not in bo_tt]
         trung |= set(vl) & room_codes
         if vl:
             r["Mã VL"] = "; ".join(vl)
@@ -1486,16 +1508,26 @@ def cmd_doichieu(goc):
                         continue
                     ma[key].append(k)
     rows = []
+    theo_dong = p.mau.get("trang_thai_theo_dong") or []  # mẫu: dòng ghi chú / dòng trống để nhà thầu điền -> Trạng thái nháp
+    n_mau = 0
     for key in scope:
         r = {"Khóa": key}
         if ma[key]:
             r["Mã TCQ"] = "; ".join(ma[key])
         if len(tt[key]) == 1:
             r["Trạng thái"] = tt[key].pop()
+        elif not tt[key]:
+            for x in theo_dong:
+                if all(re.search(v, s(scope[key].get(c)), re.I) for c, v in x["_loc"].items()):
+                    r["Trạng thái"] = x["Trạng thái"]
+                    n_mau += 1
+                    break
         if len(r) > 1:
             rows.append(r)
     write_tool(p, "SCOPE", "doichieu", rows)
     print(f"Bỏ {n_bo} cặp TCQ–dòng trùng Mã VL nhưng khác mã phòng")
+    if n_mau:
+        print(f"Trạng thái nháp theo trang_thai_theo_dong của mẫu: {n_mau} dòng")
     if theo_khu:
         print(f"Câu TCQ phạm vi nối theo mã phòng/khu (không có Dòng BOQ, Mã VL): {len(theo_khu)} câu -> {sum(theo_khu.values())} cặp câu–dòng")
     for k in khong_dong:

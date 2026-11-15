@@ -84,5 +84,50 @@
       "mã sp"
     ],
     "c1_la_muc": true
+  },
+  "cdt_song_ngu": {
+    "mo_ta": "Có BOQ CĐT song ngữ Anh-Việt (Stt, Code, Description (English), Mô tả (Tiếng Việt), Image/Spec, Unit/Đơn vị, Quantity, Remark/Ghi chú), mỗi khu 1 sheet Bxx; TCQ không bắt buộc",
+    "du_an_mau": "GBIA_VVIP",
+    "bat_buoc": [
+      "boq"
+    ],
+    "tieu_de": {
+      "item": [
+        "stt"
+      ],
+      "mo_ta": [
+        "description"
+      ],
+      "dv": [
+        "unit /đơn vị",
+        "unit/đơn vị",
+        "unit"
+      ],
+      "kl": [
+        "quantity"
+      ],
+      "ghi_chu": [
+        "remark/ghi chú",
+        "remark /ghi chú",
+        "remark"
+      ]
+    },
+    "cot_mo_ta": [
+      "code",
+      "description",
+      "mô tả"
+    ],
+    "dau_muc": {
+      "vung": "^[IVX]+$",
+      "nhom": "^\\d+$"
+    },
+    "khoi_bo": "^summary$",
+    "c2_la_muc": true,
+    "muc_toi_da": 120,
+    "trang_thai_theo_dong": [
+      {"_loc": {"Item": "^ghi ch[úu]|^note"}, "Trạng thái": "Không áp dụng"},
+      {"_loc": {"Mô tả BOQ": "^[\\s()\\d.…]*$"}, "Trạng thái": "Không áp dụng"}
+    ],
+    "_ghi_chu": "Mô tả lấy cột Code + EN + VN (không lấy Image/Spec, Unit). Cột Code là mã hạng mục (BF-01B tủ, GD-04 cửa), KHÔNG khai cot_ma; loại họ mã này khỏi Mã VL bằng _cauhinh vl_bo_tien_to.Vùng = đề mục La Mã (khu, CÔNG TÁC BỔ SUNG), Nhóm = đề mục số (BUILT IN, FINISHES WORK), Mục phụ = dòng chữ ở cột C (WALL, CEILING). khoi_bo: khối SUMMARY đầu sheet lặp tổng mục -> bỏ tới đề mục La Mã đầu tiên không có ĐV. trang_thai_theo_dong: dòng GHI CHÚ/NOTE và dòng trống '(1)……' để nhà thầu tự điền -> Không áp dụng (nháp doichieu)."
   }
 }
