@@ -131,9 +131,110 @@ def co_quan_sat(res):
 
 
 # ---------------------------------------------------------------- docsau
+NGUONG_CHUNG = 3  # trang có ≥ N cụm giao = trang dùng chung, đọc ở lượt 0 (plan Read Once A2/A3); --luot0 0 = tắt
+TRANG_LUOT0 = 8   # lượt 0: số trang dùng chung tối đa mỗi subagent
+TRANG_LUOT1 = 12  # lượt 1: số trang riêng tối đa mỗi nhóm (ít trang → ít ảnh nằm lâu trong ngữ cảnh)
+
+
+def khoa_trang(l):
+    pg = l[2] if len(l) > 2 and isinstance(l[2], int) else None
+    return f"{l[1]}|{pg if pg is not None else ''}", pg
+
+
+def to_cua(scope, c):
+    """Các khóa trang <FID>|<trang> của cụm c theo Bản vẽ hiệu lực, giữ thứ tự, không trùng."""
+    return list(dict.fromkeys(khoa_trang(l)[0] for l in links_of(scope[c].get("Bản vẽ hiệu lực"))))
+
+
+def lap_manifest(res, scope, cum, chon, nguong=NGUONG_CHUNG):
+    """Đảo cụm → tờ thành tờ → cụm, theo `Bản vẽ hiệu lực` của dòng đại diện. Chỉ tính cụm giao lần này (chon).
+    -> {"nguong_chung", "tong", "trang": {"<FID>|<trang>": {to, fid, trang, rev, cum, so_cum}}}; trang = null khi link không có số trang."""
+    dwg, chon_set, trang = res.get("DWG", {}), set(chon), OrderedDict()
+    for c in cum:
+        if c not in chon_set:
+            continue
+        for l in links_of(scope[c].get("Bản vẽ hiệu lực")):
+            key, pg = khoa_trang(l)
+            t = trang.setdefault(key, {"to": l[0], "fid": l[1], "trang": pg, "rev": "", "cum": []})
+            if c not in t["cum"]:
+                t["cum"].append(c)
+    for t in trang.values():
+        bv = sorted(set(re.findall(td.RX_DWG, s(t["to"]).upper())))
+        t["rev"] = "; ".join(f"{b} {s(dwg[b].get('Ngày issue hiệu lực'))} ({s(dwg[b].get('Đợt hiệu lực'))})" for b in bv if b in dwg)
+        t["so_cum"] = len(t["cum"])
+    trang = OrderedDict(sorted(trang.items(), key=lambda kv: -kv[1]["so_cum"]))
+    chung = [t for t in trang.values() if nguong and t["so_cum"] >= nguong]
+    return {"nguong_chung": nguong,
+            "tong": {"trang": len(trang), "luot": sum(t["so_cum"] for t in trang.values()), "chung": len(chung), "luot_chung": sum(t["so_cum"] for t in chung)},
+            "trang": trang}
+
+
+def chia_luot0(chung, max_trang):
+    """Trang dùng chung xếp theo file rồi số trang (trang liền nhau đi cùng agent), cắt ≤ max_trang mỗi nhóm."""
+    def k(x):
+        f, pg = x.split("|", 1)
+        return f, int(pg) if pg.isdigit() else 0
+    ds = sorted(chung, key=k)
+    return [ds[i:i + max_trang] for i in range(0, len(ds), max_trang)]
+
+
+def chia_luot1(scope, chon, chung, n_nhom, max_trang):
+    """Nhóm lượt 1: cụm chung trang RIÊNG (không tính trang lượt 0 đã đọc) đi cùng nhau (thành phần liên thông),
+    gói tuần tự ≤ n_nhom cụm và ≤ max_trang trang riêng mỗi nhóm; thành phần quá to thì cắt. Cụm không có tờ: mỗi cụm 1 đơn vị,
+    thứ tự theo phòng đầu tiên (hoặc sheet) như cách chia cũ."""
+    rieng = {c: [t for t in to_cua(scope, c) if t not in chung] for c in chon}
+    cha = {c: c for c in chon}
+
+    def goc(c):
+        while cha[c] != c:
+            cha[c] = cha[cha[c]]
+            c = cha[c]
+        return c
+    chu = {}
+    for c in chon:
+        for t in rieng[c]:
+            if t in chu:
+                a, b = goc(c), goc(chu[t])
+                if a != b:
+                    cha[b] = a
+            else:
+                chu[t] = c
+    tp = OrderedDict()
+    for c in chon:
+        tp.setdefault(goc(c), []).append(c)
+    theo = OrderedDict()
+    for ds in tp.values():
+        r = scope[ds[0]]
+        ph = tach_phong(r.get("Mã phòng"))
+        theo.setdefault(ph[0][0] if ph else s(r.get("Sheet")), []).append(ds)
+    nhom, cur, cur_to = [], [], set()
+
+    def them(c):
+        nonlocal cur, cur_to
+        moi = set(rieng[c]) - cur_to
+        if cur and (len(cur) >= n_nhom or len(cur_to) + len(moi) > max_trang):
+            nhom.append(cur)
+            cur, cur_to = [], set()
+            moi = set(rieng[c])
+        cur.append(c)
+        cur_to |= moi
+    for dss in theo.values():
+        for ds in dss:
+            to_tp = {t for c in ds for t in rieng[c]}
+            if cur and (len(cur) + len(ds) > n_nhom or len(cur_to | to_tp) > max_trang) and len(ds) <= n_nhom and len(to_tp) <= max_trang:
+                nhom.append(cur)  # cả thành phần vừa 1 nhóm mới: không xé nó ra 2 nhóm
+                cur, cur_to = [], set()
+            for c in ds:
+                them(c)
+    if cur:
+        nhom.append(cur)
+    return nhom
+
+
 def cmd_docsau(goc, args):
     p = td.P(goc).need()
     n_nhom, loc_phong, loc_sheet = int(opt(args, "--nhom", "8")), opt(args, "--phong"), opt(args, "--sheet")
+    nguong, max0, max1 = int(opt(args, "--luot0", str(NGUONG_CHUNG))), int(opt(args, "--trang0", str(TRANG_LUOT0))), int(opt(args, "--trang", str(TRANG_LUOT1)))
     res, _ = merge(p)
     scope = res["SCOPE"]
     if not scope:
@@ -177,35 +278,48 @@ def cmd_docsau(goc, args):
     if "--thieu" in args:
         qs = co_quan_sat(res)
         chon = [c for c in chon if not any(r.get("Nguồn") in ("HÌNH", "TEXT") for r in qs.get(c, []))]
-    # nhóm: cùng phòng đầu tiên (hoặc cùng sheet) đi với nhau, tối đa n_nhom cụm
-    theo = OrderedDict()
-    for c in chon:
+    # lượt 0: trang dùng chung ≥ nguong cụm, đọc 1 lần cho mọi cụm; lượt 1: chia cụm theo bộ tờ riêng còn lại
+    man = lap_manifest(res, scope, cum, chon, nguong)
+    jdump(p.f("_doc_trang.json"), man)
+    chung = {k for k, t in man["trang"].items() if nguong and t["so_cum"] >= nguong and t["trang"] is not None}
+    nhom0 = chia_luot0(chung, max0)
+    nhom = chia_luot1(scope, chon, chung, n_nhom, max1)
+    # số nhóm: lượt 0 = 1..K, lượt 1 = K+1.. → file *.docsau-<n>.json của 2 lượt không đè nhau
+    so0 = list(range(1, len(nhom0) + 1))
+    so1 = list(range(len(nhom0) + 1, len(nhom0) + len(nhom) + 1))
+    jdump(p.f("_docsau.json"), {"cum": {c: {"khoa": ds} for c, ds in cum.items()}, "nhom": nhom,
+                                "luot0": {"nguong": nguong, "nhom": dict(zip(map(str, so0), nhom0))}, "so_nhom": dict(zip(map(str, so1), nhom))})
+
+    def mo_ta(c):
         r = scope[c]
-        ph = tach_phong(r.get("Mã phòng"))
-        theo.setdefault(ph[0][0] if ph else s(r.get("Sheet")), []).append(c)
-    nhom, cur = [], []
-    for ds in theo.values():
-        for c in ds:
-            cur.append(c)
-            if len(cur) >= n_nhom:
-                nhom.append(cur)
-                cur = []
-    if cur:
-        nhom.append(cur)
-    jdump(p.f("_docsau.json"), {"cum": {c: {"khoa": ds} for c, ds in cum.items()}, "nhom": nhom})
+        return f"{s(r.get('ĐV'))} | {s(r.get('Mô tả BOQ'))[:140]} | VL: {s(r.get('Mã VL'))} {s(r.get('Mã spec/FF&E'))}"
     dong = []
-    for i, ds in enumerate(nhom, 1):
-        dong.append(f"== Nhóm {i} ({len(ds)} cụm)")
+    for n, ds in zip(so0, nhom0):
+        cac = list(dict.fromkeys(c for t in ds for c in man["trang"][t]["cum"]))
+        dong.append(f"== Lượt 0 · Nhóm {n} ({len(ds)} trang dùng chung, {len(cac)} cụm) — đọc TRƯỚC lượt 1, ghi TRANG_QS.docsau-{n}.json")
+        for t in ds:
+            m = man["trang"][t]
+            dong.append(f"TRANG {t} | {m['to']} | {m['so_cum']} cụm: {', '.join(m['cum'])}")
+        dong.append("-- món cần tìm trên các trang này:")
+        dong += [f"  - {c} {mo_ta(c)}" for c in cac]
+    for n, ds in zip(so1, nhom):
+        dong.append(f"== Nhóm {n} ({len(ds)} cụm)")
         for c in ds:
             r = scope[c]
-            lk = "; ".join(l[0] for l in links_of(r.get("Bản vẽ hiệu lực"))[:6]) or s(_txt(r.get("Bản vẽ hiệu lực"))) or "(chưa có tờ)"
-            dong.append(f"{c} [{len(cum[c])} dòng] {s(r.get('ĐV'))} | {s(r.get('Mô tả BOQ'))[:140]} | VL: {s(r.get('Mã VL'))} {s(r.get('Mã spec/FF&E'))} | Tờ: {lk}")
+            lk = "; ".join(l[0] for l in links_of(r.get("Bản vẽ hiệu lực")) if khoa_trang(l)[0] not in chung) or ("" if to_cua(scope, c) else s(_txt(r.get("Bản vẽ hiệu lực"))) or "(chưa có tờ)")
+            l0 = [t for t in to_cua(scope, c) if t in chung]
+            dong.append(f"{c} [{len(cum[c])} dòng] {mo_ta(c)} | Tờ: {lk or '(chỉ có trang lượt 0)'}" + (f" | Lượt 0 đã đọc: {'; '.join(l0)}" if l0 else ""))
     with open(p.f("_docsau.txt"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(dong) + "\n")
-    print(f"Đọc sâu: {sum(len(v) for v in cum.values())} dòng → {len(cum)} cụm; giao lần này {len(chon)} cụm → {len(nhom)} nhóm (≤ {n_nhom} cụm/nhóm) -> {p.f('_docsau.txt')}")
+    print(f"Đọc sâu: {sum(len(v) for v in cum.values())} dòng → {len(cum)} cụm; giao lần này {len(chon)} cụm → "
+          f"lượt 0: {len(nhom0)} nhóm ({len(chung)} trang dùng chung ≥ {nguong} cụm, ≤ {max0} trang/nhóm); "
+          f"lượt 1: {len(nhom)} nhóm (≤ {n_nhom} cụm, ≤ {max1} trang riêng/nhóm) -> {p.f('_docsau.txt')}")
     print(f"Không đọc sâu: {dict(bo) or 'không'}. Nhãn Phạm vi nhà máy: {dict(nhan)}")
     if chua_tt:
         print(f"XEM: {len(chua_tt)} dòng chưa có Trạng thái, vẫn đọc sâu; nên chạy xong bước 7 trước để khỏi đọc dòng Omit/Loại trừ.")
+    tg = man["tong"]
+    print(f"Manifest trang -> {p.f('_doc_trang.json')}: {tg['trang']} trang, {tg['luot']} lượt tờ (cụm giao × tờ); "
+          f"{tg['chung']} trang dùng chung ≥ {nguong} cụm, gánh {tg['luot_chung']} lượt")
     khong_to = [c for c in cum if not links_of(scope[c].get("Bản vẽ hiệu lực"))]
     if khong_to:
         print(f"XEM: {len(khong_to)} cụm chưa có link Bản vẽ hiệu lực (bước 6), subagent phải tự tìm tờ hoặc ghi KHÔNG THẤY.")
@@ -251,14 +365,15 @@ def cmd_gemini(args):
     hoi, mine, par = opt(args, "--hoi"), opt(args, "--claude"), int(opt(args, "--par", "4"))
     vat, cum, goc = opt(args, "--quansat"), opt(args, "--cum"), opt(args, "--goc")  # opt lấy cờ ra khỏi args: chỉ gọi 1 lần mỗi cờ
     p = qs_cum = None
-    if cum:
-        if hoi or vat or not goc:
-            sys.exit("--cum chỉ dùng ở chế độ số và cần --goc <GOC>")
+    if cum and (hoi or vat or not goc):
+        sys.exit("--cum chỉ dùng ở chế độ số và cần --goc <GOC>")
+    if goc:  # có --goc: mọi agent dùng chung cache _data\_gemini_cache (theo nội dung ảnh + câu hỏi)
         p = td.P(goc).need()
+    if cum:
         qs_cum = [r for r in co_quan_sat(merge(p)[0]).get(cum, []) if r.get("Trường") != GEM_SO_TRUONG]
         if not claude_kt(qs_cum):
             sys.exit(f"{cum}: QUAN_SAT chưa có 'Kích thước BV' dạng R×S×C (nguồn HÌNH/TEXT). Ghi số của Claude vào QUAN_SAT.docsau-<nhóm>.json trước rồi mới chạy Gemini.")
-    kq = gemini_doc.doc_anh(pngs, hoi, vat, par)
+    kq = gemini_doc.doc_anh(pngs, hoi, vat, par, p.f("_gemini_cache") if p else None)
     tat_ca = []
     for png, txt in kq:
         print(f"== {os.path.basename(png)}\n{txt}")
@@ -571,6 +686,22 @@ def kiem(p, res, buoc_da):
             errs.append(f"QUAN_SAT {r.get('Cụm đọc')} · {r.get('Trường')}: nguồn {r.get('Nguồn')} mà không ghi tờ/chi tiết")
     for a, b, ch, tong in kt_chuoi_sai(res["QUAN_SAT"]):
         errs.append(f"QUAN_SAT {a} · {b}: chuỗi cộng sai '{ch}' (tổng thật {tong:g})")
+    # lượt 0: quan sát theo trang dùng chung
+    tq = res.get("TRANG_QS", [])
+    for r in tq:
+        if r.get("Nguồn") in ("HÌNH", "TEXT") and not r.get("Tờ · Chi tiết"):
+            errs.append(f"TRANG_QS {r.get('Khóa trang')} · {r.get('Món')} · {r.get('Trường')}: nguồn {r.get('Nguồn')} mà không ghi tờ/chi tiết")
+    for a, b, ch, tong in kt_chuoi_sai([dict(r, **{"Cụm đọc": f"{s(r.get('Khóa trang'))} · {s(r.get('Món'))}"}) for r in tq]):
+        errs.append(f"TRANG_QS {a} · {b}: chuỗi cộng sai '{ch}' (tổng thật {tong:g})")
+    l0 = {t for ds in (((jload(p.f("_docsau.json")) or {}).get("luot0") or {}).get("nhom") or {}).values() for t in ds}
+    co_tq = {s(r.get("Khóa trang")) for r in tq}
+    if l0 and "docsau" in buoc_da:
+        thieu0 = sorted(l0 - co_tq, key=td.so_tu_nhien)
+        if thieu0:
+            errs.append(f"TRANG_QS: {len(thieu0)} trang lượt 0 chưa có quan sát (giao lượt 0 trước lượt 1) vd: {', '.join(thieu0[:8])}")
+    la = sorted(co_tq - l0, key=td.so_tu_nhien)
+    if la and l0:
+        xem.append(f"TRANG_QS: {len(la)} Khóa trang không thuộc lượt 0 hiện tại (docsau chạy lại đổi danh sách?) vd: {', '.join(la[:6])}")
     for r in res["ISSUES"].values():
         for x in re.split(r"[,;\s]+", s(r.get("RFI"))):
             if x and x not in res["RFI_LOG"]:

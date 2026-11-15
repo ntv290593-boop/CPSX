@@ -559,15 +559,26 @@ Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này
    ▼
  docsau  gom dòng cùng (mô tả, Mã VL, Mã spec/FF&E, bộ tờ Bản vẽ hiệu lực) thành CỤM; khóa cụm = Khóa dòng đầu
    │     ghi SCOPE.docsau-tool (Cụm đọc, nhãn Phạm vi nhà máy), BOQ_MAP.docsau-tool (mỗi dòng × khu)
-   │     _docsau.json, _docsau.txt (nhóm ≤ 8 cụm); lọc phần giao: --phong --sheet --thaydoi --thieu
+   │     _doc_trang.json: manifest trang → cụm (đảo Bản vẽ hiệu lực)
+   │     chia 2 lượt → _docsau.json (luot0, so_nhom), _docsau.txt; lọc phần giao: --phong --sheet --thaydoi --thieu
+   │       lượt 0: trang ≥ 3 cụm (--luot0 N, 0 = tắt), xếp theo file/trang, ≤ 8 trang/nhóm (--trang0), nhóm 1..K
+   │       lượt 1: bỏ trang lượt 0, cụm chung trang riêng = 1 thành phần (không xé nếu vừa), ≤ 8 cụm (--nhom) và
+   │               ≤ 12 trang riêng (--trang)/nhóm, nhóm K+1..; cụm không có tờ: theo phòng như cũ
    ▼
  7c spec   SPEC, SCOPE (Spec · ML, Thông số riêng), QUAN_SAT nguồn SPEC, ISSUES S…
    ▼
- 7d docsau  mỗi nhóm 1 subagent
+ 7d lượt 0  mỗi nhóm lượt 0 1 subagent, song song: mỗi trang đọc 1 lần cho mọi cụm
+   │    ──► TRANG_QS.docsau-<n> (Khóa trang, Chi tiết, Món, Cụm đọc?, Trường, Giá trị, Crop), PAGES; gemini --goc cache sẵn
+   │    check --den docsau: trang lượt 0 chưa có TRANG_QS = LỖI; HÌNH/TEXT không tờ, chuỗi cộng sai = LỖI
+   ▼
+ 7d lượt 1  mỗi nhóm 1 subagent, song song; trang lượt 0: loc TRANG_QS, không mở lại ảnh
+   │    anh: tool hạ dpi (cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP / 1568 px), in (giới hạn ảnh …)
    │    Claude đọc crop, ghi QUAN_SAT nguồn HÌNH/TEXT TRƯỚC
    │         ▼
    │    gemini --cum  dừng nếu chưa có Kích thước BV của Claude ──► _gemini_so\<cụm>.json
    │    gemini --quansat  so từng trường, lệch: đọc lại; vẫn lệch: 2 dòng, MÂU THUẪN, issue
+   │    mọi lệnh gemini có --goc: cache _data\_gemini_cache theo sha1(byte PNG) + sha1(model + câu hỏi)
+   │         trúng cache (cùng ảnh, cùng câu, kể cả file khác của agent khác) → không gọi agy; trả lời lỗi không lưu
    │    agy lỗi / không có: KHÔNG THẤY, làm tiếp, cụm tối đa TB
    │         ▼
    │    BOQ_MAP (KL theo BV, tờ đếm), DAY_TUONG (cửa), PAGES, ISSUES V…

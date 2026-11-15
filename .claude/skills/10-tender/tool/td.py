@@ -45,14 +45,16 @@ LENH = """Lệnh:
                                 mỗi dòng SCOPE -> trang PDF ứng viên (lõi scan: BM25 + mã + phòng); --do = đo trùng với LLM
   zip <GOC> <FID> [--ra <dir>]  giải nén 1 file trong zip ra _data\\_zip để đọc
   chu <pdf> <trang> [--clip x0,y0,x1,y1]   in lớp chữ của trang (clip theo tỉ lệ 0..1 của trang)
-  anh <pdf> <trang> <png> [--dpi 150] [--clip ...]  xuất ảnh trang/vùng để xem bằng Read
+  anh <pdf> <trang> <png> [--dpi 150] [--clip ...]  xuất ảnh trang/vùng để xem bằng Read; tool tự hạ dpi:
+                                cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP (≤ 1568 px)
   mail <file.msg>               in tiêu đề, người gửi/nhận, đính kèm, nội dung mail Outlook
   xem <xlsx> [sheet] [A1:Z60]   in giá trị ô; không nêu sheet thì liệt kê sheet
   so <pdf> <trang> [--clip ...] in các số trong lớp chữ kèm toạ độ (đọc kích thước)
   docsau <GOC> [--nhom 8] [--phong SK-01 | --sheet S | --thaydoi | --thieu]
                                 đọc sâu: gom dòng BOQ thành cụm, chia nhóm -> _docsau.txt, nháp Phạm vi nhà máy, BOQ_MAP; lọc = chỉ giao lại phần đó
-  gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo"] [--hoi "câu hỏi"]
-                                Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng
+  gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo"] [--hoi "câu hỏi"] [--goc <GOC>]
+                                Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng;
+                                cache theo nội dung ảnh + câu hỏi ở _data\\_gemini_cache (có --goc) hoặc _gemini_cache cạnh ảnh
   gemini <a.png> [b.png …] --cum <Cụm đọc> --goc <GOC>
                                 lưu số Gemini theo cụm -> _gemini_so\\<cụm>.json; số Claude lấy từ QUAN_SAT (phải ghi trước)
   neo <GOC>                     số tờ trong nhãn link, mã spec, mã VL + kích thước BV có trên trang được link không -> _neo.json (chỉ XEM)
@@ -2784,14 +2786,14 @@ def write_reg(wb, sheet, rows, p, fidx, snap_reg):
     return ws
 
 
-AN_DU_LIEU = ("SCOPE", "DWG", "KHU", "AREA", "VL_XUATHIEN", "QUAN_SAT", "BOQ_MAP", "DAY_TUONG", "SPEC", "PAGES")  # kho dữ liệu: ẩn, không dựng link; JSON vẫn giữ đủ link, các sheet hiện mở được file và trang
-SO_DOC_SAU = ("QUAN_SAT", "BOQ_MAP", "DAY_TUONG", "SPEC", "PAGES", "ISSUES", "RFI_LOG", "ASK_USER")  # chỉ có sheet khi đã đọc sâu; dự án chưa đọc không thêm sheet trống
+AN_DU_LIEU = ("SCOPE", "DWG", "KHU", "AREA", "VL_XUATHIEN", "QUAN_SAT", "TRANG_QS", "BOQ_MAP", "DAY_TUONG", "SPEC", "PAGES")  # kho dữ liệu: ẩn, không dựng link; JSON vẫn giữ đủ link, các sheet hiện mở được file và trang
+SO_DOC_SAU = ("QUAN_SAT", "TRANG_QS", "BOQ_MAP", "DAY_TUONG", "SPEC", "PAGES", "ISSUES", "RFI_LOG", "ASK_USER")  # chỉ có sheet khi đã đọc sâu; dự án chưa đọc không thêm sheet trống
 AN_CHAY_CODE = ("_LINKS", "_CODE")
 AN_KHI_TRONG = ("CAU_TAO", "PHAN_VIEC")
 BO_COT_XLSX = {"VL_XUATHIEN": ("Khóa", "Dòng BOQ", "Chữ gốc")}  # chỉ bỏ ở sheet cho nhẹ file; JSON vẫn có
 MUC_SHEET_AN = {"SCOPE": "Kho dữ liệu dòng BOQ; sửa Trạng thái, Nội dung cuối ở đây", "DWG": "Sổ số bản vẽ, bản hiệu lực", "KHU": "Khu → mã phòng",
                 "AREA": "Tiền tố mã → tập phòng; sửa Mã phòng ở đây", "VL_XUATHIEN": "Mã vật liệu xuất hiện ở đâu",
-                "QUAN_SAT": "Đọc sâu: kích thước, cấu tạo từng cụm, có nguồn và Gemini kiểm chéo", "BOQ_MAP": "Đọc sâu: KL BOQ và KL theo bản vẽ từng khu",
+                "QUAN_SAT": "Đọc sâu: kích thước, cấu tạo từng cụm, có nguồn và Gemini kiểm chéo", "TRANG_QS": "Đọc sâu lượt 0: quan sát theo trang dùng chung nhiều cụm", "BOQ_MAP": "Đọc sâu: KL BOQ và KL theo bản vẽ từng khu",
                 "DAY_TUONG": "Đọc sâu: dày tường từng vị trí cửa", "SPEC": "Đọc sâu: mục spec ảnh hưởng giá, cấu tạo", "PAGES": "Đọc sâu: trang đã mở, đọc bằng gì",
                 "CAU_TAO": "Mẫu cấu tạo dòng nhiều bên; hiện khi đã có mẫu", "PHAN_VIEC": "Phần việc theo bên; hiện khi đã có mẫu cấu tạo",
                 "_LINKS": "Đích link cho add-in SRC_LINKS", "_CODE": "Danh sách droplist, nghĩa Code ID"}
@@ -3651,8 +3653,12 @@ def cmd_doc_file(c, r):
     if c == "chu":
         print(doc_file.chu(r[0], r[1], opt(r, "--clip")))
     elif c == "anh":
-        w, h = doc_file.anh(r[0], r[1], r[2], opt(r, "--dpi", 150), opt(r, "--clip"))
+        clip = opt(r, "--clip")
+        dung, xin = doc_file.dpi_gioi_han(r[0], r[1], opt(r, "--dpi", 150), clip)
+        w, h = doc_file.anh(r[0], r[1], r[2], dung, clip)
         print(r[2], w, "x", h)
+        if dung < xin:
+            print(f"(giới hạn ảnh: dpi {xin} → {dung}; cần rõ hơn thì --clip vùng nhỏ hơn, không tăng dpi)")
     elif c == "mail":
         print(doc_file.mail(r[0]))
     else:

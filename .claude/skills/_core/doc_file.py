@@ -6,11 +6,23 @@ Mỗi hàm trả chữ để người gọi in; không giữ file mở sau khi t
   chu(pdf, trang, clip)            lớp chữ của 1 trang
   so(pdf, trang, clip)             các số trong lớp chữ kèm toạ độ
   anh(pdf, trang, png, dpi, clip)  xuất ảnh trang hoặc vùng -> (rộng, cao)
+  dpi_gioi_han(pdf, trang, dpi, clip) -> (dpi dùng, dpi xin): cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP và ≤ 1568 px
   mail(msg)                        tiêu đề, người gửi/nhận, đính kèm, nội dung file .msg
   xem(xlsx, sheet, vung)           giá trị ô; không nêu sheet thì liệt kê sheet
 clip = "x0,y0,x1,y1" theo tỉ lệ 0..1 của trang.
 """
 import os
+
+
+def dai(path):
+    r"""Đường dẫn dùng được khi dài ≥ 260 ký tự trên Windows (thư mục hồ sơ lồng sâu): thêm tiền tố \\?\.
+    Máy chưa bật LongPathsEnabled thì pymupdf/open báo "no such file" dù file có thật."""
+    if os.name != "nt" or not path:
+        return path
+    a = os.path.abspath(path)
+    if len(a) < 240 or a.startswith("\\\\"):
+        return path
+    return "\\\\?\\" + a
 
 
 def _vung(page, clip):
@@ -24,7 +36,7 @@ def _vung(page, clip):
 
 def chu(pdf, trang, clip=None):
     import pymupdf
-    with pymupdf.open(pdf) as d:
+    with pymupdf.open(dai(pdf)) as d:
         p = d[int(trang) - 1]
         return p.get_text(clip=_vung(p, clip), sort=True)
 
@@ -33,16 +45,39 @@ def so(pdf, trang, clip=None):
     """Các số trong lớp chữ kèm toạ độ tỉ lệ (đọc kích thước, chỉ khi trang có lớp chữ)."""
     import re
     import pymupdf
-    with pymupdf.open(pdf) as d:
+    with pymupdf.open(dai(pdf)) as d:
         p = d[int(trang) - 1]
         W, H = p.rect.width, p.rect.height
         return "\n".join(f"{w[4]}\t x={w[0] / W:.3f} y={w[1] / H:.3f}" for w in p.get_text("words", clip=_vung(p, clip), sort=True)
                          if re.fullmatch(r"[\d.,x×/+\-]+", w[4]) and re.search(r"\d", w[4]))
 
 
+TRANG_CANH = 1000      # cả trang: cạnh dài tối đa (px) — đủ nhận tờ, khung tên, vị trí chi tiết
+CROP_PX = 1_150_000    # vùng cắt: tổng pixel tối đa ≈ mức Claude tự thu nhỏ ảnh; to hơn chỉ tốn token
+CROP_CANH = 1568       # vùng cắt: cạnh dài tối đa (px)
+
+
+def dpi_gioi_han(pdf, trang, dpi=150, clip=None):
+    """dpi thật dùng cho anh: giữ dpi xin nếu ảnh không vượt ngưỡng, không thì hạ xuống (bội số 5, để cùng vùng ra cùng ảnh).
+    -> (dpi dùng, dpi xin). Muốn rõ hơn thì cắt vùng nhỏ hơn, không tăng dpi."""
+    import pymupdf
+    with pymupdf.open(dai(pdf)) as d:
+        p = d[int(trang) - 1]
+        r = _vung(p, clip) or p.rect
+    w, h = abs(r.width) / 72, abs(r.height) / 72  # inch
+    xin = int(dpi)
+    if clip:
+        tran = min((CROP_PX / (w * h)) ** 0.5 if w * h else xin, CROP_CANH / max(w, h, 1e-9))
+    else:
+        tran = TRANG_CANH / max(w, h, 1e-9)
+    if xin <= tran:
+        return xin, xin
+    return max(5, int(tran // 5 * 5)), xin
+
+
 def anh(pdf, trang, png, dpi=150, clip=None):
     import pymupdf
-    with pymupdf.open(pdf) as d:
+    with pymupdf.open(dai(pdf)) as d:
         p = d[int(trang) - 1]
         pix = p.get_pixmap(dpi=int(dpi), clip=_vung(p, clip))
     os.makedirs(os.path.dirname(os.path.abspath(png)), exist_ok=True)

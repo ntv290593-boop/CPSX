@@ -2745,7 +2745,7 @@ def agy_gia(tmp, ten, dong):
 def png_gia(tmp, ten):
     f = os.path.join(tmp, ten + ".png")
     with open(f, "wb") as fh:
-        fh.write(b"x")
+        fh.write(ten.encode("utf-8"))  # mỗi ảnh 1 nội dung: cache Gemini theo nội dung, cùng byte = cùng ảnh
     return f
 
 
@@ -2872,6 +2872,22 @@ def gd7_gemini_doc_lap_va_tin_cay(tmp):
         out = td_ok("gemini", png_gia(tmp, "c1"), "--cum", k, "--goc", goc)
         assert "khớp: 450, 900, 2000" in out, out[-300:]
         os.environ["TD_AGY"] = agy_gia(tmp, "agy2", '["900","450"]')
+        # cache theo nội dung: cùng byte ảnh c1 ở đường dẫn khác (agent khác) -> không gọi agy lại
+        os.makedirs(os.path.join(tmp, "agent_khac"), exist_ok=True)
+        ban_sao = os.path.join(tmp, "agent_khac", "c1_copy.png")
+        shutil.copy(png_gia(tmp, "c1"), ban_sao)
+        out = td_ok("gemini", ban_sao, "--goc", goc)
+        assert '"2000"' in out, "ảnh cùng nội dung phải lấy cache, không gọi agy2: " + out[-300:]
+        assert os.listdir(os.path.join(data, "_gemini_cache")), "cache phải nằm ở _data\\_gemini_cache"
+        # chế độ hỏi (cùng cơ chế với --quansat; agy giả .bat không nhận dấu | trong câu quansat): lần sau vẫn lấy cache, đổi câu thì gọi lại
+        os.environ["TD_AGY"] = agy_gia(tmp, "agy_qs", "YES 2 drawers")
+        q = png_gia(tmp, "q1")
+        assert "YES" in td_ok("gemini", q, "--hoi", "Count drawers A", "--goc", goc)
+        os.environ["TD_AGY"] = agy_gia(tmp, "agy_loi", "")
+        assert "YES" in td_ok("gemini", q, "--hoi", "Count drawers A", "--goc", goc), "cùng ảnh + cùng câu hỏi phải lấy cache"
+        assert "LỖI" in td_ok("gemini", q, "--hoi", "Count drawers B", "--goc", goc), "đổi câu hỏi phải gọi lại agy"
+        assert "LỖI" in td_ok("gemini", q, "--hoi", "Count drawers B", "--goc", goc), "trả lời lỗi không được lưu cache"
+        os.environ["TD_AGY"] = agy_gia(tmp, "agy2", '["900","450"]')
         out = td_ok("gemini", png_gia(tmp, "c2"), "--cum", ke, "--goc", goc)
         assert "chỉ Claude: 2000" in out, out[-300:]
         bm = doc_json(goc, "BOQ_MAP.docsau-tool.json")["rows"]
@@ -2898,6 +2914,108 @@ def gd7_gemini_doc_lap_va_tin_cay(tmp):
         assert ct["muc"][k] == "TB" and any("LỖI" in x for x in ct["ly_do"][k]), ct["ly_do"][k]
     finally:
         os.environ.pop("TD_AGY", None)
+
+
+@kiem(7, "mau")
+def gd7_manifest_trang_va_du_to(tmp):
+    goc, data = du_an_doc_sau(tmp)
+    td_ok("docsau", goc)
+    k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
+    chung = ["A-501", "F0001", 5]
+    nhieu = [[f"A-{100 + i}", "F0001", 10 + i] for i in range(1, 9)]  # 8 tờ: trước đây _docsau.txt chỉ in 6
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
+        {"Khóa": k, "Bản vẽ hiệu lực": nhieu + [chung]}, {"Khóa": ke, "Bản vẽ hiệu lực": [chung]}, {"Khóa": ghe, "Bản vẽ hiệu lực": [chung, ["A-600", "F0001", 6]]}]})
+    out = td_ok("docsau", goc)
+    m = doc_json(goc, "_doc_trang.json")
+    t = m["trang"]["F0001|5"]
+    assert t["so_cum"] == 3 and set(t["cum"]) == {k, ke, ghe} and t["to"] == "A-501", t
+    assert list(m["trang"])[0] == "F0001|5", "trang nhiều cụm nhất đứng đầu"
+    assert m["tong"]["chung"] == 1 and m["tong"]["luot_chung"] == 3 and m["tong"]["luot"] == 9 + 1 + 2, m["tong"]
+    assert "1 trang dùng chung ≥ 3 cụm" in out, out[-400:]
+    with open(os.path.join(data, "_docsau.txt"), encoding="utf-8") as fh:
+        dong = [x for x in fh if x.startswith(k + " ")][0]
+    assert "A-108" in dong and "A-107" in dong, "phải in đủ mọi tờ của cụm: " + dong
+
+
+@kiem(7, "mau")
+def gd7_luot0_trang_chung_va_luot1_theo_bo_to(tmp):
+    goc, data = du_an_doc_sau(tmp)
+    td_ok("docsau", goc)
+    k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
+    chung, rieng = ["A-501", "F0001", 5], ["A-700", "F0001", 7]
+    # 3 cụm cùng trang 5 → lượt 0; k và ghe chung trang riêng 7 → cùng nhóm lượt 1
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
+        {"Khóa": k, "Bản vẽ hiệu lực": [chung, rieng]}, {"Khóa": ke, "Bản vẽ hiệu lực": [chung]}, {"Khóa": ghe, "Bản vẽ hiệu lực": [chung, rieng]}]})
+    out = td_ok("docsau", goc, "--nhom", "1")
+    ds = doc_json(goc, "_docsau.json")
+    assert ds["luot0"]["nhom"] == {"1": ["F0001|5"]}, ds["luot0"]
+    assert "1" not in ds["so_nhom"] and min(map(int, ds["so_nhom"])) == 2, "lượt 1 đánh số sau lượt 0"
+    nhom_k = [n for n, cs in ds["so_nhom"].items() if k in cs][0]
+    assert ghe in ds["so_nhom"][nhom_k] or len(ds["so_nhom"][nhom_k]) == 1, ds["so_nhom"]
+    assert "lượt 0: 1 nhóm" in out, out[-500:]
+    with open(os.path.join(data, "_docsau.txt"), encoding="utf-8") as fh:
+        txt = fh.read()
+    assert "== Lượt 0 · Nhóm 1" in txt and "TRANG F0001|5" in txt and "TRANG_QS.docsau-1.json" in txt, txt[:600]
+    dk = [x for x in txt.splitlines() if x.startswith(k + " ")][0]
+    assert "Lượt 0 đã đọc: F0001|5" in dk and "A-700" in dk and "A-501" not in dk, dk
+    dke = [x for x in txt.splitlines() if x.startswith(ke + " ")][0]
+    assert "(chỉ có trang lượt 0)" in dke, dke
+    # nhóm ≤ 2 cụm: k và ghe chung trang riêng phải chung nhóm
+    td_ok("docsau", goc, "--nhom", "2")
+    ds = doc_json(goc, "_docsau.json")
+    assert any({k, ghe} <= set(cs) for cs in ds["so_nhom"].values()), ds["so_nhom"]
+    # check: trang lượt 0 chưa đọc là LỖI; có TRANG_QS thì hết; HÌNH không tờ là LỖI
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "1 trang lượt 0 chưa có quan sát" in out, out[-800:]
+    ghi(os.path.join(data, "TRANG_QS.docsau-1.json"), {"rows": [
+        {"Khóa trang": "F0001|5", "Chi tiết": "3", "Món": "Tu 12", "Cụm đọc": k, "Trường": "Kích thước BV", "Giá trị": "900×450×2000; 450+450=1000",
+         "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Crop": "5 --clip 0,0,0.5,0.5 --dpi 150"}]})
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "trang lượt 0 chưa có quan sát" not in out, out[-800:]
+    assert "TRANG_QS F0001|5 · Tu 12 · Kích thước BV: nguồn HÌNH mà không ghi tờ" in out and "chuỗi cộng sai" in out, out[-800:]
+    # tắt lượt 0
+    td_ok("docsau", goc, "--luot0", "0")
+    ds = doc_json(goc, "_docsau.json")
+    assert not ds["luot0"]["nhom"] and min(map(int, ds["so_nhom"])) == 1, ds
+
+
+@kiem(7, "mau")
+def gd7_anh_gioi_han_pixel(tmp):
+    import pymupdf
+    pdf = os.path.join(tmp, "a3.pdf")
+    with pymupdf.open() as doc:
+        doc.new_page(width=1191, height=842)  # A3 ngang
+        doc.save(pdf)
+    png = os.path.join(tmp, "p.png")
+    out = td_ok("anh", pdf, "1", png, "--dpi", "150")
+    w, h = pymupdf.Pixmap(png).width, pymupdf.Pixmap(png).height
+    assert max(w, h) <= 1000 and "dpi 150 →" in out, (w, h, out)
+    out = td_ok("anh", pdf, "1", png, "--dpi", "400", "--clip", "0,0,0.5,0.5")
+    w, h = pymupdf.Pixmap(png).width, pymupdf.Pixmap(png).height
+    assert w * h <= 1_150_000 and max(w, h) <= 1568 and "dpi 400 →" in out, (w, h, out)
+    out = td_ok("anh", pdf, "1", png, "--dpi", "200", "--clip", "0.4,0.4,0.5,0.5")  # vùng nhỏ: giữ dpi xin
+    assert "giới hạn" not in out and abs(pymupdf.Pixmap(png).width - 1191 * 0.1 * 200 / 72) <= 2, out
+    out = td_ok("anh", pdf, "1", png, "--dpi", "50")  # dưới ngưỡng: không đổi (giống pd.py)
+    assert "giới hạn" not in out, out
+
+
+@kiem(7, "mau")
+def gd7_anh_duong_dan_dai(tmp):
+    """Hồ sơ lồng sâu: đường dẫn PDF > 260 ký tự (GBIA 15/11 báo FileNotFoundError) vẫn đọc được."""
+    import pymupdf
+    if os.name != "nt":
+        return
+    thu_muc = os.path.join(os.path.abspath(tmp), *(["Thư mục hồ sơ lồng sâu tiếng Việt"] * 8))
+    pdf = os.path.join(thu_muc, "ban ve.pdf")
+    assert len(pdf) > 260, len(pdf)
+    os.makedirs("\\\\?\\" + thu_muc)
+    with pymupdf.open() as doc:
+        doc.new_page(width=595, height=842).insert_text((72, 72), "FUR-4251 900 450")
+        doc.save("\\\\?\\" + pdf)
+    png = os.path.join(tmp, "dai.png")
+    td_ok("anh", pdf, "1", png, "--dpi", "50")
+    assert os.path.exists(png)
+    assert "FUR-4251" in td_ok("chu", pdf, "1")
 
 
 @kiem(7, "mau")

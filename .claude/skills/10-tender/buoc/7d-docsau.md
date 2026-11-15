@@ -1,11 +1,21 @@
 # Bước 7d — docsau: đọc bản vẽ PDF theo cụm (bước dễ sai nhất — làm chậm, có bằng chứng)
 
 **Ghi (file `*.docsau-<nhóm>.json`):** `QUAN_SAT`, `SCOPE` (`Bản vẽ đối chứng`, `Kích thước BV`, `Kích thước BoQ`, `Phạm vi nhà máy`), `BOQ_MAP` (`KL theo BV`, `Kích thước BV`, `Tờ đếm KL`, `Tờ chi tiết`), `DAY_TUONG` (chỉ cửa), `PAGES` (trang đã mở), `ISSUES` (ID `V<nhóm>-01`…).
-**Chỉ làm các cụm được giao** (khối `Nhóm <n>` trong `_data\_docsau.txt`). Không tính giá. Không sửa `Bản vẽ hiệu lực`, `Mã VL`: thấy sai thì ghi issue.
+**Chỉ làm phần được giao** (khối `Lượt 0 · Nhóm <n>` hoặc `Nhóm <n>` trong `_data\_docsau.txt`). Không tính giá. Không sửa `Bản vẽ hiệu lực`, `Mã VL`: thấy sai thì ghi issue.
 
 Cụm = các dòng BOQ cùng mô tả, mã VL, mã FF&E và bộ tờ. Đọc 1 lần, khóa = `Cụm đọc` = `Khóa` của dòng đầu tiên. `SCOPE` ghi ở dòng đại diện, dòng cùng cụm tự nhận. `BOQ_MAP` thì ghi từng khu của từng dòng, vì khối lượng khác nhau: xem bằng `loc <GOC> BOQ_MAP "Khóa=<khóa>"`.
 
 **Toàn gói:** cụm nào cũng đọc, kể cả sơn, thạch cao, sàn, MEP. Trường không áp dụng cho loại đó (sơn không có `Có cánh`) thì bỏ, không ghi `KHÔNG CÓ` cho có. Tối thiểu mọi cụm: `Kích thước BV` hoặc phạm vi/diện tích thể hiện trên tờ nếu có, `Mã hoàn thiện trên BV`, `Khu`, `Bộ tờ đã đọc`, `Tờ chưa đọc`, `Kiểm chéo Gemini`.
+
+## Hai lượt
+**Lượt 0 — trang dùng chung** (khối `Lượt 0 · Nhóm <n>`: các `TRANG <FID>|<trang>` và danh sách món cần tìm). Trang này có ≥ 3 cụm dùng nên đọc **1 lần cho mọi cụm**, trước lượt 1.
+- Mỗi trang: ảnh cả trang 1 lần → phóng từng chi tiết có món trong danh sách. Ghi `TRANG_QS.docsau-<n>.json`: 1 dòng = 1 trường của 1 món, `Khóa trang`, `Chi tiết` (số chi tiết/hình), `Món` (nhãn/tên trên hình), `Cụm đọc` (các cụm khớp món, cách `; `; chưa chắc thì để trống), `Trường`, `Giá trị`, `Trạng thái`, `Tờ · Chi tiết`, `Nguồn` HÌNH/TEXT, `Crop` (tham số `anh` đã dùng: `<trang> --clip … --dpi …`). Trường như mục "Làm" bước 3–4, kể cả kiểm chuỗi kích thước.
+- Gemini: chạy `gemini <crop> --goc <GOC>` (chế độ số, không `--cum`) và `--quansat "<Món>" --goc <GOC>` trên crop đã dùng, để cache sẵn cho lượt 1. Lệch thì ghi cả 2 dòng (`HÌNH`, `GEMINI`) `MÂU THUẪN`.
+- Ghi `PAGES.docsau-<n>.json` cho mọi trang đã mở. Không ghi QUAN_SAT, SCOPE, BOQ_MAP (lượt 1 làm). Trang không có món nào trong danh sách: 1 dòng `Món = (không có)`, `Trạng thái = KHÔNG THẤY`, lý do ở `Giá trị`.
+
+**Lượt 1 — theo cụm** (khối `Nhóm <n>`). `Tờ:` chỉ còn tờ riêng; `Lượt 0 đã đọc:` là các trang đã có quan sát.
+- Trang lượt 0: **không mở lại ảnh**, đọc `loc <GOC> TRANG_QS "Khóa trang=<FID>|<trang>"` (cả trang, vì `Cụm đọc` có thể trống), chép giá trị đúng món vào QUAN_SAT của cụm với cùng `Tờ · Chi tiết`, `Nguồn`. Chỉ mở lại khi TRANG_QS thiếu đúng trường cụm cần, hoặc món không rõ thuộc cụm nào; mở thì cắt lại đúng `Crop` để trúng cache Gemini.
+- `gemini --cum <cụm> --goc <GOC>` vẫn chạy cho mọi crop dùng làm bằng chứng của cụm (kể cả crop lượt 0: cắt lại đúng `Crop` rồi đưa thẳng cho `gemini`, **không mở PNG bằng Read**): trúng cache, không gọi agy, nhưng ghi `_gemini_so\<cụm>.json` cho bước 7e.
 
 ## Nguyên tắc
 1. **Nhìn hình trước, đọc mô tả BOQ sau.** Điền quan sát từ hình xong mới so với `Mô tả BOQ`, để không "thấy điều mình chờ".
@@ -22,19 +32,19 @@ Cụm = các dòng BOQ cùng mô tả, mã VL, mã FF&E và bộ tờ. Đọc 1 
 | Trang ứng viên của dòng | `ungvien <GOC> --khoa "<Khóa>"` |
 | Giải nén file trong zip | `zip <GOC> <FID>` |
 | Xem trang (ảnh) | `anh "<pdf>" <trang> "<scratchpad>\p13.png" --dpi 100` rồi mở PNG bằng Read |
-| Phóng một vùng | `anh … --dpi 220 --clip 0.2,0.1,0.6,0.5` (tỉ lệ 0–1 theo chiều nhìn) |
+| Phóng một vùng | `anh … --dpi 220 --clip 0.2,0.1,0.6,0.5` (tỉ lệ 0–1 theo chiều nhìn). Tool tự hạ dpi: cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP. In `(giới hạn ảnh …)` = vùng quá to so với dpi xin: cắt vùng nhỏ hơn, không xin dpi cao hơn |
 | Chữ trong vùng | `chu "<pdf>" <trang> --clip …` |
 | Số kích thước + vị trí | `so "<pdf>" <trang> --clip …` (chỉ khi trang có lớp chữ) |
 | Gemini đọc dãy số của 1 cụm | `gemini "<crop.png>" … --cum "<Cụm đọc>" --goc <GOC>` (lưu `_gemini_so\<cụm>.json`, in khớp / chỉ Claude; số Claude lấy từ QUAN_SAT) |
-| Gemini quan sát đủ bộ trường | `gemini "<crop.png>" --quansat "Tủ lavabo dưới chậu LA1"` |
-| Gemini hỏi riêng | `gemini "<ảnh.png>" --hoi "How many door leaves does the cabinet have?"` |
+| Gemini quan sát đủ bộ trường | `gemini "<crop.png>" --quansat "Tủ lavabo dưới chậu LA1" --goc <GOC>` |
+| Gemini hỏi riêng | `gemini "<ảnh.png>" --hoi "How many door leaves does the cabinet have?" --goc <GOC>` |
 
 Trang không có lớp chữ hoặc số vẽ bằng nét → đọc bằng hình, phóng to từng vùng, rồi kiểm chuỗi kích thước.
 
 ## Gemini = người đọc thứ hai (bắt buộc với mọi crop dùng làm bằng chứng)
 Gemini nhìn bản vẽ tốt: nhận đúng cấu kiện, nhãn, đợt/kệ, phần ngoài phạm vi, dãy số in trên hình. Nhưng đã thấy nó **gán nhầm số vào chiều** và **tự trừ ra số không in**; đếm số lượng dài cũng hay sót. Vì vậy:
 1. **Độc lập:** Claude đọc crop và ghi giá trị của mình vào `QUAN_SAT.docsau-<nhóm>.json` **trước** (`--cum` dừng nếu cụm chưa có `Kích thước BV` dạng R×S×C), rồi mới chạy Gemini trên **đúng các crop đó**. Không đưa số hay nhận xét của Claude vào câu hỏi cho Gemini.
-2. **Mỗi cụm:** chạy `--quansat` trên crop mặt đứng/chi tiết chính, và chế độ số (`--cum`) trên mọi crop có dãy kích thước; chạy lại khi thêm crop thì kết quả được cộng dồn. Nhiều crop thì truyền một lần. Crop dùng chung nhiều cụm: chạy mỗi cụm một lần, không tốn thêm lượt vì kết quả lưu cạnh ảnh.
+2. **Mỗi cụm:** chạy `--quansat` trên crop mặt đứng/chi tiết chính, và chế độ số (`--cum`) trên mọi crop có dãy kích thước; chạy lại khi thêm crop thì kết quả được cộng dồn. Nhiều crop thì truyền một lần. Luôn kèm `--goc <GOC>`: kết quả Gemini lưu ở `_data\_gemini_cache` theo **nội dung ảnh + câu hỏi**, dùng chung mọi nhóm. Crop dùng chung nhiều cụm: vẫn chạy `--cum` cho từng cụm (để ghi `_gemini_so\<cụm>.json`), lần sau trúng cache, không gọi agy lại. Chỉ trúng khi ảnh giống hệt byte (cùng trang, cùng `--clip`, cùng dpi): agent khác muốn dùng lại thì truyền đúng file PNG đã cắt, hoặc cắt lại đúng tham số đó. `--quansat` cùng món + cùng ảnh cũng dùng lại; đổi tên món là câu hỏi khác, gọi lại.
 3. **So từng trường:** khớp → giữ dòng của Claude. Lệch → phóng to đúng chỗ đó đọc lại; vẫn lệch → giữ 2 dòng (Nguồn `HÌNH` và `GEMINI`), `MÂU THUẪN`, cộng 1 issue. Gemini thấy món mà Claude ghi `KHÔNG THẤY` → đọc lại theo `where` Gemini chỉ.
 4. **Không nhận** số Gemini tự tính ra (không in trên hình), và không dùng Gemini làm nguồn duy nhất cho kích thước hay số lượng.
 5. Mỗi cụm 1 dòng: `Trường = Kiểm chéo Gemini`, `Nguồn = GEMINI`, `Giá trị` = `"khớp: <các trường>; lệch: <các trường hoặc không>; crop: <tờ/chi tiết>"`, cho **các trường không phải số**. Phần số do tool so (bước 7e tự sinh `Kiểm chéo Gemini số`), bạn không ghi. Tool chỉ so theo tập số, nên việc gán đúng chiều vẫn phải tự kiểm ở mục 3.
@@ -43,7 +53,7 @@ Gemini nhìn bản vẽ tốt: nhận đúng cấu kiện, nhãn, đợt/kệ, p
 ## Tiết kiệm token — lọc trước khi mở ảnh
 1. **PDF trước, CAD sau cùng.** Chỉ đụng `.dwg` khi cụm không có tờ nào trong PDF; ghi `Tờ chưa đọc` nêu rõ "chỉ có CAD".
 2. **Bắt đầu từ `Bản vẽ hiệu lực`** bước 6 đã gán. Chỉ khi trống hoặc sai tờ mới `ungvien`, `tim` thêm. Không mở cả file / cả bộ.
-3. **Ảnh từ rẻ tới đắt:** 100 dpi để xác nhận tờ → phóng vùng chi tiết (150–220 dpi, `--clip`) chỉ khi cần số. Trang có lớp chữ thì `chu`/`so` trước, ảnh sau.
+3. **Ảnh từ rẻ tới đắt:** cả trang (tool giữ ≤ 1000 px) để xác nhận tờ, vị trí chi tiết → phóng vùng chi tiết (150–220 dpi, `--clip` đúng khung chi tiết) chỉ khi cần số. Mỗi ảnh nằm lại trong ngữ cảnh tới hết agent và bị tính lại ở mọi lượt sau: ít ảnh, vùng vừa đủ. Trang có lớp chữ thì `chu`/`so` trước, ảnh sau.
 4. Trang đã đọc ghi vào `PAGES` — lần chạy lại dùng danh sách này, không đọc lại.
 
 ## Làm, cho từng cụm

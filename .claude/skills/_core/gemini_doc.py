@@ -2,11 +2,15 @@
 r"""gemini_doc.py — Gemini (qua agy) đọc độc lập ảnh crop bản vẽ: người đọc thứ 2.
 Chép từ 01-scan pd.py (đóng băng nên giữ bản riêng). Không biết đường dẫn dự án, form, bước.
 
-  doc_anh(pngs, hoi, vat, par)  -> [(png, chữ trả lời)]; chế độ số lưu cache <ảnh>.gemini.txt
+  doc_anh(pngs, hoi, vat, par, cache_dir) -> [(png, chữ trả lời)]
+      Cache theo NỘI DUNG: <cache_dir>\<sha1 byte PNG>_<sha1 model + câu hỏi>.txt, áp mọi chế độ (số, --quansat, --hoi).
+      Cùng vùng cắt cùng dpi ra file khác (agent khác) vẫn trúng cache; khác dpi/vùng = ảnh khác = gọi lại.
+      cache_dir mặc định: env TD_GEM_CACHE, không có thì thư mục _gemini_cache cạnh ảnh. Trả lời lỗi / không có JSON không lưu.
   gem_doc(chữ)                  -> danh sách số Gemini đọc, None nếu lỗi / không có JSON
 Env TD_AGY = đường dẫn agy thay thế (chỉ để kiểm thử).
 """
 import glob
+import hashlib
 import json
 import os
 import re
@@ -51,29 +55,63 @@ def gem_doc(txt):
         return None
 
 
-def doc_anh(pngs, hoi=None, vat=None, par=4):
-    """Đọc song song. vat = tên món (đủ bộ trường quan sát), hoi = câu hỏi riêng, không có cả hai = liệt kê số kích thước."""
+def _hash(b):
+    return hashlib.sha1(b).hexdigest()[:20]
+
+
+def _dang_luu(txt, che_do):
+    """Trả lời đáng lưu cache: không lỗi; chế độ số phải có mảng JSON, quan sát phải có object JSON."""
+    if not txt or txt.startswith("LỖI"):
+        return False
+    if che_do == "so":
+        return gem_doc(txt) is not None
+    if che_do == "qs":
+        return "{" in txt and "}" in txt
+    return True
+
+
+def cau_hoi(hoi=None, vat=None):
+    """-> (câu gửi Gemini, chế độ so|qs|hoi)."""
     if vat:
-        hoi = GEM_QS.format(vat=vat, fields=json.dumps(GEM_TRUONG, ensure_ascii=False))
+        return GEM_QS.format(vat=vat, fields=json.dumps(GEM_TRUONG, ensure_ascii=False)), "qs"
+    if hoi:
+        return hoi + " Answer only from what is visible in the image; if not visible say NOT VISIBLE. Never guess.", "hoi"
+    return GEM_SO, "so"
+
+
+def file_cache(png, cau, cache_dir=None):
+    """Đường dẫn cache của 1 ảnh + 1 câu hỏi (theo nội dung, không theo tên file)."""
+    png = os.path.abspath(png)
+    with open(png, "rb") as fh:
+        k_png = _hash(fh.read())
+    d = cache_dir or os.environ.get("TD_GEM_CACHE") or os.path.join(os.path.dirname(png), "_gemini_cache")
+    return os.path.join(d, f"{k_png}_{_hash((GEM_MODEL + chr(10) + cau).encode('utf-8'))}.txt")
+
+
+def doc_anh(pngs, hoi=None, vat=None, par=4, cache_dir=None):
+    """Đọc song song. vat = tên món (đủ bộ trường quan sát), hoi = câu hỏi riêng, không có cả hai = liệt kê số kích thước."""
+    cau, che_do = cau_hoi(hoi, vat)
     exe = agy_exe()
 
     def run(png):
         png = os.path.abspath(png)
-        out = png + ".gemini.txt"
-        if not hoi and os.path.exists(out) and os.path.getsize(out) > 2 and os.path.getmtime(out) >= os.path.getmtime(png):
+        out = file_cache(png, cau, cache_dir)
+        if os.path.exists(out) and os.path.getsize(out) > 2:
             with open(out, encoding="utf-8") as fh:
                 return png, fh.read()
-        prompt = (f"Do NOT run shell commands; use your file-viewing tool directly on this absolute path: {png} . "
-                  + ((hoi if vat else hoi + " Answer only from what is visible in the image; if not visible say NOT VISIBLE. Never guess.") if hoi else GEM_SO))
+        prompt = f"Do NOT run shell commands; use your file-viewing tool directly on this absolute path: {png} . " + cau
         try:
             r = subprocess.run([exe, "--model", GEM_MODEL, "--print", prompt, "--print-timeout", "280s"], cwd=os.path.dirname(png),
                                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=320)
             txt = r.stdout.strip() or f"LỖI agy: {r.stderr.strip()[:200]}"
         except subprocess.TimeoutExpired:
             txt = "LỖI agy: quá 320 s"
-        if not hoi and gem_doc(txt) is not None:
-            with open(out, "w", encoding="utf-8") as fh:
+        if _dang_luu(txt, che_do):
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            tmp = f"{out}.{os.getpid()}.{abs(hash(png))}.tmp"  # agent song song: ghi tạm rồi đổi tên, không ai đọc nửa file
+            with open(tmp, "w", encoding="utf-8") as fh:
                 fh.write(txt)
+            os.replace(tmp, out)
         return png, txt
 
     with cf.ThreadPoolExecutor(par) as ex:

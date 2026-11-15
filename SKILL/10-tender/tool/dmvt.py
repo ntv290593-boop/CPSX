@@ -273,7 +273,7 @@ def luu_anh(im, thu_muc, ten):
 # ---------------------------------------------------------------- bóc
 def duong_dan_pdf(p, fidx, fid):
     r = fidx[fid]
-    return unzip(p, fid, r) if s(r.get("Trong zip")) else os.path.join(p.inp, r["Đường dẫn"])
+    return unzip(p, fid, r) if s(r.get("Trong zip")) else td.doc_file.dai(os.path.join(p.inp, r["Đường dẫn"]))
 
 
 def ngay_file(fidx, fid):

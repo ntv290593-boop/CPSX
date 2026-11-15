@@ -15,6 +15,12 @@ DOCS\scan-toi-uu\bench.py (01-scan) và `td.py ungvien --do` (10-tender) trướ
 """
 import re, os, json, hashlib, collections
 
+
+def _dai(path):
+    """Như doc_file.dai: đường dẫn ≥ 260 ký tự trên Windows."""
+    a = os.path.abspath(path) if path else path
+    return "\\\\?\\" + a if os.name == "nt" and a and len(a) >= 240 and not a.startswith("\\\\") else path
+
 RAC = re.compile(r"PERMISSION|COPYRIGHT|WWW\.|@|TƯ VẤN|CONSULTANT|ARCHITECT|DRAWN|CHECKED|APPROVED|SCALE|TỶ LỆ|TỈ LỆ|"
                  r"HẠNG MỤC|ITEM:|BY:|DIRECTOR|DESIGNER|NGÀY|DATE|REV|CHỦ ĐẦU TƯ|CLIENT|PROJECT|DỰ ÁN|SỐ BẢN VẼ|DRAWING NO|TÊN BẢN VẼ|DRAWING TITLE|SHEET|ISSUE", re.I)
 
@@ -168,7 +174,7 @@ def doc_pdf(path=None, data=None):
     data = bytes PDF (đọc thẳng từ zip, không giải nén ra đĩa)."""
     import pymupdf
     out = []
-    with (pymupdf.open(stream=data, filetype="pdf") if data is not None else pymupdf.open(path)) as d:
+    with (pymupdf.open(stream=data, filetype="pdf") if data is not None else pymupdf.open(_dai(path))) as d:
         for p in d:
             t = p.get_text()
             n = len(t.strip())

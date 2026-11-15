@@ -88,6 +88,23 @@
         "Model":           {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"]}
       }
     },
+    "TRANG_QS": {
+      "loai": "NOI",
+      "cot": {
+        "Khóa trang":      {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
+        "Chi tiết":        {"kieu": "CHU", "buoc": ["docsau", "user"]},
+        "Món":             {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau", "user"]},
+        "Trường":          {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
+        "Giá trị":         {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["docsau", "user"], "bat_buoc": "*", "ds": ["CÓ", "KHÔNG CÓ", "KHÔNG THẤY", "MÂU THUẪN"]},
+        "Tờ · Chi tiết":   {"kieu": "LINK", "buoc": ["docsau", "user"]},
+        "Nguồn":           {"kieu": "DS", "buoc": ["docsau", "user"], "bat_buoc": "*", "ds": ["HÌNH", "TEXT", "GEMINI"]},
+        "Crop":            {"kieu": "CHU", "buoc": ["docsau", "user"]},
+        "Bước":            {"kieu": "CHU", "buoc": ["*"]},
+        "Model":           {"kieu": "CHU", "buoc": ["docsau", "user"]}
+      }
+    },
     "BOQ_MAP": {
       "loai": "KHOA", "khoa": "Khóa KL",
       "cot": {
