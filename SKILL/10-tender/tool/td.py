@@ -55,9 +55,11 @@ LENH = """Lệnh:
                                 nhóm đối chiếu -> _docsau.txt, _doc_trang.json; nháp Phạm vi nhà máy, BOQ_MAP; lọc = chỉ giao lại phần đó
   ghep <GOC>                    sau nhóm trang: TRANG_QS -> QUAN_SAT/SCOPE/BOQ_MAP/DAY_TUONG (*.ghep-tool.json), độ phủ -> _ghep.json
   giao <GOC> <nhóm>             in prompt giao việc 7d cho 1 nhóm (khối việc, cột được ghi, thư mục ảnh 10_TENDER\\_png\\n<nhóm>)
-  xemcum <GOC> <cụm|khóa>       (đối chiếu) 1 lần: mô tả, dòng + KL, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT, trường bắt buộc còn thiếu, BOQ_MAP, ISSUES
-  xemtrang <GOC> <FID> <trang> [--chu]
-                                (đọc trang) 1 lần: đường dẫn PDF, khung tên, DANH SÁCH CẦN KIỂM (món + trường theo loại tờ), TRANG_QS, PAGES, chữ trang
+  xemcum <GOC> <cụm|khóa> [...] [--gon] | --nhom <n>   (đối chiếu) 1 lần, nhiều cụm liền; --gon gom TRANG_QS, ẩn QUAN_SAT ghep: mô tả, dòng + KL, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT, trường bắt buộc còn thiếu, BOQ_MAP, ISSUES
+  xemtrang <GOC> <FID> <trang> [--chu] [--loai MĐ+MC]
+  luu <GOC> <nhóm> <FID>|<trang> [--them] < JSON   nhóm trang ghi kết quả 1 trang (PAGES/TRANG_QS/ISSUES/ASK_USER), tool kiểm cột rồi ghi
+                                (đọc trang) 1 lần: đường dẫn PDF, Số BV/Rev từ sổ DWG, DANH SÁCH CẦN KIỂM (món + trường theo loại tờ;
+                                --loai = loại tờ agent tự xác định khi máy chưa rõ), TRANG_QS, PAGES, chữ trang
   gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo"] [--hoi "câu hỏi"] [--goc <GOC>]
                                 Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng;
                                 cache theo nội dung ảnh + câu hỏi ở _data\\_gemini_cache (có --goc) hoặc _gemini_cache cạnh ảnh
@@ -70,7 +72,7 @@ LENH = """Lệnh:
   do <GOC>                      tỉ lệ ô do tool ghi / tổng ô
   cot [--buoc <buoc>]           cột bước được ghi
   loc <GOC> <SHEET> [cột=gt | cột!=gt | cột~regex | cột=] ... [--cot a,b] [--max n]
-  check <GOC> [--den <buoc>]
+  check <GOC> [--den <buoc>] [--nhom <n>]   --nhom: chỉ LỖI/XEM nhắc tới trang/cụm/file của nhóm 7d đó
   area <GOC>                    AREA.area-tool.json: tiền tố mã -> tập phòng, nháp từ KHU (chỉ Bộ hồ sơ FF&E, Thảm); sửa ở sheet AREA
   xuathien <GOC>                VL_XUATHIEN.xuathien-tool.json: mã VL xuất hiện ở đâu (BOQ, spec, bản vẽ, TCQ) + khu + file + trang; build tự chạy
   dmvt <GOC> [--chi-boc] [--ra <dir>]  03_boq\\<DA>_DMVT_<yymmdd>.xlsx: bóc A:I + ảnh từ trang spec, áp Trạng thái cuối MAT, giữ sửa tay (cần Excel); --chi-boc: chỉ ra _data\\_dmvt_boc.json
@@ -2392,7 +2394,11 @@ def check_val(c, x, v, fidx):
 def cmd_check(goc, args):
     p = P(goc).need()
     den = opt(args, "--den")
+    nhom = opt(args, "--nhom")
     errs, xem, _ = run_check(p, den)
+    if nhom:
+        errs, xem, an = _docsau().loc_nhom(p, nhom, errs, xem)
+        print(f"(check --nhom {nhom}: chỉ dòng nhắc tới trang/cụm/file của nhóm; ẩn {an} dòng của nhóm khác hoặc cả dự án)")
     for x in xem[:60]:
         print("XEM ", x)
     if len(xem) > 60:
@@ -3723,7 +3729,7 @@ def main(a):
           "guilink": lambda: cmd_guilink(goc, rest),
           "docsau": lambda: _docsau().cmd_docsau(goc, rest), "neo": lambda: _docsau().cmd_neo(goc),
           "xemcum": lambda: _docsau().cmd_xemcum(goc, rest), "xemtrang": lambda: _docsau().cmd_xemtrang(goc, rest),
-          "giao": lambda: _docsau().cmd_giao(goc, rest), "ghep": lambda: _docsau().cmd_ghep(goc),
+          "giao": lambda: _docsau().cmd_giao(goc, rest), "luu": lambda: _docsau().cmd_luu(goc, rest), "ghep": lambda: _docsau().cmd_ghep(goc),
           "tincay": lambda: _docsau().cmd_tincay(goc), "do": lambda: _docsau().do(goc)}.get(c)
     if not fn:
         sys.exit(LENH)

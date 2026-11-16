@@ -52,4 +52,21 @@ File: `tool/docsau.py` (docsau, ghep, gemini --trang, xemtrang, xemcum, giao, ki
 ## 5. Còn lại / chờ user
 1. User duyệt `form\PROFILE.json` (trường BB/DK từng loại, map Mã cấp 3 → profile, đơn vị đếm) — **đã duyệt 16/11**.
 2. **Chạy thật 7d GBIA theo trang** 1–2 nhóm trang + `ghep` + 1 nhóm đối chiếu, đo: token Claude, token Gemini, số ảnh cả trang, số crop (so với số đo A1–A5 của plan 14/11). Kết quả 7d cũ của GBIA (2 lượt, 19 nhóm) vẫn nguyên trong `_data`; chạy lại `docsau` sẽ đổi `_docsau.json` sang bản 3 — nên chạy trên bản sao hoặc chép `_data` trước.
+   **Đo 16/11** (bản sao GBIA ở scratchpad phiên a33a2059, đã xóa `*.docsau-<n>.json` cũ, `docsau` → 26 + 6 nhóm; chạy nhóm trang 1 (B02, 8 trang, 15 cụm) và 7 (B08, 8 trang, 10 cụm) song song, rồi `ghep`; **chưa chạy nhóm đối chiếu**):
+
+   | | Nhóm 1 | Nhóm 7 | Cộng |
+   |---|---|---|---|
+   | Lượt gọi | 41 | 57 | 98 |
+   | Ảnh mở (Read PNG) | 27 | 35 | 62 (~3,9/trang: cả trang + 2–4 crop + crop khung tên) |
+   | cache read / write / output | 4,0M / 0,30M / 63k | 6,25M / 0,17M / 50k | 10,25M / 0,46M / 0,11M |
+   | Peak ngữ cảnh | 175k | 168k | |
+   | Thời gian | 25 phút | 34 phút | |
+   | TRANG_QS / chỉ có `Cụm ứng viên` | 182 / 38 | 116 / 40 | 298 / 78 (66 sau ghep) |
+
+   - Quy theo giá (cr 0,1 · cw 1,25 · out 5): ~2,2M tương đương cho 16 trang ≈ 0,136/trang; bản 14/11 ≈ 23,2M / 188 trang ≈ 0,123/trang. **Theo trang chưa rẻ hơn**; ước cả gói 26 nhóm ≈ 28M + 6 nhóm đối chiếu (bản cũ 23,2M toàn bộ). Lợi ích ở chất lượng (độ phủ món/trang, check 0 LỖI ở file nhóm), không ở token.
+   - **`Cụm ứng viên` 26%**: do danh sách bỏ mã hoàn thiện nên các cụm cùng mô tả bị cắt giống hệt (!27/!28, !32/!33 = ốp gỗ vs ốp giấy; !35/!36 hắt đèn) → agent không phân biệt được. Hướng sửa (chờ user): khi ≥ 2 cụm trên cùng trang trùng tên sau khi làm sạch, `xemtrang`/`_docsau.txt` in thêm `Mã VL` để phân biệt.
+   - Tốn: crop khung tên mỗi trang (Rev/Số BV đã có ở DWG), 15/16 trang không có lớp chữ nên đọc hình; output JSON nhóm 1 lớn (63k).
+   - Dẫn chiếu: 14 dòng; `ghep` báo 1 ngoài bộ (!25 → FUR-2114). Các tờ chi tiết tủ FUR-1561/1571/1572/1581 đã nằm trong bộ tờ của cụm (đúng, không báo). **Lỗ hổng:** 7 dòng `Dẫn chiếu` không có `Cụm đọc` (mặt cắt tường FUR-1441/1442/1643, chỉ có hoặc không có `Cụm ứng viên`) bị `ghep` bỏ qua → tờ mặt cắt tường có thể không ai đọc. Hướng sửa: `ghep` đưa dẫn chiếu không cụm vào `_ghep.json` + XEM theo số tờ (kiểm tờ đó có thuộc bộ tờ nào không).
+   **Tiếp theo:** xem `DOCS\HANDOFF_7D-TOKEN-ANH_2026-11-16.md` (kiểm phản hồi giảm token ảnh, P0 + pilot `--trang 4`).
+   **Đã làm 16/11 (mục 2b handoff):** P0 + pilot `--trang 4` + 1 nhóm đối chiếu. Image Exposure −52% nhưng token quy giá +7%; `Cụm ứng viên` 22% → 4%; khung tên 7 → 0 crop. Đòn bẩy token tiếp theo = nền mỗi lượt, không phải cỡ nhóm.
 3. Gemini field-level (mục 2.4), so `Rev` PAGES với DWG, loại tờ cho 41 trang chưa rõ (PAGES `Loại tờ` sau lần đọc đầu sẽ lấp).

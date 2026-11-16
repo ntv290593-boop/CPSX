@@ -2976,6 +2976,105 @@ def gd7_danh_sach_can_kiem_theo_profile_va_loai_to(tmp):
 
 
 @kiem(7, "mau")
+def gd7_trang_rev_loai_va_trung_ten(tmp):
+    """HANDOFF 7D-TOKEN-ANH P0: Số BV/Rev từ nhãn + sổ DWG (regex dự án) → không crop khung tên; Tên tờ DWG chỉ dùng khi 1 số BV = 1 trang;
+    xemtrang --loai; món trùng tên in Mã VL để phân biệt; ghep giữ dẫn chiếu không cụm."""
+    goc, data = du_an_doc_sau(tmp)
+    k, ke, ke2 = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ke")[1]
+    f = os.path.join(data, "SCOPE.boq-tool.json")
+    boq = json.load(open(f, encoding="utf-8"))
+    for r in boq["rows"]:
+        if r["Khóa"] in (ke, ke2):
+            r["Mã VL"] = "WD-01" if r["Khóa"] == ke else "WP-02"
+    ghi(f, boq)
+    cfg = os.path.join(data, "_cauhinh.json")
+    c0 = json.load(open(cfg, encoding="utf-8")) if os.path.exists(cfg) else {}
+    ghi(cfg, dict(c0, dwg_regex=r"(?<![0-9])(FUR-\d{4})(?![0-9])"))
+    ghi(os.path.join(data, "DWG.user.json"), {"rows": [
+        {"Số BV": "FUR-0003", "Tên tờ": "VIP lounge – setting out plan (bộ 3 tờ)", "Ngày issue hiệu lực": "2026-11-07", "Đợt hiệu lực": "HSMT"},
+        {"Số BV": "FUR-0009", "Tên tờ": "Tủ áo BF-01 – elevation & section", "Ngày issue hiệu lực": "2026-11-07", "Đợt hiệu lực": "HSMT"}]})
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
+        {"Khóa": k, "Bản vẽ hiệu lực": [["FUR-0003 p5 BF-01 tủ FUR-1561", "F0001", 5], ["FUR-0009 p7 BF-01 FUR-1571", "F0001", 7]]},
+        {"Khóa": ke, "Bản vẽ hiệu lực": [["FUR-0003 p5 BF-01 tủ FUR-1561", "F0001", 5], ["FUR-0003 p6 FUR-1562", "F0001", 6]]},
+        {"Khóa": ke2, "Bản vẽ hiệu lực": [["FUR-0003 p5 BF-01 tủ FUR-1561", "F0001", 5]]}]})
+    out = td_ok("docsau", goc)
+    assert "có Rev từ sổ DWG: 3, có số tờ trong nhãn: 3" in out, out[-500:]
+    m = doc_json(goc, "_doc_trang.json")["trang"]
+    assert m["F0001|5"]["so_to"] == "FUR-1561" and m["F0001|5"]["rev"] == "FUR-0003 2026-11-07 (HSMT)", m["F0001|5"]
+    assert m["F0001|5"]["loai"] == [], "tên bộ (FUR-0003, 2 trang) không được quyết loại từng tờ: " + str(m["F0001|5"])
+    assert m["F0001|7"]["loai"] == ["MĐ", "MC"], "FUR-0009 chỉ 1 trang: dùng Tên tờ của sổ: " + str(m["F0001|7"])
+    out = td_ok("xemtrang", goc, "F0001", "5")
+    assert "Số BV / Rev (từ nhãn + sổ DWG — chép vào PAGES, KHÔNG crop khung tên): FUR-1561 · FUR-0003 2026-11-07 (HSMT)" in out, out
+    assert "loại tờ ? (chưa rõ — nhìn ảnh cả trang rồi chạy lại với --loai" in out, out
+    dke = [x for x in out.splitlines() if ke in x][0]
+    dke2 = [x for x in out.splitlines() if ke2 in x][0]
+    assert "(trùng tên, phân biệt: WD-01)" in dke and "(trùng tên, phân biệt: WP-02)" in dke2, out
+    assert "trùng tên" not in [x for x in out.splitlines() if k in x and "- " in x][0], "món không trùng tên thì không lộ mã"
+    out = td_ok("xemtrang", goc, "F0001", "5", "--loai", "MB")
+    assert "loại tờ MB (agent đặt --loai)" in out, out
+    assert "Có cánh" not in [x for x in out.splitlines() if k in x and "- " in x][0].split("nếu có")[0], out
+    rc, out = td("xemtrang", goc, "F0001", "5", "--loai", "XYZ")
+    assert rc != 0 and "không có trong PROFILE.json" in out, out
+    # dẫn chiếu không cụm: ghep không bỏ, báo số BV chưa trang nào đọc
+    L5 = [["FUR-1561", "F0001", 5]]
+    ghi(os.path.join(data, "TRANG_QS.docsau-1.json"), {"rows": [
+        {"Khóa trang": "F0001|5", "Món": "mặt cắt tường W1", "Trường": "Dẫn chiếu", "Giá trị": "3/FUR-1441", "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Tờ · Chi tiết": L5},
+        {"Khóa trang": "F0001|5", "Món": "kệ", "Cụm ứng viên": ke, "Trường": "Dẫn chiếu", "Giá trị": "FUR-1562", "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Tờ · Chi tiết": L5}]})
+    ghi(os.path.join(data, "PAGES.docsau-1.json"), {"rows": [{"Khóa trang": "F0001|5", "File ID": "F0001", "Trang": 5}]})
+    out = td_ok("ghep", goc)
+    assert "dẫn chiếu chưa gán cụm: 2 dòng (2 số BV chưa trang nào đọc)" in out, out
+    g = doc_json(goc, "_ghep.json")
+    x = [d for d in g["dan_chieu_khong_cum"] if d["mon"] == "kệ"][0]
+    assert x["so_bv"] == {"FUR-1562": {"cum": [ke], "da_doc": False}} and x["ung_vien"] == [ke], x
+    assert g["dan_chieu_khong_cum_chua_doc"] == ["FUR-1441", "FUR-1562"], g["dan_chieu_khong_cum_chua_doc"]
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "Dẫn chiếu chưa gán cụm tới tờ chưa trang nào đọc: FUR-1441, FUR-1562" in out, out[-900:]
+    out = td_ok("xemcum", goc, ke)
+    assert "dẫn chiếu chưa gán cụm (cụm này là ứng viên): [F0001|5] kệ → FUR-1562 | FUR-1562: CHƯA ĐỌC" in out, out
+
+
+def luu(goc, n, kt, obj, *opt):
+    r = subprocess.run([sys.executable, "-I", TD, "luu", goc, n, kt, *opt], input=json.dumps(obj, ensure_ascii=False).encode("utf-8"),
+                       capture_output=True)
+    return r.returncode, (r.stdout + r.stderr).decode("utf-8", "replace")
+
+
+@kiem(7, "mau")
+def gd7_luu_ghi_trang(tmp):
+    """luu (agent doc-trang, 16/11): kiểm như check → lỗi thì không ghi; tự điền Khóa trang + PAGES từ manifest; gửi lại thay dòng cũ của trang
+    (kể cả nhóm _chung), giữ PAGES cũ; --them nối; trang khác không bị đụng; báo món chưa có dòng."""
+    goc, data = du_an_doc_sau(tmp)
+    k, ke = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0]
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
+        {"Khóa": k, "Bản vẽ hiệu lực": [["A-501", "F0001", 5], ["A-700", "F0001", 7]]}, {"Khóa": ke, "Bản vẽ hiệu lực": [["A-501", "F0001", 5]]}]})
+    td_ok("docsau", goc)
+    L5 = [["A-501 CT3", "F0001", 5]]
+    rc, out = luu(goc, "1", "F0001|5", {"TRANG_QS": [{"Món": "Tu 12", "Cụm đọc": k, "Trường": "Kích thước BV", "Giá trị": "450+450=1000",
+                                                       "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Cột lạ": 1}]})
+    assert rc != 0 and "chưa ghi gì" in out and "cột lạ 'Cột lạ'" in out and "chuỗi cộng sai" in out and "không ghi Tờ · Chi tiết" in out, out
+    assert not os.path.exists(os.path.join(data, "TRANG_QS.docsau-1.json")), "lỗi thì không ghi gì"
+    rc, out = luu(goc, "1", "F0001|5", {"PAGES": {"Loại tờ": "MĐ", "Đã đọc bằng": "HÌNH"}, "TRANG_QS": [
+        {"_chung": {"Món": "Tu 12", "Cụm đọc": k, "Nguồn": "HÌNH", "Tờ · Chi tiết": L5},
+         "dong": [{"Trường": "Lắp đặt", "Giá trị": "liền tường", "Trạng thái": "CÓ"}, {"Trường": "Kích thước BV", "Giá trị": "900x600x2400; 450+450=900 ✓", "Trạng thái": "CÓ"}]}]})
+    assert rc == 0 and "XEM: 1 món" in out and ke in out, out
+    rc, out = luu(goc, "1", "F0001|7", {"TRANG_QS": [{"Món": "Tu 12", "Cụm đọc": k, "Trường": "Lắp đặt", "Giá trị": "x", "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Tờ · Chi tiết": L5}]})
+    assert rc == 0, out
+    pg = {r["Khóa trang"]: r for r in doc_json(goc, "PAGES.docsau-1.json")["rows"]}
+    assert pg["F0001|5"]["File ID"] == "F0001" and pg["F0001|5"]["Trang"] == 5 and pg["F0001|5"]["Loại tờ"] == "MĐ", pg
+    rc, out = luu(goc, "1", "F0001|5", {"TRANG_QS": [{"Món": "ke", "Cụm đọc": ke, "Trường": "Món trên tờ", "Giá trị": "không có trên tờ", "Trạng thái": "KHÔNG THẤY", "Nguồn": "HÌNH", "Tờ · Chi tiết": L5}]})
+    assert rc == 0 and "XEM: 1 món" in out and k in out, "gửi lại thay cả nhóm _chung cũ → tủ 12 mất dòng: " + out
+    rc, out = luu(goc, "1", "F0001|5", {"TRANG_QS": [{"Món": "Tu 12", "Cụm đọc": k, "Trường": "Kiểm chéo Gemini", "Giá trị": "khớp", "Trạng thái": "CÓ", "Nguồn": "GEMINI"}],
+                                        "ISSUES": [{"ID": "V1-01", "Nội dung": "thử"}]}, "--them")
+    assert rc == 0 and "XEM" not in out, out
+    rows = doc_json(goc, "TRANG_QS.docsau-1.json")["rows"]
+    assert len(rows) == 3 and all(r.get("Khóa trang") for r in rows), rows
+    assert [r["Khóa trang"] for r in rows].count("F0001|7") == 1, "trang khác không bị đụng"
+    pg = {r["Khóa trang"]: r for r in doc_json(goc, "PAGES.docsau-1.json")["rows"]}
+    assert pg["F0001|5"]["Loại tờ"] == "MĐ", "gửi lại không kèm PAGES thì giữ PAGES cũ: " + str(pg)
+    assert doc_json(goc, "ISSUES.docsau-1.json")["rows"][0]["ID"] == "V1-01"
+
+
+@kiem(7, "mau")
 def gd7_doc_theo_trang_ghep_va_do_phu(tmp):
     """Đọc trang → TRANG_QS → ghep (tool) → QUAN_SAT/SCOPE/BOQ_MAP; check đòi đủ trang, đủ món trên trang, đủ trường bắt buộc."""
     goc, data = du_an_doc_sau(tmp)
@@ -2994,7 +3093,9 @@ def gd7_doc_theo_trang_ghep_va_do_phu(tmp):
         txt = fh.read()
     assert "== Trang · Nhóm 1" in txt and "== Tìm tờ · Nhóm 3" in txt and "== Đối chiếu · Nhóm 4" in txt, txt[:800]
     rc, out = td("check", goc, "--den", "docsau")
-    assert "2 trang được giao chưa có TRANG_QS/PAGES" in out, out[-800:]
+    assert "Đọc trang · nhóm 1: 1/1 trang được giao chưa có TRANG_QS/PAGES" in out and "Đọc trang · nhóm 2: 1/1 trang" in out, out[-800:]
+    rc, out = td("check", goc, "--den", "docsau", "--nhom", "1")  # agent chỉ thấy lỗi nhóm mình
+    assert "check --nhom 1" in out and "nhóm 1: 1/1 trang" in out and "nhóm 2:" not in out, out[-800:]
     L5 = [["A-501 CT3", "F0001", 5]]
     ghi(os.path.join(data, "TRANG_QS.docsau-1.json"), {"rows": [
         {"_chung": {"Khóa trang": "F0001|5", "Chi tiết": "MB", "Món": "Tu 12", "Cụm đọc": k, "Nguồn": "HÌNH", "Tờ · Chi tiết": L5, "Trạng thái": "CÓ"},
@@ -3005,7 +3106,7 @@ def gd7_doc_theo_trang_ghep_va_do_phu(tmp):
         {"Khóa trang": "F0001|5", "Món": "kệ góc", "Cụm ứng viên": f"{ke}; {ke2}", "Trường": "Kệ/đợt", "Giá trị": "3 đợt", "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Tờ · Chi tiết": L5}]})
     ghi(os.path.join(data, "PAGES.docsau-1.json"), {"rows": [{"Khóa trang": "F0001|5", "File ID": "F0001", "Trang": 5, "Số BV": "A-501", "Loại tờ": "mặt bằng"}]})
     rc, out = td("check", goc, "--den", "docsau")
-    assert "1 trang được giao chưa có" in out and "chạy `ghep <GOC>`" in out, out[-800:]
+    assert "nhóm 2: 1/1 trang được giao chưa có" in out and "nhóm 1: " not in out and "chạy `ghep <GOC>`" in out, out[-800:]
     out = td_ok("ghep", goc)
     assert "chưa gán cụm (chỉ có Cụm ứng viên): 1" in out and "số BV dẫn chiếu ngoài bộ tờ: 1" in out, out
     qs = doc_json(goc, "QUAN_SAT.ghep-tool.json")["rows"]
@@ -3021,6 +3122,11 @@ def gd7_doc_theo_trang_ghep_va_do_phu(tmp):
     assert f"Đọc trang F0001|5: món được giao không có dòng nào" not in out, "ke, ke2 có Cụm ứng viên = đã ghi trên trang: " + out[-900:]
     assert "1 quan sát chỉ có Cụm ứng viên" in out and "Dẫn chiếu tới số BV ngoài bộ tờ" in out, out[-900:]
     assert re.search(re.escape(k) + r" \[TU\]: trường bắt buộc chưa có kết luận: Kích thước BV, Có cánh, Ngăn kéo, Kệ/đợt, Mã hoàn thiện trên BV", out), out[-1200:]
+    n_dc = [n for n, cs in ds["so_nhom"].items() if k in cs][0]
+    rc, out = td("check", goc, "--den", "docsau", "--nhom", n_dc)  # đối chiếu: lỗi của cụm mình + trang của cụm
+    assert re.search(re.escape(k) + r" \[TU\]: trường bắt buộc", out) and "nhóm 2: 1/1 trang" in out, out[-1200:]
+    rc, out = td("check", goc, "--den", "docsau", "--nhom", "1")
+    assert not re.search(re.escape(k) + r" \[TU\]", out) and "\n0 LỖI" in out, "nhóm trang 1 đã xong: không thấy lỗi cụm/trang khác: " + out[-800:]
     # cùng khu ở 2 trang: bằng nhau lấy 1 lần (không cộng), khác nhau = mâu thuẫn; món giao mà trang không ghi = LỖI
     L7 = [["A-700 MĐ1", "F0001", 7]]
     ghi(os.path.join(data, "TRANG_QS.docsau-2.json"), {"rows": [
@@ -3041,6 +3147,17 @@ def gd7_doc_theo_trang_ghep_va_do_phu(tmp):
     assert sc[k]["Kích thước BV"] == "900×600×2400" and sc[k]["Bản vẽ đối chứng"][0] == L7[0], sc[k]
     rc, out = td("check", goc, "--den", "docsau")
     assert not re.search(re.escape(k) + r" \[TU\]: trường bắt buộc", out), "đủ trường bắt buộc: hết LỖI hợp đồng: " + out[-900:]
+    # xemcum --gon: TRANG_QS gom theo trang/chi tiết/món/khu, ẩn QUAN_SAT do ghep chép; nhiều cụm 1 lệnh, PDF in 1 lần
+    full, gon = td_ok("xemcum", goc, k), td_ok("xemcum", goc, k, "--gon")
+    assert len(gon) < len(full) and "Trường: Lắp đặt" in full and "Trường: Lắp đặt" not in gon, gon
+    assert "* [F0001|7] CT MĐ1 · Tu 12 · crop" not in gon and "* [F0001|7] CT MĐ1 · Tu 12\n       Kích thước BV = 900×600×2400\n       Có cánh = 2 cánh" in gon, gon
+    assert "Ngăn kéo = không [KHÔNG CÓ]" in gon and "--gon ẩn " in gon and "CÒN THIẾU: không" in gon, gon
+    out = td_ok("xemcum", goc, k, ke, "--gon")
+    assert f"== CỤM {k} " in out and f"== CỤM {ke} " in out and "PDF F0001: (đã in ở cụm trên)" in out, out
+    out = td_ok("xemcum", goc, "--nhom", n_dc, "--gon")
+    assert out.count("== CỤM ") == len(ds["so_nhom"][n_dc]), out[:600]
+    rc, out = td("xemcum", goc, "--nhom", "99")
+    assert rc != 0 and "không có nhóm đối chiếu 99" in out, out
     # tincay: trường bắt buộc quyết định giá chưa có dòng nào → THAP, không phải "tốt" vì không có dòng KHÔNG THẤY
     td_ok("tincay", goc)
     ct = doc_json(goc, "_tincay.json")
@@ -3117,9 +3234,11 @@ def gd7_xem_gop_giao_va_nhom_chung(tmp):
     # giao: nhóm trang chỉ cột TRANG_QS/PAGES/ISSUES; nhóm đối chiếu không có TRANG_QS; có khối việc, thư mục ảnh, không bắt đọc JSON.md
     out = td_ok("giao", goc, "1")
     assert "ĐỌC TRANG, nhóm 1" in out and "[TRANG_QS]" in out and "[QUAN_SAT]" not in out and "== Trang · Nhóm 1" in out, out
-    assert "KHÔNG đọc JSON.md" in out and os.path.isdir(os.path.join(goc, "10_TENDER", "_png", "n1")) and "Bước [" not in out, out
+    assert "agent doc-trang" in out and "KHÔNG đọc 7d-docsau.md" in out and 'luu <GOC> 1 "<FID>|<trang>"' in out, out  # agent doc-trang: luật trong system prompt
+    assert os.path.isdir(os.path.join(goc, "10_TENDER", "_png", "n1")) and "Bước [" not in out, out
     out = td_ok("giao", goc, n1)
     assert f"ĐỐI CHIẾU (không mở ảnh, trừ chỗ thiếu), nhóm {n1}" in out and "[QUAN_SAT]" in out and "[TRANG_QS]" not in out and f"== Đối chiếu · Nhóm {n1} (" in out and k in out, out
+    assert "--gon` mỗi lần ≤ 5 cụm" in out and f"--nhom {n1}`" in out, out
     rc, out = td("giao", goc, "99")
     assert rc != 0 and "không có Nhóm 99" in out, out
     # Gemini quan sát in gọn: 1 dòng mỗi trường; không phải JSON thì in nguyên văn
