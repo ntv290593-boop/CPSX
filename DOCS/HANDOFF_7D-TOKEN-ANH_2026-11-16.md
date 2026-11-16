@@ -90,6 +90,22 @@ Sau phản biện chuyên gia (user: "ok làm đi"). Đo trên transcript pilot:
 
   - Review chất lượng: không có kết luận nào mâu thuẫn với mốc; 5 issue trùng nội dung (len chân dưới trụ gỗ, WD-02A sồi/óc chó, SPT-03, BF-01B cabinet/wardrobe, nẹp MT-01 sàn–trần); thêm 1 (phào 15×10 nổi/lõm chưa rõ). **Thiếu so với mốc:** (a) !24/!31 dải cao 150 WD-01 ở E3 có thể là bục BF-02A chứ không phải len chân (nguy cơ tính trùng); (b) !27 WP-04 BV cao 2800 vs BOQ 2,84; (c) !28 trụ WD-01 cao sàn–CH 3000 vs BOQ 2,84 (chỉ ghi ở nẹp !29); (d) ASK_USER WP-04 nhà máy có làm giấy dán không (SCOPE vẫn CHƯA RÕ). 2 issue "tờ chưa đọc" của mốc nay chỉ báo trong phần trả về — đúng thiết kế. n=1 mỗi bên, không tách được do --gon hay dao động LLM.
   - Lô 5 cụm ốp tường ra 35k ký tự → bị lưu file, agent mất 1 lượt Read → đã sửa: `xemcum` tự dừng ở `XEMCUM_MAX` = 24.000 ký tự, in lệnh gọi tiếp.
+- **Chạy lặp nhóm 6 (3 lần mỗi bên, 16/11 tối):** A = mốc (7d-docsau.md bản trả lời cũ `scratchpadd_moc.md`, không --gon/--nhom), B = --gon; mỗi lần 1 bản sao `DC_A1/A2/B1/B2` (scratchpad phiên 21a5de68), chạy song song; chấm bằng `scratchpad\cham6.py` (token từ transcript + dò 4 điểm, đã kiểm tay điểm a).
+
+| | A0 | A1 | A2 | **TB A** | B0 | B1 | B2 | **TB B** |
+|---|---|---|---|---|---|---|---|---|
+| Quy giá (M) | 0,569 | 0,513 | 0,689 | **0,590** | 0,384 | 0,456 | 0,418 | **0,419 (−29%)** |
+| Lượt | 20 | 16 | 27 | 21 | 13 | 16 | 13 | 14 |
+| Ảnh | 1 | 0 | 4 | | 1 | 1 | 0 | |
+| ISSUES | 8 | 7 | 8 | | 6 | 8 | 8 | |
+| (a) dải 150 E3 = bục BF-02A? (tính trùng !24/!31) | có | có | có | **3/3** | – | – | có | **1/3** |
+| (b) WP-04 BV 2800 vs BOQ 2,84 | có | – | – | 1/3 | – | – | – | 0/3 |
+| (c) !28 trụ gỗ sàn–CH 3000 vs 2,84 | có | có | có | 3/3 | – | có | có | 2/3 |
+| (d) ASK_USER WP-04 | có | – | – | 1/3 | – | – | – | 0/3 |
+
+  - Token: 2 khoảng không chồng nhau (B cao nhất 0,456 < A thấp nhất 0,513) → −29% là thật.
+  - Điểm chung 6/6: SPT-03 BV≠MAT, WD-02A sồi≠óc chó, len chân dưới trụ gỗ, gán khe hắt !35/!36. (b), (d) chỉ 1/6 → dao động, không do --gon.
+  - (a) 3/3 vs 1/3: dấu hiệu --gon làm yếu, n nhỏ. Đã kiểm: `--gon` KHÔNG mất dữ kiện (mô tả BOQ BF-02A L3727 H150, TRANG_QS !31 "len 150 dưới WP-04 3727" ở E3, ghi chú BOQ "E3 phần tủ/bục không tính" đều in); khác ở chỗ chế độ đủ in mỗi quan sát 2 lần (TRANG_QS + bản chép QUAN_SAT). Hướng bù (chưa làm): tool tự báo trong xemcum "cụm khác có kích thước BOQ trùng số trên cùng trang" — kiểm máy, không trông vào LLM để ý.
 - Còn lại: `effort` của doc-trang; cỡ nhóm 4/8/16 với doc-trang; đo 1 nhóm Đối chiếu với `--gon` (cả 3 việc tốn chạy Opus thật, cần user duyệt).
 
 ## 3. Việc tiếp theo (cũ — P0 + pilot đã làm, xem 2b)
