@@ -62,10 +62,10 @@
         "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau-tool"]},
         "Phạm vi nhà máy": {"kieu": "CHU", "buoc": ["docsau-tool", "docsau", "user"], "boq": "noi_bo"},
         "Kích thước BoQ":  {"kieu": "CHU", "buoc": ["docsau", "doichieu", "user"], "boq": "noi_bo"},
-        "Kích thước BV":   {"kieu": "CHU", "buoc": ["docsau", "user"], "boq": "noi_bo"},
+        "Kích thước BV":   {"kieu": "CHU", "buoc": ["docsau", "user", "ghep-tool"], "boq": "noi_bo"},
         "KL theo BV":      {"kieu": "SO",  "buoc": ["build"], "boq": "noi_bo"},
         "Lệch KL":         {"kieu": "SO",  "buoc": ["build"], "boq": "noi_bo"},
-        "Bản vẽ đối chứng":{"kieu": "LINK", "buoc": ["docsau"], "boq": "noi_bo"},
+        "Bản vẽ đối chứng":{"kieu": "LINK", "buoc": ["docsau", "ghep-tool"], "boq": "noi_bo"},
         "Spec · ML":       {"kieu": "LINK", "buoc": ["spec"], "boq": "noi_bo"},
         "Thông số riêng":  {"kieu": "CHU", "buoc": ["spec", "user"]},
         "Mã hoàn thiện":   {"kieu": "CHU", "buoc": ["tincay", "user"], "boq": "noi_bo"},
@@ -77,15 +77,15 @@
     "QUAN_SAT": {
       "loai": "NOI",
       "cot": {
-        "Cụm đọc":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*"},
-        "Thành phần":      {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "user"]},
-        "Trường":          {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*"},
-        "Giá trị":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*"},
-        "Trạng thái":      {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*", "ds": ["CÓ", "KHÔNG CÓ", "KHÔNG THẤY", "MÂU THUẪN"]},
-        "Tờ · Chi tiết":   {"kieu": "LINK", "buoc": ["spec", "docsau", "tincay", "user"]},
-        "Nguồn":           {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"], "bat_buoc": "*", "ds": ["HÌNH", "TEXT", "SPEC", "BOQ", "USER", "GEMINI", "DWG"]},
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user", "ghep-tool"], "bat_buoc": "*"},
+        "Thành phần":      {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "user", "ghep-tool"]},
+        "Trường":          {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user", "ghep-tool"], "bat_buoc": "*"},
+        "Giá trị":         {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user", "ghep-tool"], "bat_buoc": "*"},
+        "Trạng thái":      {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user", "ghep-tool"], "bat_buoc": "*", "ds": ["CÓ", "KHÔNG CÓ", "KHÔNG THẤY", "MÂU THUẪN"]},
+        "Tờ · Chi tiết":   {"kieu": "LINK", "buoc": ["spec", "docsau", "tincay", "user", "ghep-tool"]},
+        "Nguồn":           {"kieu": "DS", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user", "ghep-tool"], "bat_buoc": "*", "ds": ["HÌNH", "TEXT", "SPEC", "BOQ", "USER", "GEMINI", "DWG", "TOOL"]},
         "Bước":            {"kieu": "CHU", "buoc": ["*"]},
-        "Model":           {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user"]}
+        "Model":           {"kieu": "CHU", "buoc": ["spec", "docsau", "tincay", "tincay-tool", "user", "ghep-tool"]}
       }
     },
     "TRANG_QS": {
@@ -94,9 +94,12 @@
         "Khóa trang":      {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
         "Chi tiết":        {"kieu": "CHU", "buoc": ["docsau", "user"]},
         "Món":             {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
+        "Thành phần":      {"kieu": "CHU", "buoc": ["docsau", "user"]},
         "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau", "user"]},
+        "Cụm ứng viên":    {"kieu": "CHU", "buoc": ["docsau", "user"]},
         "Trường":          {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
         "Giá trị":         {"kieu": "CHU", "buoc": ["docsau", "user"], "bat_buoc": "*"},
+        "Khu":             {"kieu": "CHU", "buoc": ["docsau", "user"]},
         "Trạng thái":      {"kieu": "DS", "buoc": ["docsau", "user"], "bat_buoc": "*", "ds": ["CÓ", "KHÔNG CÓ", "KHÔNG THẤY", "MÂU THUẪN"]},
         "Tờ · Chi tiết":   {"kieu": "LINK", "buoc": ["docsau", "user"]},
         "Nguồn":           {"kieu": "DS", "buoc": ["docsau", "user"], "bat_buoc": "*", "ds": ["HÌNH", "TEXT", "GEMINI"]},
@@ -112,10 +115,10 @@
         "Khóa":            {"kieu": "CHU", "buoc": ["docsau-tool"]},
         "Khu":             {"kieu": "CHU", "buoc": ["docsau-tool"]},
         "KL BOQ":          {"kieu": "SO",  "buoc": ["docsau-tool"]},
-        "KL theo BV":      {"kieu": "SO",  "buoc": ["docsau", "user"]},
+        "KL theo BV":      {"kieu": "SO",  "buoc": ["docsau", "user", "ghep-tool"]},
         "Lệch":            {"kieu": "SO",  "buoc": ["build"]},
         "Kích thước BV":   {"kieu": "CHU", "buoc": ["docsau", "user"]},
-        "Tờ đếm KL":       {"kieu": "LINK", "buoc": ["docsau"]},
+        "Tờ đếm KL":       {"kieu": "LINK", "buoc": ["docsau", "ghep-tool"]},
         "Tờ chi tiết":     {"kieu": "LINK", "buoc": ["docsau"]},
         "Issue":           {"kieu": "CHU", "buoc": ["tincay-tool", "tincay"]},
         "Trạng thái":      {"kieu": "DS", "buoc": ["tincay-tool", "tincay"], "ds": ["KHỚP", "LỆCH", "CHƯA ĐỌC"]},
@@ -125,13 +128,13 @@
     "DAY_TUONG": {
       "loai": "KHOA", "khoa": "Khóa DT",
       "cot": {
-        "Khóa DT":         {"kieu": "CHU", "buoc": ["docsau"]},
-        "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau"]},
-        "Vị trí":          {"kieu": "CHU", "buoc": ["docsau"]},
-        "Loại tường":      {"kieu": "CHU", "buoc": ["docsau"]},
-        "Dày hoàn thiện (mm)": {"kieu": "CHU", "buoc": ["docsau"]},
-        "Tờ mặt bằng":     {"kieu": "LINK", "buoc": ["docsau"]},
-        "Ghi chú":         {"kieu": "CHU", "buoc": ["docsau"]}
+        "Khóa DT":         {"kieu": "CHU", "buoc": ["docsau", "ghep-tool"]},
+        "Cụm đọc":         {"kieu": "CHU", "buoc": ["docsau", "ghep-tool"]},
+        "Vị trí":          {"kieu": "CHU", "buoc": ["docsau", "ghep-tool"]},
+        "Loại tường":      {"kieu": "CHU", "buoc": ["docsau", "ghep-tool"]},
+        "Dày hoàn thiện (mm)": {"kieu": "CHU", "buoc": ["docsau", "ghep-tool"]},
+        "Tờ mặt bằng":     {"kieu": "LINK", "buoc": ["docsau", "ghep-tool"]},
+        "Ghi chú":         {"kieu": "CHU", "buoc": ["docsau", "ghep-tool"]}
       }
     },
     "SPEC": {

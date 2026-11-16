@@ -2818,7 +2818,7 @@ def gd7_gom_cum_dung_pham_vi(tmp):
     n = len(cum)
     td_ok("docsau", goc, "--sheet", "không có")
     d = doc_json(goc, "_docsau.json")
-    assert d["nhom"] == [] and len(d["cum"]) == n
+    assert d["trang_nhom"] == {} and d["so_nhom"] == {} and d["tim_to"] == {} and len(d["cum"]) == n
 
 
 @kiem(7, "mau")
@@ -2867,6 +2867,7 @@ def gd7_gemini_doc_lap_va_tin_cay(tmp):
         rc, out = td("gemini", png_gia(tmp, "c0"), "--cum", k, "--goc", goc)
         assert rc != 0 and "Ghi số của Claude" in out, "phải buộc Claude ghi trước để Gemini độc lập: " + out[-300:]
         hang = [dong_qs(c, "Kích thước BV", "900×450×2000") for c in (k, ke)] + [dong_qs(c, "Kiểm chéo Gemini", "khớp: Có cánh; lệch: không; crop: p1", nguon="GEMINI", to=False) for c in (k, ke)]
+        hang += [dong_qs(c, t, v) for c in (k, ke) for t, v in (("Mã hoàn thiện trên BV", "WD-01"), ("Khu", "SK-01"))]  # trường bắt buộc của hợp đồng kiểm
         ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": hang})
         ghi(os.path.join(data, "SCOPE.docsau-1.json"), {"rows": [{"Khóa": c, "Bản vẽ đối chứng": [["A-101", "F0001", 1]], "Kích thước BV": "900×450×2000"} for c in (k, ke)]})
         out = td_ok("gemini", png_gia(tmp, "c1"), "--cum", k, "--goc", goc)
@@ -2922,73 +2923,168 @@ def gd7_manifest_trang_va_du_to(tmp):
     td_ok("docsau", goc)
     k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
     chung = ["A-501", "F0001", 5]
-    nhieu = [[f"A-{100 + i}", "F0001", 10 + i] for i in range(1, 9)]  # 8 tờ: trước đây _docsau.txt chỉ in 6
+    nhieu = [[f"A-{100 + i}", "F0001", 10 + i] for i in range(1, 9)]
     ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
         {"Khóa": k, "Bản vẽ hiệu lực": nhieu + [chung]}, {"Khóa": ke, "Bản vẽ hiệu lực": [chung]}, {"Khóa": ghe, "Bản vẽ hiệu lực": [chung, ["A-600", "F0001", 6]]}]})
-    out = td_ok("docsau", goc)
+    out = td_ok("docsau", goc, "--trang", "4")
     m = doc_json(goc, "_doc_trang.json")
     t = m["trang"]["F0001|5"]
     assert t["so_cum"] == 3 and set(t["cum"]) == {k, ke, ghe} and t["to"] == "A-501", t
-    assert list(m["trang"])[0] == "F0001|5", "trang nhiều cụm nhất đứng đầu"
-    assert m["tong"]["chung"] == 1 and m["tong"]["luot_chung"] == 3 and m["tong"]["luot"] == 9 + 1 + 2, m["tong"]
-    assert "1 trang dùng chung ≥ 3 cụm" in out, out[-400:]
+    assert m["tong"]["luot"] == 9 + 1 + 2 and m["tong"]["trang"] == 10, m["tong"]
+    ds = doc_json(goc, "_docsau.json")
+    chu = [x for v in ds["trang_nhom"].values() for x in v]
+    assert sorted(chu) == sorted(m["trang"]) and len(chu) == len(set(chu)), "mỗi trang đúng 1 nhóm chủ: " + str(ds["trang_nhom"])
+    assert all(len(v) <= 4 for v in ds["trang_nhom"].values()) and all(m["trang"][x]["chu"] == int(n) for n, v in ds["trang_nhom"].items() for x in v)
+    assert "mỗi trang đúng 1 nhóm" in out, out[-400:]
     with open(os.path.join(data, "_docsau.txt"), encoding="utf-8") as fh:
-        dong = [x for x in fh if x.startswith(k + " ")][0]
-    assert "A-108" in dong and "A-107" in dong, "phải in đủ mọi tờ của cụm: " + dong
+        txt = fh.read()
+    assert "TRANG F0001|18 | A-108" in txt and "TRANG F0001|17 | A-107" in txt, "mọi tờ của cụm phải có trong danh sách trang"
 
 
 @kiem(7, "mau")
-def gd7_luot0_trang_chung_va_luot1_theo_bo_to(tmp):
+def gd7_danh_sach_can_kiem_theo_profile_va_loai_to(tmp):
+    """Danh sách cần kiểm của trang: món + trường theo profile (Mã cấp 3) và loại tờ; không lộ kích thước / mã VL của BOQ."""
     goc, data = du_an_doc_sau(tmp)
-    td_ok("docsau", goc)
     k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
-    chung, rieng = ["A-501", "F0001", 5], ["A-700", "F0001", 7]
-    # 3 cụm cùng trang 5 → lượt 0; k và ghe chung trang riêng 7 → cùng nhóm lượt 1
+    ghi(os.path.join(data, "SCOPE.user.json"), {"rows": [{"Khóa": k, "Mã cấp 3": "Tủ áo"}]})
     ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
-        {"Khóa": k, "Bản vẽ hiệu lực": [chung, rieng]}, {"Khóa": ke, "Bản vẽ hiệu lực": [chung]}, {"Khóa": ghe, "Bản vẽ hiệu lực": [chung, rieng]}]})
-    out = td_ok("docsau", goc, "--nhom", "1")
+        {"Khóa": k, "Bản vẽ hiệu lực": [["A-501 MB tầng 1", "F0001", 5], ["A-700 mặt đứng tủ", "F0001", 7]]},
+        {"Khóa": ke, "Bản vẽ hiệu lực": [["A-501 MB tầng 1", "F0001", 5]]}]})
+    out = td_ok("docsau", goc)
+    assert "Profile: {" in out and "'TU': 1" in out and "CHƯA PHÂN LOẠI" in out, out[-600:]
     ds = doc_json(goc, "_docsau.json")
-    assert ds["luot0"]["nhom"] == {"1": ["F0001|5"]}, ds["luot0"]
-    assert "1" not in ds["so_nhom"] and min(map(int, ds["so_nhom"])) == 2, "lượt 1 đánh số sau lượt 0"
-    nhom_k = [n for n, cs in ds["so_nhom"].items() if k in cs][0]
-    assert ghe in ds["so_nhom"][nhom_k] or len(ds["so_nhom"][nhom_k]) == 1, ds["so_nhom"]
-    assert "lượt 0: 1 nhóm" in out, out[-500:]
+    assert ds["cum"][k]["profile"] == "TU" and ds["cum"][ke]["profile"] == "CHƯA PHÂN LOẠI"
+    tr = ds["cum"][k]["truong"]
+    assert tr["Kích thước BV"]["muc"] == "BB" and tr["KL theo BV"]["muc"] == "BB", "Nr là đơn vị đếm: KL theo BV bắt buộc"
+    assert ds["cum"][ghe]["truong"]["KL theo BV"]["muc"] == "DK", "m2: KL chỉ khi có bảng thống kê"
     with open(os.path.join(data, "_docsau.txt"), encoding="utf-8") as fh:
         txt = fh.read()
-    assert "== Lượt 0 · Nhóm 1" in txt and "TRANG F0001|5" in txt and "TRANG_QS.docsau-1.json" in txt, txt[:600]
-    dk = [x for x in txt.splitlines() if x.startswith(k + " ")][0]
-    assert "Lượt 0 đã đọc: F0001|5" in dk and "A-700" in dk and "A-501" not in dk, dk
-    dke = [x for x in txt.splitlines() if x.startswith(ke + " ")][0]
-    assert "(chỉ có trang lượt 0)" in dke, dke
-    # nhóm ≤ 2 cụm: k và ghe chung trang riêng phải chung nhóm
-    td_ok("docsau", goc, "--nhom", "2")
+    mb = txt.split("TRANG F0001|5")[1].split("TRANG ")[0]
+    md = txt.split("TRANG F0001|7")[1].split("==")[0]
+    assert "loại tờ: MB" in mb and "loại tờ: MĐ" in md, txt
+    dong_mb = [x for x in mb.splitlines() if k in x][0]
+    dong_md = [x for x in md.splitlines() if k in x][0]
+    assert "cần: Lắp đặt, Khu, KL theo BV" in dong_mb and "Có cánh" not in dong_mb.split("nếu có")[0], dong_mb
+    assert "Kích thước BV" in dong_md and "Có cánh" in dong_md and "KL theo BV" not in dong_md, dong_md
+    # tên món không lộ đáp án: kích thước, mã hoàn thiện của BOQ
+    sys.path.insert(0, os.path.join(ROOT, "SKILL", "10-tender", "tool"))
+    sys.modules.pop("docsau", None)
+    import docsau
+    t = docsau.ten_mon({"Mô tả BOQ": "BF-01B tủ LA1 W 1500 × H 3000 × D 600mm, 1200x600x850, finish WD-01, cánh D01", "Mã VL": "WD-01"})
+    assert not re.search(r"1500|3000|600|1200|850|WD-01", t) and "LA1" in t and "D01" in t and "BF-01B" in t, t
+    assert docsau.loai_to(docsau.nap_profile(), "FUR-0003 p2 MB trần FUR-1512") == ["MBT"]
+
+
+@kiem(7, "mau")
+def gd7_doc_theo_trang_ghep_va_do_phu(tmp):
+    """Đọc trang → TRANG_QS → ghep (tool) → QUAN_SAT/SCOPE/BOQ_MAP; check đòi đủ trang, đủ món trên trang, đủ trường bắt buộc."""
+    goc, data = du_an_doc_sau(tmp)
+    k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
+    ke2 = khoa_cua(data, "Cai ke")[1]
+    ghi(os.path.join(data, "SCOPE.user.json"), {"rows": [{"Khóa": k, "Mã cấp 3": "Tủ áo"}]})
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
+        {"Khóa": k, "Bản vẽ hiệu lực": [["A-501", "F0001", 5], ["A-700", "F0001", 7]], "Mã phòng": "SK-01:1 | SK-02:1"},
+        {"Khóa": ke, "Bản vẽ hiệu lực": [["A-501", "F0001", 5]]}, {"Khóa": ke2, "Bản vẽ hiệu lực": [["A-501", "F0001", 5]]}]})
+    out = td_ok("docsau", goc, "--trang", "1")
     ds = doc_json(goc, "_docsau.json")
-    assert any({k, ghe} <= set(cs) for cs in ds["so_nhom"].values()), ds["so_nhom"]
-    # check: trang lượt 0 chưa đọc là LỖI; có TRANG_QS thì hết; HÌNH không tờ là LỖI
+    assert ds["trang_nhom"] == {"1": ["F0001|5"], "2": ["F0001|7"]}, ds["trang_nhom"]
+    assert ghe in [c for v in ds["tim_to"].values() for c in v] and min(map(int, ds["tim_to"])) == 3, "cụm không có tờ vào nhóm tìm tờ, số sau nhóm trang"
+    assert min(map(int, ds["so_nhom"])) == 4 and k in [c for v in ds["so_nhom"].values() for c in v], "đối chiếu đánh số sau cùng"
+    with open(os.path.join(data, "_docsau.txt"), encoding="utf-8") as fh:
+        txt = fh.read()
+    assert "== Trang · Nhóm 1" in txt and "== Tìm tờ · Nhóm 3" in txt and "== Đối chiếu · Nhóm 4" in txt, txt[:800]
     rc, out = td("check", goc, "--den", "docsau")
-    assert "1 trang lượt 0 chưa có quan sát" in out, out[-800:]
+    assert "2 trang được giao chưa có TRANG_QS/PAGES" in out, out[-800:]
+    L5 = [["A-501 CT3", "F0001", 5]]
     ghi(os.path.join(data, "TRANG_QS.docsau-1.json"), {"rows": [
-        {"Khóa trang": "F0001|5", "Chi tiết": "3", "Món": "Tu 12", "Cụm đọc": k, "Trường": "Kích thước BV", "Giá trị": "900×450×2000; 450+450=1000",
-         "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Crop": "5 --clip 0,0,0.5,0.5 --dpi 150"}]})
+        {"_chung": {"Khóa trang": "F0001|5", "Chi tiết": "MB", "Món": "Tu 12", "Cụm đọc": k, "Nguồn": "HÌNH", "Tờ · Chi tiết": L5, "Trạng thái": "CÓ"},
+         "dong": [{"Trường": "Khu", "Giá trị": "SK-01; SK-02"}, {"Trường": "Lắp đặt", "Giá trị": "liền tường"},
+                  {"Trường": "KL theo BV", "Giá trị": "1", "Khu": "SK-01"}, {"Trường": "KL theo BV", "Giá trị": "2", "Khu": "SK-02"},
+                  {"Trường": "Dẫn chiếu", "Giá trị": "chi tiết 3/A-900"},
+                  {"Trường": "Kiểm chéo Gemini", "Giá trị": "khớp: Lắp đặt; lệch: không; crop: CT3", "Nguồn": "GEMINI"}]},
+        {"Khóa trang": "F0001|5", "Món": "kệ góc", "Cụm ứng viên": f"{ke}; {ke2}", "Trường": "Kệ/đợt", "Giá trị": "3 đợt", "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Tờ · Chi tiết": L5}]})
+    ghi(os.path.join(data, "PAGES.docsau-1.json"), {"rows": [{"Khóa trang": "F0001|5", "File ID": "F0001", "Trang": 5, "Số BV": "A-501", "Loại tờ": "mặt bằng"}]})
     rc, out = td("check", goc, "--den", "docsau")
-    assert "trang lượt 0 chưa có quan sát" not in out, out[-800:]
-    assert "TRANG_QS F0001|5 · Tu 12 · Kích thước BV: nguồn HÌNH mà không ghi tờ" in out and "chuỗi cộng sai" in out, out[-800:]
-    # tắt lượt 0
-    td_ok("docsau", goc, "--luot0", "0")
-    ds = doc_json(goc, "_docsau.json")
-    assert not ds["luot0"]["nhom"] and min(map(int, ds["so_nhom"])) == 1, ds
+    assert "1 trang được giao chưa có" in out and "chạy `ghep <GOC>`" in out, out[-800:]
+    out = td_ok("ghep", goc)
+    assert "chưa gán cụm (chỉ có Cụm ứng viên): 1" in out and "số BV dẫn chiếu ngoài bộ tờ: 1" in out, out
+    qs = doc_json(goc, "QUAN_SAT.ghep-tool.json")["rows"]
+    mine = [r for r in qs if r["Cụm đọc"] == k]
+    assert any(r["Trường"] == "Lắp đặt" and r["Nguồn"] == "HÌNH" and r["Tờ · Chi tiết"] for r in mine), "LLM không chép: tool ghép"
+    tcd = [r for r in mine if r["Trường"] == "Tờ chưa đọc"][0]["Giá trị"]
+    assert "A-700" in tcd and "A-900 (dẫn chiếu" in tcd, tcd
+    assert [r for r in mine if r["Trường"] == "Kiểm chéo Gemini"][0]["Giá trị"].startswith("F0001|5: khớp")
+    assert not any(r["Cụm đọc"] == ghe for r in qs), "cụm chưa ai đọc không được sinh dòng (check vẫn báo chưa có QUAN_SAT)"
+    bm = {r["Khóa KL"]: r for r in doc_json(goc, "BOQ_MAP.ghep-tool.json")["rows"]}
+    assert bm[f"{k}|SK-01"]["KL theo BV"] == 1 and bm[f"{k}|SK-02"]["KL theo BV"] == 2, bm
+    rc, out = td("check", goc, "--den", "docsau")
+    assert f"Đọc trang F0001|5: món được giao không có dòng nào" not in out, "ke, ke2 có Cụm ứng viên = đã ghi trên trang: " + out[-900:]
+    assert "1 quan sát chỉ có Cụm ứng viên" in out and "Dẫn chiếu tới số BV ngoài bộ tờ" in out, out[-900:]
+    assert re.search(re.escape(k) + r" \[TU\]: trường bắt buộc chưa có kết luận: Kích thước BV, Có cánh, Ngăn kéo, Kệ/đợt, Mã hoàn thiện trên BV", out), out[-1200:]
+    # cùng khu ở 2 trang: bằng nhau lấy 1 lần (không cộng), khác nhau = mâu thuẫn; món giao mà trang không ghi = LỖI
+    L7 = [["A-700 MĐ1", "F0001", 7]]
+    ghi(os.path.join(data, "TRANG_QS.docsau-2.json"), {"rows": [
+        {"_chung": {"Khóa trang": "F0001|7", "Chi tiết": "MĐ1", "Món": "Tu 12", "Cụm đọc": k, "Nguồn": "HÌNH", "Tờ · Chi tiết": L7, "Trạng thái": "CÓ"},
+         "dong": [{"Trường": "Kích thước BV", "Giá trị": "900×600×2400"}, {"Trường": "Có cánh", "Giá trị": "2 cánh"},
+                  {"Trường": "Ngăn kéo", "Giá trị": "không", "Trạng thái": "KHÔNG CÓ"}, {"Trường": "Kệ/đợt", "Giá trị": "4 đợt"},
+                  {"Trường": "Mã hoàn thiện trên BV", "Giá trị": "WD-01"},
+                  {"Trường": "KL theo BV", "Giá trị": "1", "Khu": "SK-01"}, {"Trường": "KL theo BV", "Giá trị": "3", "Khu": "SK-02"}]}]})
+    ghi(os.path.join(data, "PAGES.docsau-2.json"), {"rows": [{"Khóa trang": "F0001|7", "File ID": "F0001", "Trang": 7, "Số BV": "A-700"}]})
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "TRANG_QS/PAGES mới hơn lần ghép cuối" in out, out[-600:]
+    td_ok("ghep", goc)
+    g = doc_json(goc, "_ghep.json")
+    assert g["kl_mau_thuan"] == [{"cum": k, "khu": "SK-02", "trang": {"F0001|5": 2.0, "F0001|7": 3.0}}], g["kl_mau_thuan"]
+    bm = {r["Khóa KL"]: r for r in doc_json(goc, "BOQ_MAP.ghep-tool.json")["rows"]}
+    assert bm[f"{k}|SK-01"]["KL theo BV"] == 1 and f"{k}|SK-02" not in bm, "khu trùng giá trị lấy 1 lần; mâu thuẫn thì không ghi"
+    sc = {r["Khóa"]: r for r in doc_json(goc, "SCOPE.ghep-tool.json")["rows"]}
+    assert sc[k]["Kích thước BV"] == "900×600×2400" and sc[k]["Bản vẽ đối chứng"][0] == L7[0], sc[k]
+    rc, out = td("check", goc, "--den", "docsau")
+    assert not re.search(re.escape(k) + r" \[TU\]: trường bắt buộc", out), "đủ trường bắt buộc: hết LỖI hợp đồng: " + out[-900:]
+    # tincay: trường bắt buộc quyết định giá chưa có dòng nào → THAP, không phải "tốt" vì không có dòng KHÔNG THẤY
+    td_ok("tincay", goc)
+    ct = doc_json(goc, "_tincay.json")
+    assert ct["muc"][k] != "THAP" or not any("chưa kết luận" in x for x in ct["ly_do"][k]), ct["ly_do"][k]
+    ghi(os.path.join(data, "QUAN_SAT.docsau-4.json"), {"rows": [dong_qs(ke, "Khu", "SK-01")]})
+    td_ok("tincay", goc)
+    ct = doc_json(goc, "_tincay.json")
+    assert ct["muc"][ke] == "THAP" and any("chưa kết luận (bắt buộc, quyết định giá): Mã hoàn thiện trên BV" in x for x in ct["ly_do"][ke]), ct["ly_do"][ke]
+
+
+@kiem(7, "mau")
+def gd7_gemini_theo_trang(tmp):
+    """gemini --trang: Claude ghi số vào TRANG_QS trước; số lưu theo trang; ghep chia về cụm có Kích thước BV trên trang."""
+    goc, data = du_an_doc_sau(tmp)
+    k = khoa_cua(data, "Cai tu 12")[0]
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [{"Khóa": k, "Bản vẽ hiệu lực": [["A-700", "F0001", 7]]}]})
+    td_ok("docsau", goc)
+    os.environ["TD_AGY"] = agy_gia(tmp, "agyt", '["900","600","2400"]')
+    try:
+        rc, out = td("gemini", png_gia(tmp, "t0"), "--trang", "F0001|7", "--goc", goc)
+        assert rc != 0 and "Ghi số của Claude vào TRANG_QS" in out, out[-300:]
+        ghi(os.path.join(data, "TRANG_QS.docsau-1.json"), {"rows": [{"Khóa trang": "F0001|7", "Món": "Tu 12", "Cụm đọc": k, "Trường": "Kích thước BV",
+                                                                       "Giá trị": "900×600×2400", "Trạng thái": "CÓ", "Nguồn": "HÌNH", "Tờ · Chi tiết": [["A-700", "F0001", 7]]}]})
+        out = td_ok("gemini", png_gia(tmp, "t1"), "--trang", "F0001|7", "--goc", goc)
+        assert "khớp 600, 900, 2400" in out, out[-300:]
+        td_ok("ghep", goc)
+        f = os.path.join(data, "_gemini_so", re.sub(r'[\\/:*?"<>|]', "_", k) + ".json")
+        assert os.path.exists(f) and json.load(open(f, encoding="utf-8"))["tu_trang"] == ["F0001|7"]
+        out = td_ok("xemcum", goc, k)
+        assert "Gemini số: khớp: 600, 900, 2400" in out, out[-500:]
+    finally:
+        os.environ.pop("TD_AGY", None)
 
 
 @kiem(7, "mau")
 def gd7_xem_gop_giao_va_nhom_chung(tmp):
-    """A6/A8: xemcum, xemtrang, giao in 1 lần đủ thứ agent cần; nhóm dòng _chung bung đúng; Gemini quan sát in gọn."""
+    """xemcum (đối chiếu), xemtrang (đọc trang), giao in 1 lần đủ thứ agent cần; nhóm dòng _chung bung đúng; Gemini quan sát in gọn."""
     goc, data = du_an_doc_sau(tmp)
     td_ok("docsau", goc)
     k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
     chung, rieng = ["A-501", "F0001", 5], ["A-700", "F0001", 7]
     ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
         {"Khóa": k, "Bản vẽ hiệu lực": [chung, rieng]}, {"Khóa": ke, "Bản vẽ hiệu lực": [chung]}, {"Khóa": ghe, "Bản vẽ hiệu lực": [chung, rieng]}]})
-    td_ok("docsau", goc, "--nhom", "2")
+    td_ok("docsau", goc, "--doichieu", "2")
     ds = doc_json(goc, "_docsau.json")
     n1 = [n for n, cs in ds["so_nhom"].items() if k in cs][0]
     # nhóm _chung: 2 dòng TRANG_QS cùng trang/món/nguồn; dòng riêng thắng cột chung
@@ -3006,24 +3102,24 @@ def gd7_xem_gop_giao_va_nhom_chung(tmp):
     rc, out = td("check", goc, "--den", "docsau")
     assert "QUAN_SAT.docsau-9.json dòng 1: cột lạ '_chung'" in out, out[-800:]
     os.remove(os.path.join(data, "QUAN_SAT.docsau-9.json"))
-    # xemcum: nhận cả khóa dòng; tờ lượt 0 đánh [L0], TRANG_QS của trang đó có * ở món của cụm
+    # xemcum: nhận cả khóa dòng; tờ đã đọc / CHƯA; TRANG_QS của cụm (* đã gán); hợp đồng kiểm còn thiếu
     out = td_ok("xemcum", goc, k)
-    assert f"== CỤM {k} · 1 dòng · lượt 1 nhóm {n1}" in out and "Cai tu 12" in out, out[:400]
-    assert "[L0] A-501 | F0001|5" in out and "A-700 | F0001|7" in out and "PDF F0001: " in out, out
-    assert "* CT 3 · Tu 12 · Kích thước BV = 900×450×2000" in out and "  CT 4 · Ke · Kệ/đợt = 3 đợt" in out, out
-    assert "QUAN_SAT đã ghi: 0 dòng" in out and "-- BOQ_MAP" in out, out
+    assert f"== CỤM {k} · 1 dòng · profile CHƯA PHÂN LOẠI · nhóm đối chiếu {n1}" in out and "Cai tu 12" in out, out[:400]
+    assert "[đã đọc] A-501 | F0001|5" in out and "[CHƯA]   A-700 | F0001|7" in out and "PDF F0001: " in out, out
+    assert "* [F0001|5] CT 3 · Tu 12 · Kích thước BV = 900×450×2000" in out and "Ke · Kệ/đợt" not in out, out
+    assert "QUAN_SAT (ghep + đối chiếu): 0 dòng" in out and "CÒN THIẾU: Mã hoàn thiện trên BV, Khu, KL theo BV" in out and "-- BOQ_MAP" in out, out
     rc, out = td("xemcum", goc, "khong!co")
     assert rc != 0 and "không phải cụm" in out, out
-    # xemtrang: cụm dùng trang + mô tả, TRANG_QS; trang chưa có chữ thì nói rõ
+    # xemtrang: danh sách cần kiểm (món + trường), TRANG_QS; trang chưa có chữ thì nói rõ
     out = td_ok("xem-trang", goc, "F0001", "5")
-    assert "3 cụm dùng trang này (lượt 0)" in out and k in out and ke in out and "[F0001|5] 3 dòng" in out, out
-    assert "chưa có chữ trang" in out, out
-    # giao: lượt 0 chỉ cột TRANG_QS/PAGES/ISSUES, lượt 1 không có TRANG_QS; có khối việc, thư mục ảnh, không bắt đọc JSON.md
+    assert "CẦN KIỂM: 3 món · nhóm chủ 1" in out and k in out and ke in out and "cần: " in out, out
+    assert "CT 3 · Tu 12 · Kích thước BV" in out and "chưa có chữ trang" in out, out
+    # giao: nhóm trang chỉ cột TRANG_QS/PAGES/ISSUES; nhóm đối chiếu không có TRANG_QS; có khối việc, thư mục ảnh, không bắt đọc JSON.md
     out = td_ok("giao", goc, "1")
-    assert "LƯỢT 0, nhóm 1" in out and "[TRANG_QS]" in out and "[QUAN_SAT]" not in out and "== Lượt 0 · Nhóm 1" in out, out
+    assert "ĐỌC TRANG, nhóm 1" in out and "[TRANG_QS]" in out and "[QUAN_SAT]" not in out and "== Trang · Nhóm 1" in out, out
     assert "KHÔNG đọc JSON.md" in out and os.path.isdir(os.path.join(goc, "10_TENDER", "_png", "n1")) and "Bước [" not in out, out
     out = td_ok("giao", goc, n1)
-    assert f"LƯỢT 1, nhóm {n1}" in out and "[QUAN_SAT]" in out and "[TRANG_QS]" not in out and f"== Nhóm {n1} (" in out and k in out, out
+    assert f"ĐỐI CHIẾU (không mở ảnh, trừ chỗ thiếu), nhóm {n1}" in out and "[QUAN_SAT]" in out and "[TRANG_QS]" not in out and f"== Đối chiếu · Nhóm {n1} (" in out and k in out, out
     rc, out = td("giao", goc, "99")
     assert rc != 0 and "không có Nhóm 99" in out, out
     # Gemini quan sát in gọn: 1 dòng mỗi trường; không phải JSON thì in nguyên văn
@@ -3110,7 +3206,7 @@ def gd7_build_co_doc_sau(tmp):
     td_ok("docsau", goc)
     ke = khoa_cua(data, "Cai ke")
     ghi(os.path.join(data, "SCOPE.docsau-1.json"), {"rows": [{"Khóa": ke[0], "Kích thước BV": "900×450×2000", "Bản vẽ đối chứng": [["A-101", "F0001", 1]], "Phạm vi nhà máy": "TRONG SCOPE – mộc"}]})
-    ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": [dong_qs(ke[0], "Kích thước BV", "900×450×2000")]})
+    ghi(os.path.join(data, "QUAN_SAT.docsau-1.json"), {"rows": [dong_qs(ke[0], t, v) for t, v in (("Kích thước BV", "900×450×2000"), ("Mã hoàn thiện trên BV", "WD-01"), ("Khu", "SK-01"))]})
     ghi(os.path.join(data, "BOQ_MAP.docsau-1.json"), {"rows": [{"Khóa KL": f"{ke[0]}|(cả dòng)", "KL theo BV": 3}, {"Khóa KL": f"{ke[1]}|(cả dòng)", "KL theo BV": 4}]})
     ghi(os.path.join(data, "ASK_USER.tincay.json"), {"rows": [{"ID": "A01", "Câu hỏi": "Tính hay loại trừ?"}]})
     ghi(os.path.join(data, "RFI_LOG.tincay.json"), {"rows": [{"RFI": "RFI-01", "Câu hỏi": "Kích thước?", "Trạng thái": "Nháp"}]})

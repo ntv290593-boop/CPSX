@@ -1,0 +1,154 @@
+{
+ "_ghi_chu": "Hồ sơ trường đọc sâu 7d theo loại món (Field Profile). docsau dùng file này lập danh sách cần kiểm cho từng trang và hợp đồng kiểm của từng cụm. Loại món lấy theo cột SCOPE 'Mã cấp 3' (đã phân loại ở bước ben/doichieu), không đoán từ mô tả BOQ. Mã cấp 3 không có trong 'cap3' của profile nào → CHUNG; cụm chưa có Mã cấp 3 hoặc 'KHÔNG RÕ' → CHƯA PHÂN LOẠI (dùng trường của CHUNG, check báo XEM). muc: BB = bắt buộc kết luận ở cấp cụm (CÓ / KHÔNG CÓ / KHÔNG THẤY có lý do / MÂU THUẪN), thiếu là LỖI ở check và hạ Độ tin cậy; DK = có thì ghi, không kiểm phủ. gia: true = trường quyết định giá (tincay). to: loại tờ thường thể hiện trường (MB mặt bằng, MBT mặt bằng trần, MĐ mặt đứng, MC mặt cắt, CT chi tiết, BTK bảng thống kê/legend/finish); chỉ để chỉ chỗ tìm, không bắt mọi tờ phải có. Không có 'to' = mọi tờ.",
+ "phien_ban": "2026-11-16",
+ "trang_thai": "Đã duyệt – user 16/11/2026",
+ "chu_tri": "user (phòng tender)",
+ "kl_dem": ["no", "nos", "no.", "nr", "nr.", "nrs", "cái", "cai", "bộ", "bo", "chiếc", "chiec", "ea", "pcs", "pc", "set", "sets", "unit", "units", "cánh", "canh", "item", "lot"],
+ "loai_to": {
+  "MBT": "\\brcp\\b|mat bang tran|\\bmb tran|ceiling plan|reflected|\\bmbt\\b",
+  "MB": "\\bmb\\b|mat bang|\\bplan\\b|key ?plan|dinh vi|layout",
+  "MĐ": "\\bmd\\b|mat dung|elevation|\\belev\\b",
+  "MC": "mat cat|section|\\bmc\\b",
+  "CT": "chi tiet|detail|\\bct\\b",
+  "BTK": "thong ke|schedule|legend|finish|phu kien|bang vat lieu"
+ },
+ "profile": {
+  "TU": {
+   "ten": "Tủ / nội thất liền tường",
+   "cap3": ["Tủ vanity, gương", "Tủ áo", "Tủ bếp", "Nội thất liền tường khác", "Loose sản xuất - Tủ rời, Tủ đầu giường"],
+   "truong": {
+    "Lắp đặt": {"muc": "BB", "to": ["MB", "MĐ", "CT"]},
+    "Kích thước BV": {"muc": "BB", "gia": true, "to": ["MĐ", "MC", "CT", "BTK"]},
+    "Có cánh": {"muc": "BB", "gia": true, "to": ["MĐ", "CT"]},
+    "Ngăn kéo": {"muc": "BB", "gia": true, "to": ["MĐ", "CT"]},
+    "Kệ/đợt": {"muc": "BB", "gia": true, "to": ["MĐ", "MC", "CT"]},
+    "Mặt đá": {"muc": "DK", "gia": true, "to": ["MĐ", "MC", "CT"]},
+    "Gương": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Kính": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Kim loại": {"muc": "DK", "gia": true, "to": ["MĐ", "MC", "CT"]},
+    "Giấy/vải": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Thanh treo": {"muc": "DK", "to": ["MĐ", "MC"]},
+    "Hốc/ô tivi": {"muc": "DK", "to": ["MĐ"]},
+    "Ván nền ẩn": {"muc": "DK", "to": ["MC", "CT"]},
+    "Cong/bo": {"muc": "DK", "to": ["MB", "MĐ", "CT"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Phần ngoài phạm vi": {"muc": "DK", "to": ["MĐ", "CT"]},
+    "Khu": {"muc": "BB", "to": ["MB", "MĐ", "BTK"]}
+   }
+  },
+  "CUA": {
+   "ten": "Cửa",
+   "cap3": ["Cửa", "Công tác cửa gỗ", "Công tác cửa khác", "Công tác cửa kim loại (sắt, inox)"],
+   "truong": {
+    "Kích thước BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Có cánh": {"muc": "BB", "gia": true, "to": ["MB", "MĐ", "BTK"]},
+    "Dày tường": {"muc": "BB", "gia": true, "to": ["MB", "MC", "CT"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Kính": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Kim loại": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Khung xương": {"muc": "DK", "to": ["MC", "CT"]},
+    "Phần ngoài phạm vi": {"muc": "DK", "to": ["MĐ", "CT", "BTK"]},
+    "Khu": {"muc": "BB", "to": ["MB", "BTK"]}
+   }
+  },
+  "OP_TUONG": {
+   "ten": "Ốp tường / vách",
+   "cap3": ["Hoàn thiện tường ốp gỗ, vải", "Hoàn thiện tường ốp kim loại", "Hoàn thiện tường ốp kính, gương,…", "Hoàn thiện tường đá", "Hoàn thiện tường gạch", "Hoàn thiện tường dán giấy", "Hoàn thiện tường khác", "Vách thạch cao", "Kết cấu gỗ"],
+   "truong": {
+    "Phạm vi trên BV": {"muc": "BB", "gia": true, "to": ["MB", "MĐ"]},
+    "Kích thước BV": {"muc": "DK", "gia": true, "to": ["MĐ", "MC", "CT"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Khung xương": {"muc": "BB", "gia": true, "to": ["MC", "CT"]},
+    "Ván nền ẩn": {"muc": "DK", "to": ["MC", "CT"]},
+    "Cong/bo": {"muc": "DK", "to": ["MB", "MĐ", "CT"]},
+    "Kim loại": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Gương": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Giấy/vải": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Phần ngoài phạm vi": {"muc": "DK", "to": ["MĐ", "CT"]},
+    "Khu": {"muc": "BB", "to": ["MB", "MĐ"]}
+   }
+  },
+  "TRAN": {
+   "ten": "Trần",
+   "cap3": ["Trần thạch cao", "Trần ốp gỗ, vải", "Trần nhôm, kim loại", "Trần ốp ốp kính, gương", "Trần xuyên sáng", "Trần khác"],
+   "truong": {
+    "Phạm vi trên BV": {"muc": "BB", "gia": true, "to": ["MBT"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MBT", "CT", "BTK"]},
+    "Khung xương": {"muc": "BB", "gia": true, "to": ["MC", "CT"]},
+    "Cao độ trần": {"muc": "DK", "to": ["MBT", "MC"]},
+    "Cong/bo": {"muc": "DK", "to": ["MBT", "CT"]},
+    "Phần ngoài phạm vi": {"muc": "DK", "to": ["MBT", "CT"]},
+    "Khu": {"muc": "BB", "to": ["MBT"]}
+   }
+  },
+  "SAN": {
+   "ten": "Sàn",
+   "cap3": ["Hoàn thiện sàn gỗ", "Hoàn thiện sàn đá", "Hoàn thiện sàn gạch", "Hoàn thiện sàn thảm, vinyl", "Hoàn thiện sàn khác", "Cán nền"],
+   "truong": {
+    "Phạm vi trên BV": {"muc": "BB", "gia": true, "to": ["MB"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MB", "CT", "BTK"]},
+    "Khung xương": {"muc": "DK", "to": ["MC", "CT"]},
+    "Phần ngoài phạm vi": {"muc": "DK", "to": ["MB"]},
+    "Khu": {"muc": "BB", "to": ["MB"]}
+   }
+  },
+  "SON": {
+   "ten": "Sơn",
+   "cap3": ["Sơn nước", "Sơn hiệu ứng", "Sơn Epoxy", "Sơn Khác"],
+   "truong": {
+    "Phạm vi trên BV": {"muc": "BB", "gia": true, "to": ["MB", "MBT", "MĐ"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MĐ", "MBT", "BTK"]},
+    "Khu": {"muc": "BB", "to": ["MB", "MBT", "MĐ"]}
+   }
+  },
+  "KINH": {
+   "ten": "Vách / cửa kính, vách ngăn",
+   "cap3": ["Vách, cửa kính / nhôm kính", "Nhôm kínhKhác", "Công tác vách ngăn đi động, vách vệ sinh"],
+   "truong": {
+    "Kích thước BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Kính": {"muc": "BB", "gia": true, "to": ["MĐ", "MC", "CT"]},
+    "Kim loại": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Có cánh": {"muc": "DK", "gia": true, "to": ["MB", "MĐ"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Khung xương": {"muc": "DK", "to": ["MC", "CT"]},
+    "Phần ngoài phạm vi": {"muc": "DK", "to": ["MĐ", "CT"]},
+    "Khu": {"muc": "BB", "to": ["MB", "MĐ"]}
+   }
+  },
+  "LOOSE": {
+   "ten": "Loose sản xuất",
+   "cap3": ["Loose sản xuất - Bàn", "Loose sản xuất - Ghế", "Loose sản xuất - Giường", "Loose sản xuất - Khác", "Loose sản xuất - Sofa", "Loose sản xuất - Thiết bị, Đồ chơi trẻ em", "Đồ nội thất"],
+   "truong": {
+    "Kích thước BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Giấy/vải": {"muc": "DK", "gia": true, "to": ["MĐ", "CT", "BTK"]},
+    "Kim loại": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Mặt đá": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Kính": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Có cánh": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Ngăn kéo": {"muc": "DK", "gia": true, "to": ["MĐ", "CT"]},
+    "Khu": {"muc": "BB", "to": ["MB", "BTK"]}
+   }
+  },
+  "MUA": {
+   "ten": "Hàng mua sẵn / thiết bị",
+   "cap3": ["Loose mua sẵn", "Thiết bị bếp", "Thiết bị gym", "Thiết bị khác", "Thiết bị vệ sinh", "Đèn trang trí", "Rèm cửa", "Rug", "Đồ trang trí, nghệ thuật", "Trang trí Khác", "Biển hiệu", "Phụ kiện Khác"],
+   "truong": {
+    "Kích thước BV": {"muc": "DK", "to": ["MĐ", "CT", "BTK"]},
+    "Mã hoàn thiện trên BV": {"muc": "DK", "to": ["MĐ", "BTK"]},
+    "Khu": {"muc": "BB", "to": ["MB", "BTK"]}
+   }
+  },
+  "CHUNG": {
+   "ten": "Khác (không có profile riêng)",
+   "cap3": [],
+   "truong": {
+    "Kích thước BV": {"muc": "DK", "gia": true},
+    "Phạm vi trên BV": {"muc": "DK", "gia": true},
+    "Mã hoàn thiện trên BV": {"muc": "BB", "gia": true},
+    "Phần ngoài phạm vi": {"muc": "DK"},
+    "Khu": {"muc": "BB"}
+   }
+  }
+ }
+}

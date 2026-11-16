@@ -67,10 +67,12 @@ Sơ đồ gồm 11 phần (0–10): luồng tổng, kiểm kê, chạy lại khi
   7 doichieu  mỗi 1–2 sheet BOQ 1 subagent (sau 3, 5, 6)
      │              │                           │
      ▼              │                           │
-  docsau (tool: gom cụm, chia nhóm ≤ 8 cụm)     │
+  docsau (tool: gom cụm, hợp đồng kiểm theo profile, chia nhóm THEO TRANG)
      ├─► 7c spec    1 subagent (sau 5, 7)       │
-     ├─► 7d docsau  mỗi nhóm 1 subagent, song song (sau 6, 7)
-     │      → gemini --cum (người đọc thứ 2) → neo: NEO LỆCH gửi lại nhóm, ≤ 2 vòng
+     ├─► 7d ① nhóm Trang / Tìm tờ: mỗi nhóm 1 subagent, song song, mỗi trang 1 lần → TRANG_QS
+     │      ② ghep (tool) → QUAN_SAT/SCOPE/BOQ_MAP/DAY_TUONG + độ phủ
+     │      ③ nhóm Đối chiếu: so BOQ/MAT, gán món chưa rõ, bù trường thiếu
+     │      → gemini --trang (người đọc thứ 2) → neo: NEO LỆCH gửi lại nhóm, ≤ 2 vòng
      ▼              │                           │
   7e tincay  tool nháp rồi 1 subagent (sau 7c, 7d; mục 10)
      │              │                           │
@@ -559,38 +561,55 @@ Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này
    ▼
  docsau  gom dòng cùng (mô tả, Mã VL, Mã spec/FF&E, bộ tờ Bản vẽ hiệu lực) thành CỤM; khóa cụm = Khóa dòng đầu
    │     ghi SCOPE.docsau-tool (Cụm đọc, nhãn Phạm vi nhà máy), BOQ_MAP.docsau-tool (mỗi dòng × khu)
-   │     _doc_trang.json: manifest trang → cụm (đảo Bản vẽ hiệu lực)
-   │     chia 2 lượt → _docsau.json (luot0, so_nhom), _docsau.txt; lọc phần giao: --phong --sheet --thaydoi --thieu
-   │       lượt 0: trang ≥ 3 cụm (--luot0 N, 0 = tắt), xếp theo file/trang, ≤ 8 trang/nhóm (--trang0), nhóm 1..K
-   │       lượt 1: bỏ trang lượt 0, cụm chung trang riêng = 1 thành phần (không xé nếu vừa), ≤ 8 cụm (--nhom) và
-   │               ≤ 12 trang riêng (--trang)/nhóm, nhóm K+1..; cụm không có tờ: theo phòng như cũ
+   │     HỢP ĐỒNG KIỂM mỗi cụm: profile theo Mã cấp 3 (form\PROFILE.json, user duyệt 16/11; thiếu = CHƯA PHÂN LOẠI → CHUNG)
+   │       → trường BB (bắt buộc kết luận) / DK (có thì ghi) + loại tờ thường thể hiện; KL theo BV = BB khi ĐV đếm (no, nr, bộ…)
+   │     _doc_trang.json: trang → món (đảo Bản vẽ hiệu lực), loại tờ đoán từ nhãn link/PAGES (MB, MBT, MĐ, MC, CT, BTK), nhóm chủ
+   │     chia nhóm → _docsau.json (phien_ban 3: cum{khoa, profile, truong}, trang_nhom, tim_to, so_nhom), _docsau.txt
+   │       Trang · Nhóm 1..A    mọi trang có số trang, xếp file/trang, ≤ 8 trang (--trang) và ≤ 40 lượt món (--mon); MỖI TRANG ĐÚNG 1 NHÓM
+   │                            mỗi trang in danh sách cần kiểm: món [profile] tên đã bỏ kích thước + mã VL | cần: … | nếu có: …
+   │       Tìm tờ · Nhóm A+1..B  cụm không có trang nào (≤ 8 cụm, --nhom)
+   │       Đối chiếu · Nhóm B+1.. mọi cụm giao lần này (≤ 25, --doichieu)
+   │     lọc phần giao: --phong --sheet --thaydoi --thieu
    ▼
  7c spec   SPEC, SCOPE (Spec · ML, Thông số riêng), QUAN_SAT nguồn SPEC, ISSUES S…
    ▼
- giao <GOC> <n>  in prompt 7d của nhóm n (khối _docsau.txt, cột được ghi lọc theo lượt, thư mục ảnh 10_TENDER\_png
-<n>,
-   │             cấm tự viết script) → điều phối dán nguyên văn; agent không đọc JSON.md (phần ghi đã ở 7d-docsau.md)
+ giao <GOC> <n>  in prompt 7d của nhóm n (khối _docsau.txt; cột được ghi theo loại nhóm: Trang/Tìm tờ = TRANG_QS, PAGES, ISSUES;
+   │             Đối chiếu = SCOPE, QUAN_SAT, BOQ_MAP, DAY_TUONG, ISSUES; thư mục ảnh 10_TENDER\_png\n<n>; cấm tự viết script)
    ▼
- 7d lượt 0  mỗi nhóm lượt 0 1 subagent, song song: mỗi trang đọc 1 lần cho mọi cụm
-   │    xemtrang <GOC> <FID> <trang>: đường dẫn PDF, khung tên, lớp chữ, cụm dùng trang + mô tả, TRANG_QS, PAGES
-   │    ──► TRANG_QS.docsau-<n> (Khóa trang, Chi tiết, Món, Cụm đọc?, Trường, Giá trị, Crop), PAGES; gemini --goc cache sẵn
-   │    check --den docsau: trang lượt 0 chưa có TRANG_QS = LỖI; HÌNH/TEXT không tờ, chuỗi cộng sai = LỖI
+ 7d ① nhóm Trang / Tìm tờ  mỗi nhóm 1 subagent, song song; mỗi trang mở ảnh 1 lần, ghi hết 1 lần
+   │    xemtrang <GOC> <FID> <trang>: đường dẫn PDF, khung tên, DANH SÁCH CẦN KIỂM (không số BOQ), TRANG_QS, PAGES
+   │    ảnh cả trang → phóng vùng; mỗi vùng đọc mọi món, mọi trường trong vùng
+   │    ──► TRANG_QS.docsau-<n>: Khóa trang, Chi tiết, Món, Thành phần, Cụm đọc (chắc) | Cụm ứng viên (chưa chắc),
+   │                            Trường, Giá trị, Khu (KL theo BV, Dày tường), Trạng thái, Tờ · Chi tiết, Nguồn, Crop
+   │        trường đặc biệt: KL theo BV (mỗi khu 1 dòng), Dày tường (mỗi vị trí cửa), Dẫn chiếu (số tờ callout),
+   │                         Món trên tờ (KHÔNG THẤY), Kiểm chéo Gemini (mỗi món/trang)
+   │    ──► PAGES.docsau-<n> mọi trang đã mở
+   │    Claude ghi số TRƯỚC → gemini --trang <FID>|<trang>  (dừng nếu TRANG_QS trang chưa có Kích thước BV) ──► _gemini_so\trang\
+   │    gemini --quansat "<Món>"  so từng trường, lệch: đọc lại; vẫn lệch: 2 dòng, MÂU THUẪN, issue
+   │    mọi lệnh gemini có --goc: cache _data\_gemini_cache theo sha1(byte PNG) + sha1(model + câu hỏi); agy lỗi → KHÔNG THẤY, cụm ≤ TB
+   │    anh: tool hạ dpi (cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP / 1568 px)
+   │    check --den docsau: trang giao chưa có TRANG_QS/PAGES = LỖI; HÌNH/TEXT không tờ, chuỗi cộng sai, KL CÓ không số = LỖI
    ▼
- 7d lượt 1  mỗi nhóm 1 subagent, song song; trang lượt 0: TRANG_QS qua xemcum, không mở lại ảnh
-   │    xemcum <GOC> <cụm|khóa>: mô tả, dòng + KL, MAT, tờ ([L0]) + đường dẫn PDF, TRANG_QS (* = gắn cụm),
-   │           QUAN_SAT/SCOPE/BOQ_MAP/ISSUES đã ghi, Gemini số — thay ~5 lượt loc/grep/find
-   │    ghi JSON: nhóm {"_chung": {...}, "dong": [...]} (td.jload_rows bung, riêng thắng) — không script sinh JSON
-   │    gemini in gọn: số → "so: …"; --quansat → 1 dòng/trường "tên: giá trị [status] @ where"
-   │    anh: tool hạ dpi (cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP / 1568 px), in (giới hạn ảnh …)
-   │    Claude đọc crop, ghi QUAN_SAT nguồn HÌNH/TEXT TRƯỚC
-   │         ▼
-   │    gemini --cum  dừng nếu chưa có Kích thước BV của Claude ──► _gemini_so\<cụm>.json
-   │    gemini --quansat  so từng trường, lệch: đọc lại; vẫn lệch: 2 dòng, MÂU THUẪN, issue
-   │    mọi lệnh gemini có --goc: cache _data\_gemini_cache theo sha1(byte PNG) + sha1(model + câu hỏi)
-   │         trúng cache (cùng ảnh, cùng câu, kể cả file khác của agent khác) → không gọi agy; trả lời lỗi không lưu
-   │    agy lỗi / không có: KHÔNG THẤY, làm tiếp, cụm tối đa TB
-   │         ▼
-   │    BOQ_MAP (KL theo BV, tờ đếm), DAY_TUONG (cửa), PAGES, ISSUES V…
+ ② ghep <GOC> (tool)  TRANG_QS → *.ghep-tool.json (xóa bản ghép cũ trước khi ghép)
+   │    QUAN_SAT  dòng có Cụm đọc → chép cho từng cụm (Khu nối vào Giá trị); Kiểm chéo Gemini gộp các trang thành 1 dòng/cụm
+   │              + Bộ tờ đã đọc, Tờ chưa đọc (trang của cụm chưa đọc + số tờ Dẫn chiếu ngoài bộ) nguồn TOOL
+   │              cụm chưa ai đọc: không sinh dòng (check vẫn báo "chưa có dòng QUAN_SAT")
+   │    SCOPE     dòng đại diện: Kích thước BV (dòng HÌNH/TEXT đầu tiên), Bản vẽ đối chứng (tờ đó trước, rồi các trang đã đọc)
+   │    BOQ_MAP   KL theo khu → Khóa KL cùng khu; cùng khu nhiều trang: bằng nhau lấy 1 lần, khác nhau = mâu thuẫn (không ghi, không cộng)
+   │              BOQ không chia khu (1 dòng "(cả dòng)"): cộng các khu khác nhau
+   │    DAY_TUONG Khóa DT = <cụm>|<Khu>
+   │    _gemini_so\<cụm>.json = số Gemini các trang cụm có Kích thước BV (cộng dồn --cum cũ)
+   │    _ghep.json: thieu_truong (BB chưa kết luận), thieu_trang (món giao mà trang không ghi dòng nào), chua_ghep (chỉ Cụm ứng viên),
+   │                kl_mau_thuan, kl_khong_khop, dan_chieu_ngoai, cum_la
+   │    check: TRANG_QS/PAGES mới hơn _ghep.json = LỖI "chạy ghep"; thieu_trang = LỖI; trường BB chưa kết luận = LỖI;
+   │           chưa gán, KL mâu thuẫn/không khớp, dẫn chiếu ngoài bộ, CHƯA PHÂN LOẠI = XEM
+   ▼
+ ③ nhóm Đối chiếu  mỗi nhóm 1 subagent, song song; không mở ảnh trừ trường bắt buộc còn thiếu ở trang đã đọc
+   │    xemcum <GOC> <cụm|khóa>: mô tả BOQ, MAT, tờ [đã đọc]/[CHƯA], TRANG_QS của cụm (* gán, ? ứng viên), QUAN_SAT,
+   │           CÒN THIẾU (hợp đồng kiểm), SCOPE, BOQ_MAP, ghep báo, ISSUES, Gemini số
+   │    ghi phần thêm/sửa: SCOPE (Kích thước BoQ, Phạm vi nhà máy), QUAN_SAT (BOQ ↔ BV MÂU THUẪN, gán quan sát ứng viên,
+   │        trường thiếu đọc bổ sung hoặc KHÔNG THẤY + lý do), BOQ_MAP (KL mâu thuẫn), ISSUES V…, ASK_USER
+   │    tờ [CHƯA] / dẫn chiếu ngoài bộ → báo về → điều phối giao thêm nhóm tìm tờ, ghep lại
    │         ▼
    │    neo  số tờ, mã spec, mã VL, kích thước có trên trang được link không ──► _neo.json (chỉ XEM)
    ▼
@@ -609,12 +628,13 @@ Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này
 Độ tin cậy (tool, lấy mức thấp nhất):
 
 ```
- THAP  chưa có quan sát HÌNH/TEXT · trường giá KHÔNG THẤY · trường giá có dòng GEMINI MÂU THUẪN · thiếu Bản vẽ đối chứng
+ THAP  chưa có quan sát HÌNH/TEXT · trường giá KHÔNG THẤY · trường giá BB của hợp đồng kiểm chưa có dòng nào
+       trường giá có dòng GEMINI MÂU THUẪN · thiếu Bản vẽ đối chứng
        còn tờ chưa đọc · Gemini lệch ở trường giá · số Claude không có trong số Gemini
  TB    MÂU THUẪN khác · Gemini chưa chạy, lỗi, lệch trường phụ · KL BOQ ≠ BV · còn khu chưa có KL theo BV
  CAO   còn lại
 ```
 
-`check`: chưa có `_docsau.json` thì chỉ nhắc XEM, không LỖI. Có rồi: `--den docsau` đòi mọi cụm có QUAN_SAT và `Kiểm chéo Gemini`; `--den tincay` đòi `Độ tin cậy`. Luôn LỖI: nguồn HÌNH/TEXT không có tờ, phép cộng `a+b=c` sai, RFI không có trong RFI_LOG. Khóa `BOQ_MAP` mới không có trong nháp tool là LỖI.
+`check`: chưa có `_docsau.json` thì chỉ nhắc XEM, không LỖI. Có rồi: `--den docsau` đòi mọi trang giao đã đọc, mọi món trên trang có dòng, `ghep` mới nhất, mọi cụm có QUAN_SAT, `Kiểm chéo Gemini` và đủ trường BB của hợp đồng kiểm (`_docsau.json` bản cũ 2 lượt chỉ được nhắc XEM chạy lại `docsau`); `--den tincay` đòi `Độ tin cậy`. Luôn LỖI: nguồn HÌNH/TEXT không có tờ, phép cộng `a+b=c` sai, RFI không có trong RFI_LOG. Khóa `BOQ_MAP` mới không có trong nháp tool là LỖI.
 
 Không chuyển, vì 10-tender đã có phần tương ứng: `boq-tach` (`boq`), `kiemke --ds` và `_bo_qua.txt` (`init --bo-thu-muc`), `_timkiem.*` (`ungvien` riêng), sheet `PROJECT`, `NOTES` (`README.md` của `10_TENDER`), `FILES` (`FILE_INDEX`), `BOQ_CDT` (`SCOPE`). `PAGES` chỉ giữ trang đã mở, không lập cho mọi trang như 01-scan, vì hồ sơ tender lớn; khung tên để `neo` kiểm lấy từ cache `trang`.

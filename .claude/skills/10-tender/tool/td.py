@@ -50,17 +50,21 @@ LENH = """Lệnh:
   mail <file.msg>               in tiêu đề, người gửi/nhận, đính kèm, nội dung mail Outlook
   xem <xlsx> [sheet] [A1:Z60]   in giá trị ô; không nêu sheet thì liệt kê sheet
   so <pdf> <trang> [--clip ...] in các số trong lớp chữ kèm toạ độ (đọc kích thước)
-  docsau <GOC> [--nhom 8] [--phong SK-01 | --sheet S | --thaydoi | --thieu]
-                                đọc sâu: gom dòng BOQ thành cụm, chia nhóm -> _docsau.txt, nháp Phạm vi nhà máy, BOQ_MAP; lọc = chỉ giao lại phần đó
+  docsau <GOC> [--trang 8] [--mon 40] [--nhom 8] [--doichieu 25] [--phong SK-01 | --sheet S | --thaydoi | --thieu]
+                                đọc sâu: gom cụm + hợp đồng kiểm (form\\PROFILE.json), chia nhóm THEO TRANG (mỗi trang 1 nhóm), nhóm tìm tờ,
+                                nhóm đối chiếu -> _docsau.txt, _doc_trang.json; nháp Phạm vi nhà máy, BOQ_MAP; lọc = chỉ giao lại phần đó
+  ghep <GOC>                    sau nhóm trang: TRANG_QS -> QUAN_SAT/SCOPE/BOQ_MAP/DAY_TUONG (*.ghep-tool.json), độ phủ -> _ghep.json
   giao <GOC> <nhóm>             in prompt giao việc 7d cho 1 nhóm (khối việc, cột được ghi, thư mục ảnh 10_TENDER\\_png\\n<nhóm>)
-  xemcum <GOC> <cụm|khóa>       1 lần: mô tả, dòng + KL, MAT, tờ + đường dẫn PDF, TRANG_QS lượt 0, QUAN_SAT/SCOPE/BOQ_MAP/ISSUES đã ghi
+  xemcum <GOC> <cụm|khóa>       (đối chiếu) 1 lần: mô tả, dòng + KL, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT, trường bắt buộc còn thiếu, BOQ_MAP, ISSUES
   xemtrang <GOC> <FID> <trang> [--chu]
-                                1 lần: đường dẫn PDF, khung tên, cụm dùng trang (kèm mô tả), TRANG_QS, PAGES, chữ trang
+                                (đọc trang) 1 lần: đường dẫn PDF, khung tên, DANH SÁCH CẦN KIỂM (món + trường theo loại tờ), TRANG_QS, PAGES, chữ trang
   gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo"] [--hoi "câu hỏi"] [--goc <GOC>]
                                 Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng;
                                 cache theo nội dung ảnh + câu hỏi ở _data\\_gemini_cache (có --goc) hoặc _gemini_cache cạnh ảnh
   gemini <a.png> [b.png …] --cum <Cụm đọc> --goc <GOC>
                                 lưu số Gemini theo cụm -> _gemini_so\\<cụm>.json; số Claude lấy từ QUAN_SAT (phải ghi trước)
+  gemini <a.png> [b.png …] --trang <FID>|<trang> --goc <GOC>
+                                (đọc trang) lưu số Gemini theo trang -> _gemini_so\\trang\\; số Claude lấy từ TRANG_QS của trang (phải ghi trước); ghep chia về cụm
   neo <GOC>                     số tờ trong nhãn link, mã spec, mã VL + kích thước BV có trên trang được link không -> _neo.json (chỉ XEM)
   tincay <GOC>                  Độ tin cậy, trạng thái KL BOQ↔BV, issue nháp, dòng Kiểm chéo Gemini số -> *.tincay-tool.json, _tincay.json
   do <GOC>                      tỉ lệ ô do tool ghi / tổng ô
@@ -3719,7 +3723,7 @@ def main(a):
           "guilink": lambda: cmd_guilink(goc, rest),
           "docsau": lambda: _docsau().cmd_docsau(goc, rest), "neo": lambda: _docsau().cmd_neo(goc),
           "xemcum": lambda: _docsau().cmd_xemcum(goc, rest), "xemtrang": lambda: _docsau().cmd_xemtrang(goc, rest),
-          "giao": lambda: _docsau().cmd_giao(goc, rest),
+          "giao": lambda: _docsau().cmd_giao(goc, rest), "ghep": lambda: _docsau().cmd_ghep(goc),
           "tincay": lambda: _docsau().cmd_tincay(goc), "do": lambda: _docsau().do(goc)}.get(c)
     if not fn:
         sys.exit(LENH)
