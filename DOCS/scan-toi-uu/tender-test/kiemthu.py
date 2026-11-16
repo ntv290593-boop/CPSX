@@ -2877,7 +2877,7 @@ def gd7_gemini_doc_lap_va_tin_cay(tmp):
         ban_sao = os.path.join(tmp, "agent_khac", "c1_copy.png")
         shutil.copy(png_gia(tmp, "c1"), ban_sao)
         out = td_ok("gemini", ban_sao, "--goc", goc)
-        assert '"2000"' in out, "ảnh cùng nội dung phải lấy cache, không gọi agy2: " + out[-300:]
+        assert "so: 900, 450, 2000, ?" in out, "ảnh cùng nội dung phải lấy cache, không gọi agy2: " + out[-300:]
         assert os.listdir(os.path.join(data, "_gemini_cache")), "cache phải nằm ở _data\\_gemini_cache"
         # chế độ hỏi (cùng cơ chế với --quansat; agy giả .bat không nhận dấu | trong câu quansat): lần sau vẫn lấy cache, đổi câu thì gọi lại
         os.environ["TD_AGY"] = agy_gia(tmp, "agy_qs", "YES 2 drawers")
@@ -2977,6 +2977,63 @@ def gd7_luot0_trang_chung_va_luot1_theo_bo_to(tmp):
     td_ok("docsau", goc, "--luot0", "0")
     ds = doc_json(goc, "_docsau.json")
     assert not ds["luot0"]["nhom"] and min(map(int, ds["so_nhom"])) == 1, ds
+
+
+@kiem(7, "mau")
+def gd7_xem_gop_giao_va_nhom_chung(tmp):
+    """A6/A8: xemcum, xemtrang, giao in 1 lần đủ thứ agent cần; nhóm dòng _chung bung đúng; Gemini quan sát in gọn."""
+    goc, data = du_an_doc_sau(tmp)
+    td_ok("docsau", goc)
+    k, ke, ghe = khoa_cua(data, "Cai tu 12")[0], khoa_cua(data, "Cai ke")[0], khoa_cua(data, "Cai ghe go")[0]
+    chung, rieng = ["A-501", "F0001", 5], ["A-700", "F0001", 7]
+    ghi(os.path.join(data, "SCOPE.banve-1.json"), {"rows": [
+        {"Khóa": k, "Bản vẽ hiệu lực": [chung, rieng]}, {"Khóa": ke, "Bản vẽ hiệu lực": [chung]}, {"Khóa": ghe, "Bản vẽ hiệu lực": [chung, rieng]}]})
+    td_ok("docsau", goc, "--nhom", "2")
+    ds = doc_json(goc, "_docsau.json")
+    n1 = [n for n, cs in ds["so_nhom"].items() if k in cs][0]
+    # nhóm _chung: 2 dòng TRANG_QS cùng trang/món/nguồn; dòng riêng thắng cột chung
+    ghi(os.path.join(data, "TRANG_QS.docsau-1.json"), {"rows": [
+        {"_chung": {"Khóa trang": "F0001|5", "Chi tiết": "3", "Món": "Tu 12", "Cụm đọc": k, "Nguồn": "HÌNH", "Tờ · Chi tiết": [["A-501 CT3", "F0001", 5]],
+                    "Crop": "5 --clip 0,0,0.5,0.5 --dpi 150", "Trạng thái": "CÓ"},
+         "dong": [{"Trường": "Kích thước BV", "Giá trị": "900×450×2000; 450+450=900 ✓"}, {"Trường": "Có cánh", "Giá trị": "2 cánh", "Trạng thái": "KHÔNG THẤY"}]},
+        {"Khóa trang": "F0001|5", "Chi tiết": "4", "Món": "Ke", "Trường": "Kệ/đợt", "Giá trị": "3 đợt", "Trạng thái": "CÓ", "Nguồn": "HÌNH",
+         "Tờ · Chi tiết": [["A-501 CT4", "F0001", 5]]}]})
+    out = td_ok("loc", goc, "TRANG_QS", "Món=Tu 12")
+    assert out.startswith("2 dòng") and '"Trạng thái": "KHÔNG THẤY"' in out and '"Cụm đọc": "' + k in out, out
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "TRANG_QS.docsau-1.json" not in out, "nhóm _chung đúng dạng không được báo lỗi: " + out[-800:]
+    ghi(os.path.join(data, "QUAN_SAT.docsau-9.json"), {"rows": [{"_chung": {"Cụm đọc": k}, "dong": "sai", "Thừa": 1}]})
+    rc, out = td("check", goc, "--den", "docsau")
+    assert "QUAN_SAT.docsau-9.json dòng 1: cột lạ '_chung'" in out, out[-800:]
+    os.remove(os.path.join(data, "QUAN_SAT.docsau-9.json"))
+    # xemcum: nhận cả khóa dòng; tờ lượt 0 đánh [L0], TRANG_QS của trang đó có * ở món của cụm
+    out = td_ok("xemcum", goc, k)
+    assert f"== CỤM {k} · 1 dòng · lượt 1 nhóm {n1}" in out and "Cai tu 12" in out, out[:400]
+    assert "[L0] A-501 | F0001|5" in out and "A-700 | F0001|7" in out and "PDF F0001: " in out, out
+    assert "* CT 3 · Tu 12 · Kích thước BV = 900×450×2000" in out and "  CT 4 · Ke · Kệ/đợt = 3 đợt" in out, out
+    assert "QUAN_SAT đã ghi: 0 dòng" in out and "-- BOQ_MAP" in out, out
+    rc, out = td("xemcum", goc, "khong!co")
+    assert rc != 0 and "không phải cụm" in out, out
+    # xemtrang: cụm dùng trang + mô tả, TRANG_QS; trang chưa có chữ thì nói rõ
+    out = td_ok("xem-trang", goc, "F0001", "5")
+    assert "3 cụm dùng trang này (lượt 0)" in out and k in out and ke in out and "[F0001|5] 3 dòng" in out, out
+    assert "chưa có chữ trang" in out, out
+    # giao: lượt 0 chỉ cột TRANG_QS/PAGES/ISSUES, lượt 1 không có TRANG_QS; có khối việc, thư mục ảnh, không bắt đọc JSON.md
+    out = td_ok("giao", goc, "1")
+    assert "LƯỢT 0, nhóm 1" in out and "[TRANG_QS]" in out and "[QUAN_SAT]" not in out and "== Lượt 0 · Nhóm 1" in out, out
+    assert "KHÔNG đọc JSON.md" in out and os.path.isdir(os.path.join(goc, "10_TENDER", "_png", "n1")) and "Bước [" not in out, out
+    out = td_ok("giao", goc, n1)
+    assert f"LƯỢT 1, nhóm {n1}" in out and "[QUAN_SAT]" in out and "[TRANG_QS]" not in out and f"== Nhóm {n1} (" in out and k in out, out
+    rc, out = td("giao", goc, "99")
+    assert rc != 0 and "không có Nhóm 99" in out, out
+    # Gemini quan sát in gọn: 1 dòng mỗi trường; không phải JSON thì in nguyên văn
+    sys.path.insert(0, os.path.join(ROOT, "SKILL", "10-tender", "tool"))
+    sys.modules.pop("docsau", None)
+    import docsau
+    g = docsau.gem_gon('```json\n{"Kính": {"value": "2 tấm", "status": "YES", "where": "D3 trái"}, "Gương": {"value": "", "status": "NOT VISIBLE"}}\n```', vat="Tu")
+    assert g == "  Kính: 2 tấm [YES] @ D3 trái\n  Gương:  [NOT VISIBLE]", g
+    assert docsau.gem_gon("xin lỗi", vat="Tu") == "xin lỗi" and docsau.gem_gon('["900", "?"]') == "so: 900, ?"
+    assert docsau.gem_gon("LỖI agy: x") == "LỖI agy: x" and docsau.gem_gon("2 leaves", hoi="?") == "2 leaves"
 
 
 @kiem(7, "mau")

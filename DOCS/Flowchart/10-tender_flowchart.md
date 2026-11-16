@@ -567,11 +567,20 @@ Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này
    ▼
  7c spec   SPEC, SCOPE (Spec · ML, Thông số riêng), QUAN_SAT nguồn SPEC, ISSUES S…
    ▼
+ giao <GOC> <n>  in prompt 7d của nhóm n (khối _docsau.txt, cột được ghi lọc theo lượt, thư mục ảnh 10_TENDER\_png
+<n>,
+   │             cấm tự viết script) → điều phối dán nguyên văn; agent không đọc JSON.md (phần ghi đã ở 7d-docsau.md)
+   ▼
  7d lượt 0  mỗi nhóm lượt 0 1 subagent, song song: mỗi trang đọc 1 lần cho mọi cụm
+   │    xemtrang <GOC> <FID> <trang>: đường dẫn PDF, khung tên, lớp chữ, cụm dùng trang + mô tả, TRANG_QS, PAGES
    │    ──► TRANG_QS.docsau-<n> (Khóa trang, Chi tiết, Món, Cụm đọc?, Trường, Giá trị, Crop), PAGES; gemini --goc cache sẵn
    │    check --den docsau: trang lượt 0 chưa có TRANG_QS = LỖI; HÌNH/TEXT không tờ, chuỗi cộng sai = LỖI
    ▼
- 7d lượt 1  mỗi nhóm 1 subagent, song song; trang lượt 0: loc TRANG_QS, không mở lại ảnh
+ 7d lượt 1  mỗi nhóm 1 subagent, song song; trang lượt 0: TRANG_QS qua xemcum, không mở lại ảnh
+   │    xemcum <GOC> <cụm|khóa>: mô tả, dòng + KL, MAT, tờ ([L0]) + đường dẫn PDF, TRANG_QS (* = gắn cụm),
+   │           QUAN_SAT/SCOPE/BOQ_MAP/ISSUES đã ghi, Gemini số — thay ~5 lượt loc/grep/find
+   │    ghi JSON: nhóm {"_chung": {...}, "dong": [...]} (td.jload_rows bung, riêng thắng) — không script sinh JSON
+   │    gemini in gọn: số → "so: …"; --quansat → 1 dòng/trường "tên: giá trị [status] @ where"
    │    anh: tool hạ dpi (cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP / 1568 px), in (giới hạn ảnh …)
    │    Claude đọc crop, ghi QUAN_SAT nguồn HÌNH/TEXT TRƯỚC
    │         ▼

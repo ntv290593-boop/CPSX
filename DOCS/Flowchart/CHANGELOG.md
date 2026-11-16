@@ -2,6 +2,7 @@
 
 Mới nhất ở trên. Định dạng: ngày · skill · phần đã sửa · lý do.
 
+- 2026-11-15 · 10-tender · phần 10 (7d, docsau, gemini), JSON chung · lệnh mới `giao <GOC> <n>` (prompt 7d máy in, A8), `xemcum` / `xemtrang` (in gộp, A6); `gemini` in gọn (số 1 dòng, `--quansat` 1 dòng/trường); `jload_rows` bung nhóm dòng `{"_chung", "dong"}` cho mọi sheet; 7d-docsau.md có mục "Ghi file" thay JSON.md và cấm tự viết script; vì đo 7d 15/11 số lượt không giảm (~7,6/cụm), 5 agent tự viết script/shell 44 lần (tóm log Gemini, sinh JSON, tìm PDF). kiemthu --mau 89/89 (thêm `gd7_xem_gop_giao_va_nhom_chung`).
 - 2026-11-15 · 10-tender, 01-scan (lõi chung) · phần 6 (banve), 10 (7d), 8 (dmvt), trang · `_core/doc_file.py` thêm `dai()` (tiền tố `\\?\` khi đường dẫn ≥ 240 ký tự), dùng ở `chu`/`so`/`anh`/`dpi_gioi_han`, `scan_core.doc_pdf`, `dmvt.duong_dan_pdf`; vì chạy thử 7d GBIA đường dẫn PDF 310 ký tự → pymupdf `FileNotFoundError` (agent tưởng do dấu tiếng Việt). Không đổi luồng. kiemthu --mau 88/88 (thêm `gd7_anh_duong_dan_dai`).
 
 - 2026-11-15 · 10-tender · phần 10 (docsau, 7d, check) · 7d chia 2 lượt: lượt 0 đọc trang dùng chung ≥ 3 cụm 1 lần → sheet mới `TRANG_QS` (ẩn, NỐI); lượt 1 chia cụm theo bộ tờ riêng (thành phần liên thông, ≤ 8 cụm, ≤ 12 trang), số nhóm nối tiếp lượt 0; cờ `--luot0 --trang0 --trang`; `check` LỖI khi trang lượt 0 chưa có TRANG_QS. Bản sao GBIA: 196 trang, mỗi trang giao 1 nhóm (lượt 0 10 nhóm / 74 trang, lượt 1 23 nhóm / 122 trang). Plan A3+A4.

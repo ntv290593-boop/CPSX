@@ -1,6 +1,6 @@
 # Plan: đọc sâu 10-tender — đọc mỗi trang 1 lần + giảm token (bước 6, 7c, 7d)
 
-Ngày: 2026-11-14 · Trạng thái: **ĐANG LÀM — xong A1–A5 + 2 lỗi (15/11, chưa commit); còn A6–A10, chưa đo 7d thật** · Dự án đo: GBIA_VVIP (`_ACTIVE\GBIA_VVIP\10_TENDER`)
+Ngày: 2026-11-14 · Trạng thái: **ĐANG LÀM — xong A1–A6, A8 + 2 lỗi (15/11, chưa commit); đã đo 7d thật A1–A5 (−9%); A6/A8 chưa đo; còn A7, A9, A10** · Dự án đo: GBIA_VVIP (`_ACTIVE\GBIA_VVIP\10_TENDER`)
 Đầu vào: `DOCS\HANDOFF_DOCSAU-PHAN-LOAI_2026-11-14.md` (vấn đề gửi chuyên gia) + phản hồi chuyên gia "Read Once – Extract All – Reuse Everywhere – Resolve Per BOQ" (user dán trong phiên 14/11, không lưu file).
 
 ## 1. Kết luận kiểm tra phản hồi chuyên gia
@@ -90,6 +90,13 @@ Theo CLAUDE.md: đổi tính năng skill thì sửa `DOCS\Flowchart\10-tender_fl
   - Lượt 1 không mở lại ảnh lượt 0 (nhóm 14: 1 ảnh); peak ngữ cảnh lượt 1 ~145k (trước ~190k). Rủi ro `Cụm đọc` trống: không xảy ra, món nhận đúng cụm; kích thước tương đương bản cũ.
   - Không giảm nhiều vì **số lượt không giảm** (~7,6 lượt/cụm) và cache read/lượt chỉ 112k vs 120k: nền + output lệnh + JSON tự ghi chiếm phần lớn, không phải ảnh. Nhóm 13 (5/8 cụm có tờ riêng) tốn 8,2M = như cũ. Lợi ích bỏ đọc trùng chỉ thấy đủ khi chạy cả 33 nhóm.
   - → Đòn bẩy tiếp theo là **số lượt**: A6 (lệnh gộp), A8 (dán JSON.md cần dùng), bớt `script`/`shell` tự viết (44 lần / 5 agent).
+- **A6 + A8 (15/11, kiemthu 89/89):** phân loại lệnh 5 agent đo: 97 lượt Bash/PowerShell ngoài td.py-chính (15 script Python tự viết + 29 shell): tóm log Gemini (gsum.py), sinh JSON rồi sed sửa (mk_l0_2.py, g14.py), tìm PDF (`find`), đọc `_docsau.txt`/ISSUES bằng grep, đọc mã td.py để biết cách gọi gemini, chạy gemini nền + `sleep`.
+  - `xemcum <GOC> <cụm|khóa>`, `xemtrang <GOC> <FID> <trang> [--chu]` (docsau.py): in 1 lần mọi thứ cần, kể cả đường dẫn PDF đã giải nén.
+  - `giao <GOC> <n>`: prompt 7d máy in (khối việc, cột được ghi lọc theo lượt, thư mục ảnh `10_TENDER\_png
+<n>`, luật cấm script); 7d-docsau.md có mục "Ghi file" → agent không đọc JSON.md.
+  - `jload_rows` bung nhóm `{"_chung": {...}, "dong": [...]}` (mọi sheet) → ghi QUAN_SAT/TRANG_QS không lặp, không cần script.
+  - `gemini` in gọn (số: `so: …`; `--quansat`: 1 dòng/trường) → khỏi script tóm log.
+  - Chưa đo lại: cần chạy 7d thử (vài nhóm) để xem số lượt/cụm có giảm từ ~7,6.
   - Lỗi phát hiện: `anh` FileNotFoundError khi đường dẫn PDF > 260 ký tự (bản sao 310) → đã sửa `doc_file.dai()` (tiền tố `\\?\`), kiemthu 88/88.
 
 ## 4. Câu hỏi mở cho user

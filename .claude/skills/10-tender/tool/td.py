@@ -52,6 +52,10 @@ LENH = """Lệnh:
   so <pdf> <trang> [--clip ...] in các số trong lớp chữ kèm toạ độ (đọc kích thước)
   docsau <GOC> [--nhom 8] [--phong SK-01 | --sheet S | --thaydoi | --thieu]
                                 đọc sâu: gom dòng BOQ thành cụm, chia nhóm -> _docsau.txt, nháp Phạm vi nhà máy, BOQ_MAP; lọc = chỉ giao lại phần đó
+  giao <GOC> <nhóm>             in prompt giao việc 7d cho 1 nhóm (khối việc, cột được ghi, thư mục ảnh 10_TENDER\\_png\\n<nhóm>)
+  xemcum <GOC> <cụm|khóa>       1 lần: mô tả, dòng + KL, MAT, tờ + đường dẫn PDF, TRANG_QS lượt 0, QUAN_SAT/SCOPE/BOQ_MAP/ISSUES đã ghi
+  xemtrang <GOC> <FID> <trang> [--chu]
+                                1 lần: đường dẫn PDF, khung tên, cụm dùng trang (kèm mô tả), TRANG_QS, PAGES, chữ trang
   gemini <a.png> [b.png …] [--claude "900,450,450"] [--quansat "Tủ lavabo"] [--hoi "câu hỏi"] [--goc <GOC>]
                                 Gemini (agy) đọc độc lập: số kích thước / bộ trường quan sát / câu hỏi riêng;
                                 cache theo nội dung ảnh + câu hỏi ở _data\\_gemini_cache (có --goc) hoặc _gemini_cache cạnh ảnh
@@ -304,7 +308,23 @@ def jload_rows(path):
     rows = data.get("rows") if isinstance(data, dict) else None
     if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
         return None, None
-    return data, rows
+    return data, bung_chung(rows)
+
+
+def bung_chung(rows):
+    """Nhóm dòng {"_chung": {cột chung}, "dong": [{…}, …]} -> mỗi dòng = chung + riêng (riêng thắng).
+    Ghi QUAN_SAT / TRANG_QS nhiều dòng cùng Cụm đọc, Tờ · Chi tiết, Nguồn mà không lặp, không cần script sinh JSON.
+    Nhóm sai dạng ("dong" không phải list object) -> giữ nguyên dòng để check báo cột lạ."""
+    if not any("_chung" in r for r in rows):
+        return rows
+    ra = []
+    for r in rows:
+        dong, chung = r.get("dong"), r.get("_chung")
+        if isinstance(chung, dict) and isinstance(dong, list) and all(isinstance(x, dict) for x in dong) and set(r) == {"_chung", "dong"}:
+            ra += [{**chung, **x} for x in dong]
+        else:
+            ra.append(r)
+    return ra
 
 
 def merge(p, only_tool=False, bao_giao_lai=None):
@@ -3672,6 +3692,7 @@ def main(a):
         print(LENH)
         return
     c, rest = a[0], a[1:]
+    c = {"xem-cum": "xemcum", "xem-trang": "xemtrang"}.get(c, c)
     if c == "cot":
         return cmd_cot(rest)
     if not rest:
@@ -3697,6 +3718,8 @@ def main(a):
           "area": lambda: cmd_area(goc), "xuathien": lambda: cmd_xuathien(goc), "dmvt": lambda: cmd_dmvt(goc, rest),
           "guilink": lambda: cmd_guilink(goc, rest),
           "docsau": lambda: _docsau().cmd_docsau(goc, rest), "neo": lambda: _docsau().cmd_neo(goc),
+          "xemcum": lambda: _docsau().cmd_xemcum(goc, rest), "xemtrang": lambda: _docsau().cmd_xemtrang(goc, rest),
+          "giao": lambda: _docsau().cmd_giao(goc, rest),
           "tincay": lambda: _docsau().cmd_tincay(goc), "do": lambda: _docsau().do(goc)}.get(c)
     if not fn:
         sys.exit(LENH)

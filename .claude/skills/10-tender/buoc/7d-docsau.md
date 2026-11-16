@@ -7,14 +7,22 @@ Cụm = các dòng BOQ cùng mô tả, mã VL, mã FF&E và bộ tờ. Đọc 1 
 
 **Toàn gói:** cụm nào cũng đọc, kể cả sơn, thạch cao, sàn, MEP. Trường không áp dụng cho loại đó (sơn không có `Có cánh`) thì bỏ, không ghi `KHÔNG CÓ` cho có. Tối thiểu mọi cụm: `Kích thước BV` hoặc phạm vi/diện tích thể hiện trên tờ nếu có, `Mã hoàn thiện trên BV`, `Khu`, `Bộ tờ đã đọc`, `Tờ chưa đọc`, `Kiểm chéo Gemini`.
 
+## Ghi file (đủ cho 7d — không cần đọc JSON.md)
+- Nơi ghi: `<GOC>\10_TENDER\_data\<SHEET>.docsau-<nhóm>.json`, chỉ file của nhóm mình. Không sửa `*-tool.json`, `*.user.json`, file của nhóm/bước khác. Không tự ghi xlsx.
+- Dạng: `{"rows": [ {...}, ... ]}`. Cột đúng tên (có dấu) như danh sách "Cột được ghi" trong prompt (`cot --buoc docsau`). Không có giá trị → **bỏ cột**, không ghi `""`, `0`, `"?"`. Xóa giá trị nháp sai của tool → `"(xóa)"`.
+- **Nhóm dòng chung** (QUAN_SAT, TRANG_QS nhiều trường cùng cụm/món/tờ): `{"_chung": {"Cụm đọc": "...", "Nguồn": "HÌNH", "Tờ · Chi tiết": [["FUR-3315 p5 D13", "F0006", 5]]}, "dong": [{"Trường": "Kích thước BV", "Giá trị": "...", "Trạng thái": "CÓ"}, ...]}` → mỗi dòng = chung + riêng (riêng thắng). Viết thẳng bằng Write; **không viết script Python sinh JSON**. Sửa bằng Edit.
+- SCOPE, BOQ_MAP: sheet có khóa (`Khóa`, `Khóa KL`), chỉ ghi khóa đã có (xem bằng `xemcum`); không thêm dòng mới. PAGES khóa `Khóa trang`, ISSUES khóa `ID` (`V<nhóm>-01`…), DAY_TUONG khóa `Khóa DT`.
+- Link: `["nhãn", "FID", trang]`, nhiều link = list các link; nhãn ngắn có số tờ + chi tiết (`"FUR-3315 p5 D13"`). Không có nguồn → chuỗi `"KHÔNG THẤY – đã tìm ở …"`.
+- DS đúng 1 giá trị trong danh sách; số ghi dạng số; nhiều giá trị trong 1 ô cách `; `.
+
 ## Hai lượt
 **Lượt 0 — trang dùng chung** (khối `Lượt 0 · Nhóm <n>`: các `TRANG <FID>|<trang>` và danh sách món cần tìm). Trang này có ≥ 3 cụm dùng nên đọc **1 lần cho mọi cụm**, trước lượt 1.
-- Mỗi trang: ảnh cả trang 1 lần → phóng từng chi tiết có món trong danh sách. Ghi `TRANG_QS.docsau-<n>.json`: 1 dòng = 1 trường của 1 món, `Khóa trang`, `Chi tiết` (số chi tiết/hình), `Món` (nhãn/tên trên hình), `Cụm đọc` (các cụm khớp món, cách `; `; chưa chắc thì để trống), `Trường`, `Giá trị`, `Trạng thái`, `Tờ · Chi tiết`, `Nguồn` HÌNH/TEXT, `Crop` (tham số `anh` đã dùng: `<trang> --clip … --dpi …`). Trường như mục "Làm" bước 3–4, kể cả kiểm chuỗi kích thước.
+- Mỗi trang: `xemtrang <GOC> <FID> <trang>` (đường dẫn PDF, khung tên, lớp chữ, các cụm dùng trang kèm mô tả) → ảnh cả trang 1 lần → phóng từng chi tiết có món trong danh sách. Ghi `TRANG_QS.docsau-<n>.json`: 1 dòng = 1 trường của 1 món, `Khóa trang`, `Chi tiết` (số chi tiết/hình), `Món` (nhãn/tên trên hình), `Cụm đọc` (các cụm khớp món, cách `; `; chưa chắc thì để trống), `Trường`, `Giá trị`, `Trạng thái`, `Tờ · Chi tiết`, `Nguồn` HÌNH/TEXT, `Crop` (tham số `anh` đã dùng: `<trang> --clip … --dpi …`). Trường như mục "Làm" bước 3–4, kể cả kiểm chuỗi kích thước.
 - Gemini: chạy `gemini <crop> --goc <GOC>` (chế độ số, không `--cum`) và `--quansat "<Món>" --goc <GOC>` trên crop đã dùng, để cache sẵn cho lượt 1. Lệch thì ghi cả 2 dòng (`HÌNH`, `GEMINI`) `MÂU THUẪN`.
 - Ghi `PAGES.docsau-<n>.json` cho mọi trang đã mở. Không ghi QUAN_SAT, SCOPE, BOQ_MAP (lượt 1 làm). Trang không có món nào trong danh sách: 1 dòng `Món = (không có)`, `Trạng thái = KHÔNG THẤY`, lý do ở `Giá trị`.
 
 **Lượt 1 — theo cụm** (khối `Nhóm <n>`). `Tờ:` chỉ còn tờ riêng; `Lượt 0 đã đọc:` là các trang đã có quan sát.
-- Trang lượt 0: **không mở lại ảnh**, đọc `loc <GOC> TRANG_QS "Khóa trang=<FID>|<trang>"` (cả trang, vì `Cụm đọc` có thể trống), chép giá trị đúng món vào QUAN_SAT của cụm với cùng `Tờ · Chi tiết`, `Nguồn`. Chỉ mở lại khi TRANG_QS thiếu đúng trường cụm cần, hoặc món không rõ thuộc cụm nào; mở thì cắt lại đúng `Crop` để trúng cache Gemini.
+- Mở đầu mỗi cụm: `xemcum <GOC> <cụm>` (1 lệnh: mô tả, dòng + KL, MAT, tờ + đường dẫn PDF, TRANG_QS các trang lượt 0, những gì đã ghi). Trang lượt 0: **không mở lại ảnh**, dùng TRANG_QS `xemcum` in ra (cả trang, vì `Cụm đọc` có thể trống; `*` = dòng đã gắn cụm này), chép giá trị đúng món vào QUAN_SAT của cụm với cùng `Tờ · Chi tiết`, `Nguồn`. Chỉ mở lại khi TRANG_QS thiếu đúng trường cụm cần, hoặc món không rõ thuộc cụm nào; mở thì cắt lại đúng `Crop` để trúng cache Gemini.
 - `gemini --cum <cụm> --goc <GOC>` vẫn chạy cho mọi crop dùng làm bằng chứng của cụm (kể cả crop lượt 0: cắt lại đúng `Crop` rồi đưa thẳng cho `gemini`, **không mở PNG bằng Read**): trúng cache, không gọi agy, nhưng ghi `_gemini_so\<cụm>.json` cho bước 7e.
 
 ## Nguyên tắc
@@ -25,13 +33,17 @@ Cụm = các dòng BOQ cùng mô tả, mã VL, mã FF&E và bộ tờ. Đọc 1 
 5. **Khối lượng đếm trên bản vẽ** (bảng thống kê, mặt bằng từng khu). Không lấy KL BOQ chia, không lấy diện tích chia kích thước. Hạng mục m2/md không có bảng thống kê: bỏ trống `KL theo BV`, không tự đo (trạng thái CHƯA ĐỌC, độ tin cậy tối đa TB), không cần issue riêng cho từng dòng.
 6. Đọc kỹ 20 kịch bản sai và cách chặn: `D:\COSTING EXCEL\_MASTER\modules\SCAN-NHAN-LOAI.md` mục 4 (chỉ đọc mục 4).
 
-## Công cụ (đừng tự viết script đọc PDF)
+## Công cụ — chỉ dùng các lệnh này
+Không tự viết script (Python, sed, grep, find, cat, Select-String) để đọc `_data`, PDF, log Gemini hay mã tool: mỗi lượt tự viết đọc lại ~110k token ngữ cảnh. Thiếu lệnh thì ghi vào kết quả trả về. Gemini chạy thường (đợi tới ~5 phút), không chạy nền rồi `sleep`.
 | Việc | Lệnh `py -I "<TOOL>" …` |
 |---|---|
+| Mọi thứ của 1 cụm | `xemcum <GOC> <cụm hoặc khóa dòng>` |
+| Mọi thứ của 1 trang | `xemtrang <GOC> <FID> <trang> [--chu]` (`--chu` = cả lớp chữ) |
+| Lọc dữ liệu đã ghép | `loc <GOC> <SHEET> "cột=gt" "cột~regex" --cot a,b` |
 | Tìm trang có mã / từ khóa | `tim <GOC> --ma WD-01 [--file s]`, `tim <GOC> "<regex>"` |
 | Trang ứng viên của dòng | `ungvien <GOC> --khoa "<Khóa>"` |
 | Giải nén file trong zip | `zip <GOC> <FID>` |
-| Xem trang (ảnh) | `anh "<pdf>" <trang> "<scratchpad>\p13.png" --dpi 100` rồi mở PNG bằng Read |
+| Xem trang (ảnh) | `anh "<pdf>" <trang> "<thư mục ảnh trong prompt>\p13.png" --dpi 100` rồi mở PNG bằng Read (đường dẫn PDF lấy từ `xemcum`/`xemtrang`) |
 | Phóng một vùng | `anh … --dpi 220 --clip 0.2,0.1,0.6,0.5` (tỉ lệ 0–1 theo chiều nhìn). Tool tự hạ dpi: cả trang ≤ 1000 px cạnh dài, vùng cắt ≤ 1,15 MP. In `(giới hạn ảnh …)` = vùng quá to so với dpi xin: cắt vùng nhỏ hơn, không xin dpi cao hơn |
 | Chữ trong vùng | `chu "<pdf>" <trang> --clip …` |
 | Số kích thước + vị trí | `so "<pdf>" <trang> --clip …` (chỉ khi trang có lớp chữ) |
