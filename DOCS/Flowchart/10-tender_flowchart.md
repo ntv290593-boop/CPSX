@@ -620,7 +620,7 @@ Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này
    │    xemcum: ghep báo thêm dẫn chiếu không cụm mà cụm là ứng viên
    ▼
  ③ nhóm Đối chiếu  mỗi nhóm 1 subagent, song song; không mở ảnh trừ trường bắt buộc còn thiếu ở trang đã đọc
-   │    xemcum <GOC> <cụm|khóa> […] --gon (≤ 5 cụm/lần) | --nhom <n>: mô tả BOQ, MAT, tờ [đã đọc]/[CHƯA], TRANG_QS của cụm (* gán, ? ứng viên),
+   │    xemcum <GOC> <cụm|khóa> […] --gon | --nhom <n> (tự dừng ở ~24.000 ký tự, in lệnh gọi tiếp): mô tả BOQ, MAT, tờ [đã đọc]/[CHƯA], TRANG_QS của cụm (* gán, ? ứng viên),
    │           QUAN_SAT, CÒN THIẾU (hợp đồng kiểm), SCOPE, BOQ_MAP, ghep báo, ISSUES, Gemini số
    │           --gon: TRANG_QS gom theo (trang, chi tiết, món, khu, crop), ẩn QUAN_SAT do ghep chép lại, mô tả BOQ ≤ 300 ký tự
    │    check --den docsau --nhom <n>: chỉ LỖI/XEM nhắc tới cụm / trang của cụm / file .docsau-<n> của nhóm

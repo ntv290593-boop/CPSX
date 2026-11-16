@@ -141,6 +141,7 @@ TRANG_NHOM = 8     # số trang tối đa mỗi nhóm đọc trang
 MON_NHOM = 40      # tổng lượt món (cụm × trang) tối đa mỗi nhóm đọc trang
 CUM_TIM = 8        # cụm chưa có tờ: số cụm mỗi nhóm tìm tờ
 CUM_DOICHIEU = 25  # cụm mỗi nhóm đối chiếu (không mở ảnh)
+XEMCUM_MAX = 24000  # xemcum nhiều cụm: dừng trước khi output quá dài (Bash cắt ~30k ký tự, phần thừa phải Read lại)
 CHUA_PL = "CHƯA PHÂN LOẠI"
 BB, DK = "BB", "DK"
 PHIEN_BAN = 3      # _docsau.json bản đọc theo trang
@@ -815,12 +816,23 @@ def cmd_xemcum(goc, args):
         if not rep:
             sys.exit(f"LỖI: '{k}' không phải cụm / dòng trong _docsau.json — chạy docsau trước, khóa dạng '<sheet>!<dòng>'")
         reps.append(rep)
+    import contextlib
+    import io
     res, _ = merge(p)
-    nho = {}
-    for i, rep in enumerate(dict.fromkeys(reps)):
-        if i:
-            print()
-        _xemcum_1(p, ds, cmap, res, rep, gon, nho)
+    nho, da_in = {}, 0
+    reps = list(dict.fromkeys(reps))
+    for i, rep in enumerate(reps):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _xemcum_1(p, ds, cmap, res, rep, gon, nho)
+        t = buf.getvalue()
+        if i and da_in + len(t) > XEMCUM_MAX:  # output Bash bị cắt ~30k ký tự → dừng, in lệnh gọi tiếp
+            con = reps[i:]
+            print(f"\n== DỪNG trước {len(con)} cụm (output sắp quá {XEMCUM_MAX} ký tự). Gọi tiếp:\n"
+                  f"xemcum <GOC> {' '.join(chr(34) + c + chr(34) for c in con)}{' --gon' if gon else ''}")
+            return
+        print(("\n" if i else "") + t, end="")
+        da_in += len(t)
 
 
 def _xemcum_1(p, ds, cmap, res, rep, gon, nho):
@@ -1125,7 +1137,7 @@ GOC = {p.goc}   TOOL = {os.path.join(here, 'td.py')}
 Ảnh tạm (PNG crop) để ở: {png}
 Ghi: {os.path.join(p.t, '_data')}\\{ghi}
 Không tự viết script / sed / grep / find / cat file _data: dùng xemtrang, xemcum, loc, chu, so, anh, gemini; ghi JSON bằng Write, sửa bằng Edit.
-Xem cụm: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` mỗi lần ≤ 5 cụm (output dài hơn bị cắt). Kiểm phần của mình: `check <GOC> --den docsau --nhom {n}`.
+Xem cụm: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (nhiều cụm 1 lần; tool tự dừng trước khi output quá dài và in lệnh gọi tiếp). Kiểm phần của mình: `check <GOC> --den docsau --nhom {n}`.
 
 Cột được ghi:
 {cot}

@@ -76,6 +76,20 @@ Sau phản biện chuyên gia (user: "ok làm đi"). Đo trên transcript pilot:
 - `xemcum <GOC> <cụm…> --gon` / `--nhom <n>`: TRANG_QS gom theo (trang, chi tiết, món, khu, crop), ẩn dòng QUAN_SAT do `ghep` chép lại (Model `ghep ←` / `td.py ghep`), mô tả BOQ ≤ 300 ký tự; nhiều cụm 1 lệnh, đường dẫn PDF in 1 lần. Đo bản sao GBIA: cụm B02!21 9,1 → 5,2 KB (−43%); nhóm 27 (25 cụm) 151 → 96 KB (−36%). Output Bash bị cắt ~30k ký tự nên `giao` dặn ≤ 5 cụm/lần. Chưa đo token thật của nhóm Đối chiếu.
 - `check --nhom <n>`: chỉ giữ LỖI/XEM nhắc tới trang (`trang_nhom`/`tim_to`), cụm (`so_nhom`/`tim_to`, kèm trang của cụm) hoặc file `.docsau-<n>.json`. LỖI "trang giao chưa đọc" tách theo nhóm (`Đọc trang · nhóm <n>: a/b trang …`). Bản sao GBIA: nhóm 1, 7 → 0 LỖI; nhóm 2 → 1 LỖI (8/8 trang chưa đọc); nhóm 27 → 36 LỖI. `doc-trang` vẫn không chạy check (`luu` đã kiểm).
 - kiemthu: sửa `gd7_doc_theo_trang_ghep_va_do_phu` (câu LỖI mới + check --nhom + xemcum --gon), thêm kiểm prompt giao đối chiếu. GĐ7 17/17.
+- **Đo A/B nhóm Đối chiếu 6** (bản sao `GBIA_DC` ở scratchpad phiên 21a5de68, dựng lại đúng `_data` của mốc `_do_4trang`, `ghep` lại; prompt chỉ khác 1 dòng `xemcum --gon` + `check --nhom`; Opus general-purpose; đo `do3.py` từ transcript):
+
+| | Mốc (xemcum đủ) | --gon |
+|---|---|---|
+| Lượt | 20 | 13 |
+| Ảnh | 1 | 1 |
+| Đọc cache / ghi cache / output | 2,36M / 0,150M / 29k | 1,08M / 0,132M / 22k |
+| **Quy giá** | **0,569M** | **0,384M (−33%)** |
+| Thời gian | ~6 phút | 4 phút 25 |
+| QUAN_SAT / SCOPE / ISSUES / ASK_USER | 43 / 13 / 8 / 1 | 36 / 13 / 6 / 0 |
+| check --nhom 6 | — | 0 LỖI ở cụm nhóm (3 LỖI = nhóm trang 3/4/5 chưa đọc) |
+
+  - Review chất lượng: không có kết luận nào mâu thuẫn với mốc; 5 issue trùng nội dung (len chân dưới trụ gỗ, WD-02A sồi/óc chó, SPT-03, BF-01B cabinet/wardrobe, nẹp MT-01 sàn–trần); thêm 1 (phào 15×10 nổi/lõm chưa rõ). **Thiếu so với mốc:** (a) !24/!31 dải cao 150 WD-01 ở E3 có thể là bục BF-02A chứ không phải len chân (nguy cơ tính trùng); (b) !27 WP-04 BV cao 2800 vs BOQ 2,84; (c) !28 trụ WD-01 cao sàn–CH 3000 vs BOQ 2,84 (chỉ ghi ở nẹp !29); (d) ASK_USER WP-04 nhà máy có làm giấy dán không (SCOPE vẫn CHƯA RÕ). 2 issue "tờ chưa đọc" của mốc nay chỉ báo trong phần trả về — đúng thiết kế. n=1 mỗi bên, không tách được do --gon hay dao động LLM.
+  - Lô 5 cụm ốp tường ra 35k ký tự → bị lưu file, agent mất 1 lượt Read → đã sửa: `xemcum` tự dừng ở `XEMCUM_MAX` = 24.000 ký tự, in lệnh gọi tiếp.
 - Còn lại: `effort` của doc-trang; cỡ nhóm 4/8/16 với doc-trang; đo 1 nhóm Đối chiếu với `--gon` (cả 3 việc tốn chạy Opus thật, cần user duyệt).
 
 ## 3. Việc tiếp theo (cũ — P0 + pilot đã làm, xem 2b)

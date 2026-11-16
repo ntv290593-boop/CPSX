@@ -38,7 +38,7 @@ Với **mỗi trang**:
 - **Không ghi** QUAN_SAT, SCOPE, BOQ_MAP, DAY_TUONG ở nhóm trang: `ghep` làm.
 
 ## Nhóm Đối chiếu — không mở ảnh trừ chỗ thiếu
-Chạy sau khi mọi nhóm Trang/Tìm tờ xong và phiên điều phối đã chạy `ghep` (`check` báo LỖI nếu chưa ghép hoặc TRANG_QS mới hơn lần ghép). Xem cụm theo lô: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (≤ 5 cụm/lần, output dài hơn bị cắt; `--gon` gom TRANG_QS theo trang/món và ẩn dòng QUAN_SAT do `ghep` chép lại, −36–43% chữ) (mô tả BOQ, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT đã ghép, **CÒN THIẾU** trường bắt buộc, BOQ_MAP, phần `ghep báo`).
+Chạy sau khi mọi nhóm Trang/Tìm tờ xong và phiên điều phối đã chạy `ghep` (`check` báo LỖI nếu chưa ghép hoặc TRANG_QS mới hơn lần ghép). Xem cụm theo lô: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (nhiều cụm 1 lần; tool tự dừng ở ~24.000 ký tự và in lệnh gọi tiếp cho cụm còn lại; `--gon` gom TRANG_QS theo trang/món và ẩn dòng QUAN_SAT do `ghep` chép lại, −36–43% chữ) (mô tả BOQ, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT đã ghép, **CÒN THIẾU** trường bắt buộc, BOQ_MAP, phần `ghep báo`).
 1. **Không chép lại** quan sát đã ghép. Chỉ ghi phần thêm/sửa.
 2. **So với BOQ:** `Kích thước BoQ` (SCOPE, nếu mô tả có ghi). BV ↔ BOQ lệch (kích thước, số lượng, cấu tạo) → thêm dòng QUAN_SAT `Nguồn = BOQ` cạnh dòng HÌNH đã ghép, cả 2 `MÂU THUẪN` (ghi dòng BOQ, dòng HÌNH giữ nguyên) + 1 issue. Không tự chọn bên thắng. `Mã hoàn thiện trên BV` ≠ MAT → issue.
 3. **Quan sát chỉ có Cụm ứng viên** (dòng `?` trong `xemcum`): quyết thuộc cụm nào → ghi 1 dòng QUAN_SAT cho đúng cụm (chép `Trường`, `Giá trị`, `Trạng thái`, `Tờ · Chi tiết`, `Nguồn`; `Model` ghi `gán từ TRANG_QS <Khóa trang>`). Không quyết được → issue / ASK_USER.
@@ -60,7 +60,7 @@ Chạy lệnh `td.py` qua **Bash** (PowerShell 5.1 làm mất tham số đườn
 | Việc | Lệnh `py -I "<TOOL>" …` |
 |---|---|
 | Danh sách cần kiểm + mọi thứ của 1 trang (nhóm trang) | `xemtrang <GOC> <FID> <trang> [--chu] [--loai MĐ+MC]` (`--chu` = cả lớp chữ; `--loai` = loại tờ tự xác định khi máy in `?`) |
-| Mọi thứ của 1 cụm (nhóm đối chiếu) | `xemcum <GOC> <cụm hoặc khóa dòng> […] --gon` (≤ 5 cụm/lần) |
+| Mọi thứ của 1 cụm (nhóm đối chiếu) | `xemcum <GOC> <cụm hoặc khóa dòng> […] --gon` (tự dừng khi output quá dài, in lệnh gọi tiếp) |
 | Lọc dữ liệu đã ghép | `loc <GOC> <SHEET> "cột=gt" "cột~regex" --cot a,b` |
 | Tìm trang có mã / từ khóa | `tim <GOC> --ma WD-01 [--file s]`, `tim <GOC> "<regex>"` |
 | Trang ứng viên của dòng | `ungvien <GOC> --khoa "<Khóa>"` |

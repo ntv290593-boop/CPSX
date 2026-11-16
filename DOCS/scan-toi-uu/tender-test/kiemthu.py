@@ -3238,7 +3238,7 @@ def gd7_xem_gop_giao_va_nhom_chung(tmp):
     assert os.path.isdir(os.path.join(goc, "10_TENDER", "_png", "n1")) and "Bước [" not in out, out
     out = td_ok("giao", goc, n1)
     assert f"ĐỐI CHIẾU (không mở ảnh, trừ chỗ thiếu), nhóm {n1}" in out and "[QUAN_SAT]" in out and "[TRANG_QS]" not in out and f"== Đối chiếu · Nhóm {n1} (" in out and k in out, out
-    assert "--gon` mỗi lần ≤ 5 cụm" in out and f"--nhom {n1}`" in out, out
+    assert "tool tự dừng trước khi output quá dài" in out and f"--nhom {n1}`" in out, out
     rc, out = td("giao", goc, "99")
     assert rc != 0 and "không có Nhóm 99" in out, out
     # Gemini quan sát in gọn: 1 dòng mỗi trường; không phải JSON thì in nguyên văn

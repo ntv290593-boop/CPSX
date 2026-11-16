@@ -2,6 +2,8 @@
 
 Mới nhất ở trên. Định dạng: ngày · skill · phần đã sửa · lý do.
 
+- 2026-11-16 · 10-tender · phần 10 (7d ③, xemcum) · `xemcum` nhiều cụm tự dừng ở ~24.000 ký tự (`XEMCUM_MAX`) và in lệnh gọi tiếp cho cụm còn lại, thay lời dặn "≤ 5 cụm/lần"; vì đo nhóm Đối chiếu 6: 5 cụm ốp tường (~10 KB mỗi cụm) ra 35k ký tự → Bash lưu ra file, agent mất 1 lượt Read.
+
 - 2026-11-16 · 10-tender · phần 10 (7d ③, check, xemcum, giao) · `xemcum … --gon` (TRANG_QS gom theo trang/chi tiết/món/khu/crop, ẩn QUAN_SAT do `ghep` chép lại, mô tả BOQ ≤ 300 ký tự), nhận nhiều cụm hoặc `--nhom <n>` trong 1 lệnh; đo bản sao GBIA: cụm B02!21 9,1 → 5,2 KB, nhóm đối chiếu 27 (25 cụm) 151 → 96 KB. `check --nhom <n>` chỉ in LỖI/XEM nhắc tới trang / cụm / file của nhóm; LỖI "trang giao chưa đọc" tách theo nhóm. `giao` nhóm Đối chiếu dặn xemcum --gon ≤ 5 cụm/lần + check --nhom. Vì agent không lọc được LỖI của mình trong ~290 LỖI cả dự án, và nhóm Đối chiếu gọi xemcum từng cụm.
 
 - 2026-11-16 · 10-tender · phần 10 (giao, 7d ①) · Nhóm Trang / Tìm tờ chạy bằng agent riêng `doc-trang` (`SKILL\_agents\doc-trang.md`, junction `.claude\agents`; tools Read + Bash, `omitClaudeMd`, luật nhóm trang trong system prompt) thay `general-purpose`: đo 1 lượt nền khởi động 41,6k → 10,8k token. Lệnh mới `luu <GOC> <n> "<FID>|<trang>" [--them] < JSON`: ghi mỗi trang 1 lần, tool kiểm cột như check, tự điền Khóa trang + PAGES File ID/Trang/Số BV/Rev/Lớp text, thay Write/Edit (Edit viết lại cả khối ~25% output). `giao` nhóm trang in prompt ngắn, kèm mục Thứ tự ưu tiên + Bẫy của README. Vì phản biện chuyên gia 16/11: nền mỗi agent ≈ 30% chi phí 7d, ghi cache 27%, output 29%.
