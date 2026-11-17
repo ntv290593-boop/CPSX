@@ -622,6 +622,8 @@ Chuyển từ 01-scan. `pd.py` không đổi (đóng băng), nên các hàm này
  ③ nhóm Đối chiếu  mỗi nhóm 1 subagent, song song; không mở ảnh trừ trường bắt buộc còn thiếu ở trang đã đọc
    │    xemcum <GOC> <cụm|khóa> […] --gon | --nhom <n> (tự dừng ở ~24.000 ký tự, in lệnh gọi tiếp): mô tả BOQ, MAT, tờ [đã đọc]/[CHƯA], TRANG_QS của cụm (* gán, ? ứng viên),
    │           QUAN_SAT, CÒN THIẾU (hợp đồng kiểm), SCOPE, BOQ_MAP, ghep báo, ISSUES, Gemini số
+   │           TRÙNG SỐ BOQ CỤM KHÁC: số trên TRANG_QS của cụm = kích thước BOQ cụm khác (cùng sheet / cùng trang, có số lẻ ≠ bội 50,
+   │               bỏ số của chính cụm; ≤ 6 cụm, 2 dòng/cụm) → agent xét tính trùng / gán nhầm → ISSUES
    │           --gon: TRANG_QS gom theo (trang, chi tiết, món, khu, crop), ẩn QUAN_SAT do ghep chép lại, mô tả BOQ ≤ 300 ký tự
    │    check --den docsau --nhom <n>: chỉ LỖI/XEM nhắc tới cụm / trang của cụm / file .docsau-<n> của nhóm
    │    ghi phần thêm/sửa: SCOPE (Kích thước BoQ, Phạm vi nhà máy), QUAN_SAT (BOQ ↔ BV MÂU THUẪN, gán quan sát ứng viên,

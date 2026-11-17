@@ -106,7 +106,33 @@ Sau phản biện chuyên gia (user: "ok làm đi"). Đo trên transcript pilot:
   - Token: 2 khoảng không chồng nhau (B cao nhất 0,456 < A thấp nhất 0,513) → −29% là thật.
   - Điểm chung 6/6: SPT-03 BV≠MAT, WD-02A sồi≠óc chó, len chân dưới trụ gỗ, gán khe hắt !35/!36. (b), (d) chỉ 1/6 → dao động, không do --gon.
   - (a) 3/3 vs 1/3: dấu hiệu --gon làm yếu, n nhỏ. Đã kiểm: `--gon` KHÔNG mất dữ kiện (mô tả BOQ BF-02A L3727 H150, TRANG_QS !31 "len 150 dưới WP-04 3727" ở E3, ghi chú BOQ "E3 phần tủ/bục không tính" đều in); khác ở chỗ chế độ đủ in mỗi quan sát 2 lần (TRANG_QS + bản chép QUAN_SAT). Hướng bù (chưa làm): tool tự báo trong xemcum "cụm khác có kích thước BOQ trùng số trên cùng trang" — kiểm máy, không trông vào LLM để ý.
-- Còn lại: `effort` của doc-trang; cỡ nhóm 4/8/16 với doc-trang; đo 1 nhóm Đối chiếu với `--gon` (cả 3 việc tốn chạy Opus thật, cần user duyệt).
+- **ĐÃ LÀM 16–17/11 (đo 17/11 ở mục 2e, đã commit): hướng bù (a)** — `xemcum` in mục `TRÙNG SỐ BOQ CỤM KHÁC` (`docsau.trung_kt_cum_khac`): số (≥ 100, bỏ mã FUR-/WD-/SW3/F0004, thập phân, %) trong TRANG_QS đã gán cụm trùng kích thước BOQ (`Kích thước BoQ`, không có thì số trong Mô tả BOQ) của cụm khác cùng sheet BOQ hoặc cùng trang (Bản vẽ hiệu lực / TRANG_QS); chỉ báo khi phần trùng ngoài kích thước của chính cụm có số không chia hết 50; ≤ 6 cụm, 2 dòng/cụm. Cùng sheet là bắt buộc: BF-02A (!24) không có tờ E3 (F0004|7) trong Bản vẽ hiệu lực nên điều kiện "cùng trang" không bắt được. `giao` + 7d-docsau.md mục 8 dặn xét → ISSUES. Bản sao GBIA_DC: báo 4 cụm — B02!31 → !24 (ca mẫu), B02!27 → !24 (tường WP-04 sau bục 3727), B08!33 → BF-02B 3720 (ca tương tự), B08!32 nhiều cụm tủ cạnh (nhiễu nhất). kiemthu thêm `gd7_xemcum_trung_so_boq_cum_khac` — ca này bắt 1 lỗi: mẫu bỏ mã (`F0004`, `SW3`) xóa luôn `L3727`/`H150` (GBIA vẫn ra đúng nhờ lùi về Mô tả BOQ); đã sửa (giữ tiền tố 1 chữ L/W/H/D/R/C/Ø). **kiemthu --mau 94/94 (17/11, `py -I`).** Đã đo lại nhóm Đối chiếu 6: xem mục 2e.
+  - Lưu ý chạy kiemthu: dùng `py -I` (Python 3.13 có pywin32); venv `_MASTER\tools\.venv` thiếu `win32com` → GĐ6 `gd6_build_khong_cau_hinh_van_ra_2_file` hỏng giả.
+
+## 2e. ĐO 17/11 — thử mù 1 sheet ngẫu nhiên + chạy lặp nhóm 6 với TRÙNG SỐ
+**Thử mù B04** (user: "chọn nhóm ngẫu nhiên, không biết trước kết quả"): `secrets.choice` trong 7 sheet chưa thử, ≥ 4 cụm (bỏ B02, B08) → **B04 Lift Car EV2-EV3** (13 cụm, FUR-0005 = F0006 p1–5). Bản sao mới của GBIA_TEST (scratchpad phiên 5d934f24 `GBIA_RUN`, kết quả cũ nhóm 1/7 dời ra `_cu_b02b08`), `docsau --trang 8 --sheet "B04 …"` → Trang 1 + Đối chiếu 2; Opus.
+| | Trang 1 (doc-trang) | Đối chiếu 2 (--gon) |
+|---|---|---|
+| Lượt / ảnh | 35 / 21 (5 cả trang, 16 crop, 0 khung tên) | 12 / 1 |
+| Quy giá | 0,79M (23,3k / lượt món; mốc general-purpose 41,7k) | 0,386M (29,7k / cụm; mốc xemcum đủ 39,3k) |
+| check --nhom | 0 LỖI, 1 XEM | 0 LỖI, 7 XEM |
+| Dòng chỉ Cụm ứng viên | 7/158 (4%) | — |
+- Prompt nhóm Trang: thay danh sách món bằng "chạy xemtrang" + dòng "chạy td.py qua Bash" (lệch nhẹ so với `giao`); Đối chiếu nguyên văn `giao`.
+- Kiểm tay: RCP FUR-3311 đúng "650x448mm CEILING ACCESS PANEL" + "TRAP DOOR HIDDEN IN THE CEILING" như agent báo.
+- TRÙNG SỐ báo 3 cụm, đều số 448 (bề rộng tấm da LE-01 = cạnh nắp thăm 650x448): !30 → issue có ích (nắp thăm nằm trong trần da, kiểm trừ diện tích); !22/!23 nhiễu, agent bỏ qua đúng. **Nhiễu còn lại: số lưới tấm không chia hết 50 (448) lọt bộ lọc.**
+- Phát hiện B04: !25 "External cladding" BV chỉ có ốp trong cabin; !33 trần kim loại MT-01 không có trên BV (chỉ flat bar); ST-01 BV 20+9 vs MAR 30; khe LED + driver vs "Lighting by MEP"; trap door không có dòng BOQ. **Lỗi tool:** nhãn Phạm vi nhà máy nháp sai — !31 nắp thăm bọc da gắn "Thạch cao", !35 sàn đá gắn "cabinet" (chưa sửa).
+
+**Chạy lặp nhóm Đối chiếu 6 với `--gon` + TRÙNG SỐ** (C1–C3, bản sao GBIA_DC sạch, bỏ `*.docsau-6.json`, `ghep` lại, prompt `giao 6` nguyên văn; chấm `cham6c.py` = cham6.py đổi RUNS, scratchpad phiên 5d934f24):
+| | A cũ (xemcum đủ) | B `--gon` | **C `--gon` + TRÙNG SỐ** |
+|---|---|---|---|
+| Quy giá 3 lần | 0,569 · 0,513 · 0,689 | 0,384 · 0,456 · 0,418 | **0,372 · 0,425 · 0,393** |
+| TB | 0,590M | 0,419M (−29%) | **0,397M (−33%)** |
+| (a) dải 150 E3 = bục BF-02A | 3/3 | 1/3 | **3/3** |
+| (c) !28 trụ gỗ 3000 vs 2,84 | 3/3 | 2/3 | **3/3** |
+| (b) WP-04 2800 vs 2,84 · (d) ASK WP-04 | 1/3 · 1/3 | 0/3 · 0/3 | 0/3 · 0/3 |
+- C max 0,425 < A min 0,513 → −33% là thật. Điểm chung vẫn 3/3 (SPT-03, WD-02A, len chân dưới trụ, gán khe hắt). check --nhom 6: 0 LỖI ở cụm nhóm (3 LỖI = nhóm trang 3/4/5 chưa đọc). Cả 3 lần kết luận đúng "BOQ E3 đã trừ, KL không trùng".
+- **Kết luận:** giữ `--gon` + TRÙNG SỐ làm chuẩn nhóm Đối chiếu. Cả 7d so cách cũ ≈ −40% token. (b), (d) cần kiểm máy riêng nếu muốn bắt chắc. n=3 mỗi bên, chưa có đáp án tuyệt đối.
+- Còn lại: lọc nhiễu số lưới tấm trong TRÙNG SỐ; sửa nhãn Phạm vi nhà máy nháp (!31 B04, !35 B04); `effort` của doc-trang; cỡ nhóm 4/8/16 với doc-trang (tốn Opus, cần user duyệt).
 
 ## 3. Việc tiếp theo (cũ — P0 + pilot đã làm, xem 2b)
 **P0 — sửa nhỏ (nhớ cập nhật flowchart + CHANGELOG):**

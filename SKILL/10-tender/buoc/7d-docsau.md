@@ -38,7 +38,7 @@ Với **mỗi trang**:
 - **Không ghi** QUAN_SAT, SCOPE, BOQ_MAP, DAY_TUONG ở nhóm trang: `ghep` làm.
 
 ## Nhóm Đối chiếu — không mở ảnh trừ chỗ thiếu
-Chạy sau khi mọi nhóm Trang/Tìm tờ xong và phiên điều phối đã chạy `ghep` (`check` báo LỖI nếu chưa ghép hoặc TRANG_QS mới hơn lần ghép). Xem cụm theo lô: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (nhiều cụm 1 lần; tool tự dừng ở ~24.000 ký tự và in lệnh gọi tiếp cho cụm còn lại; `--gon` gom TRANG_QS theo trang/món và ẩn dòng QUAN_SAT do `ghep` chép lại, −36–43% chữ) (mô tả BOQ, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT đã ghép, **CÒN THIẾU** trường bắt buộc, BOQ_MAP, phần `ghep báo`).
+Chạy sau khi mọi nhóm Trang/Tìm tờ xong và phiên điều phối đã chạy `ghep` (`check` báo LỖI nếu chưa ghép hoặc TRANG_QS mới hơn lần ghép). Xem cụm theo lô: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (nhiều cụm 1 lần; tool tự dừng ở ~24.000 ký tự và in lệnh gọi tiếp cho cụm còn lại; `--gon` gom TRANG_QS theo trang/món và ẩn dòng QUAN_SAT do `ghep` chép lại, −36–43% chữ) (mô tả BOQ, MAT, tờ đã đọc chưa, TRANG_QS của cụm, QUAN_SAT đã ghép, **CÒN THIẾU** trường bắt buộc, BOQ_MAP, phần `ghep báo`, mục `TRÙNG SỐ BOQ CỤM KHÁC`).
 1. **Không chép lại** quan sát đã ghép. Chỉ ghi phần thêm/sửa.
 2. **So với BOQ:** `Kích thước BoQ` (SCOPE, nếu mô tả có ghi). BV ↔ BOQ lệch (kích thước, số lượng, cấu tạo) → thêm dòng QUAN_SAT `Nguồn = BOQ` cạnh dòng HÌNH đã ghép, cả 2 `MÂU THUẪN` (ghi dòng BOQ, dòng HÌNH giữ nguyên) + 1 issue. Không tự chọn bên thắng. `Mã hoàn thiện trên BV` ≠ MAT → issue.
 3. **Quan sát chỉ có Cụm ứng viên** (dòng `?` trong `xemcum`): quyết thuộc cụm nào → ghi 1 dòng QUAN_SAT cho đúng cụm (chép `Trường`, `Giá trị`, `Trạng thái`, `Tờ · Chi tiết`, `Nguồn`; `Model` ghi `gán từ TRANG_QS <Khóa trang>`). Không quyết được → issue / ASK_USER.
@@ -46,6 +46,7 @@ Chạy sau khi mọi nhóm Trang/Tìm tờ xong và phiên điều phối đã c
 5. **KL:** `ghep báo` KL mâu thuẫn giữa trang / không gán được khu → quyết theo bảng thống kê hoặc danh sách phòng, ghi `BOQ_MAP` (`KL theo BV`, `Tờ đếm KL`); không quyết được → issue.
 6. **SCOPE (dòng đại diện):** `Bản vẽ đối chứng`, `Kích thước BV` tool đã điền từ trang đọc, sửa nếu sai thứ tự (tờ thể hiện rõ nhất đứng đầu). `Phạm vi nhà máy` khi tool chưa gắn: `TRONG SCOPE – <mộc|sơn đồ gỗ|cửa|cabinet|loose>` / `KHÔNG THUỘC SCOPE NHÀ MÁY – <nhóm>` / `CHƯA RÕ – <lý do>` (chỉ là nhãn, không bỏ dòng, không đổi `Trạng thái`).
 7. **ISSUES (V…):** thiếu tờ, BV ↔ BOQ lệch, mã hoàn thiện BV ≠ MAT, tờ khác revision.
+8. **`TRÙNG SỐ BOQ CỤM KHÁC`** (máy dò: số trong TRANG_QS đã gán cụm này = kích thước BOQ của cụm khác cùng sheet BOQ / cùng trang, có ít nhất 1 số lẻ không chia hết 50 và không thuộc kích thước BOQ của chính cụm): xét từng cụm nêu. Cùng 1 món (vd dải "len 150 dưới WP-04 3727" ở E3 ↔ bục BF-02A L3727×H150) → issue tính trùng KL / gán nhầm cụm; chỉ là số tường/khoảng cạnh nhau → bỏ qua, không ghi.
 
 ## Nguyên tắc
 1. **Nhìn hình trước, đọc mô tả BOQ sau.** Nhóm trang chỉ thấy tên món + tên trường, không thấy số BOQ; nhóm đối chiếu mới so.

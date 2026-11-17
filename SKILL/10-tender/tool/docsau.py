@@ -788,6 +788,44 @@ def _in_tq_gon(rows, cum):
                   + ("" if tt == "CÓ" and ng == "HÌNH" else f" [{tt}{'' if ng == 'HÌNH' else '/' + ng}]"))
 
 
+# Số trên trang trùng kích thước BOQ của cụm khác (vd len 150 dưới WP-04 3727 ở E3 ↔ BF-02A L3727×H150): máy báo, không trông LLM để ý.
+_MA_SO = re.compile(r"\b[A-Za-z]{1,6}\d*[-_.]?\d*[A-Za-z]?[-_]\d+[A-Za-z]?\b|\b(?![LWHDRCØ]\d)[A-Z]{1,4}\d+\b|\b\d+(?:[.,]\d+)?\s*%")  # giữ L3727 / H150 / W600 (kích thước)
+
+
+def _so_kt(v):
+    """Số 3–5 chữ số ≥ 100 (mm) trong chữ, bỏ mã (FUR-1523, WD-01, SW3, F0004) và số thập phân / %."""
+    t = _MA_SO.sub(" ", _gt(v))
+    return {int(x) for x in re.findall(r"(?<![\d.,])\d{3,5}(?![\d]|[.,]\d)", t) if int(x) >= 100}
+
+
+def _kt_boq_cum(scope, c):
+    r = scope.get(c, {})
+    return _so_kt(r.get("Kích thước BoQ")) or _so_kt(r.get("Mô tả BOQ"))
+
+
+def trung_kt_cum_khac(res, cmap, rep, tq):
+    """[(cụm khác, [(trang, số trùng, giá trị)])]: dòng TRANG_QS đã gán cụm rep có số trùng kích thước BOQ của cụm khác cùng sheet BOQ
+    hoặc cùng trang. Chỉ báo khi phần trùng (bỏ số có trong kích thước BOQ của chính rep) có số lẻ (không chia hết 50) — 600/3000 quá phổ biến."""
+    scope = res["SCOPE"]
+    rieng = _kt_boq_cum(scope, rep)
+    sheet = rep.split("!")[0]
+    ra = OrderedDict()
+    for x in tq:
+        if rep not in _ds_cum(x.get("Cụm đọc"), cmap):
+            continue
+        so = _so_kt(x.get("Giá trị"))
+        if not so:
+            continue
+        kt = _gt(x.get("Khóa trang"))
+        ung = {c for c in cmap if c != rep and (c.split("!")[0] == sheet or kt in to_cua(scope, c))}
+        ung |= {c for y in res["TRANG_QS"] if _gt(y.get("Khóa trang")) == kt for c in _ds_cum(y.get("Cụm đọc"), cmap) if c != rep}
+        for o in sorted(ung):
+            chung = so & _kt_boq_cum(scope, o)
+            if any(v % 50 for v in chung - rieng):
+                ra.setdefault(o, []).append((kt, sorted(chung), _gt(x.get("Giá trị"), 110)))
+    return list(ra.items())
+
+
 def _la_ghep(x):
     """Dòng QUAN_SAT do `ghep` sinh (chép từ TRANG_QS / tóm tắt bộ tờ, Gemini) — --gon không in lại."""
     return s(x.get("Model")).startswith(("ghep ←", "td.py ghep"))
@@ -866,6 +904,18 @@ def _xemcum_1(p, ds, cmap, res, rep, gon, nho):
     tq = [x for x in res["TRANG_QS"] if rep in _ds_cum(x.get("Cụm đọc"), {rep: 1}) or rep in _ds_cum(x.get("Cụm ứng viên"), {rep: 1})]
     print(f"-- TRANG_QS của cụm: {len(tq)} dòng (* = đã gán, ? = ứng viên chưa gán)")
     (_in_tq_gon if gon else _in_tq)(tq, rep)
+    trung = trung_kt_cum_khac(res, cmap, rep, tq)
+    if trung:
+        print("-- TRÙNG SỐ BOQ CỤM KHÁC (máy dò số trên trang = kích thước BOQ cụm khác): xét có phải cùng 1 món không — tính trùng KL? gán nhầm cụm?")
+        for o, ds_ in trung[:6]:
+            ro = res["SCOPE"].get(o, {})
+            print(f"  {o} [{_gt(ro.get('Kích thước BoQ')) or _gt(ro.get('Mô tả BOQ'), 70)}]:")
+            for kt, chung, gt in ds_[:2]:
+                print(f"     [{kt}] số {', '.join(map(str, chung))} ← {gt}")
+            if len(ds_) > 2:
+                print(f"     … +{len(ds_) - 2} dòng ({', '.join(dict.fromkeys(k for k, _, _ in ds_[2:]))})")
+        if len(trung) > 6:
+            print(f"  … +{len(trung) - 6} cụm: {', '.join(o for o, _ in trung[6:])}")
     qs = co_quan_sat(res).get(rep, [])
     qs_in = [x for x in qs if not _la_ghep(x)] if gon else qs
     print(f"-- QUAN_SAT (ghep + đối chiếu): {len(qs)} dòng"
@@ -1137,7 +1187,7 @@ GOC = {p.goc}   TOOL = {os.path.join(here, 'td.py')}
 Ảnh tạm (PNG crop) để ở: {png}
 Ghi: {os.path.join(p.t, '_data')}\\{ghi}
 Không tự viết script / sed / grep / find / cat file _data: dùng xemtrang, xemcum, loc, chu, so, anh, gemini; ghi JSON bằng Write, sửa bằng Edit.
-Xem cụm: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (nhiều cụm 1 lần; tool tự dừng trước khi output quá dài và in lệnh gọi tiếp). Kiểm phần của mình: `check <GOC> --den docsau --nhom {n}`.
+Xem cụm: `xemcum <GOC> <cụm 1> <cụm 2> … --gon` (nhiều cụm 1 lần; tool tự dừng trước khi output quá dài và in lệnh gọi tiếp). Mục `TRÙNG SỐ BOQ CỤM KHÁC`: xét từng cụm nêu — cùng 1 món (tính trùng KL / gán nhầm cụm) → ISSUES; chỉ trùng số ngẫu nhiên → bỏ qua. Kiểm phần của mình: `check <GOC> --den docsau --nhom {n}`.
 
 Cột được ghi:
 {cot}

@@ -3252,6 +3252,34 @@ def gd7_xem_gop_giao_va_nhom_chung(tmp):
 
 
 @kiem(7, "mau")
+def gd7_xemcum_trung_so_boq_cum_khac(tmp):
+    """xemcum báo số trên trang = kích thước BOQ cụm khác (len 150 dưới WP-04 3727 ↔ bục L3727×H150); 600/3000 và số của chính cụm không báo."""
+    sys.path.insert(0, os.path.join(ROOT, "SKILL", "10-tender", "tool"))
+    sys.modules.pop("docsau", None)
+    import docsau
+    len_, buc, tu, xa = "S!31", "S!24", "S!21", "K!5"
+    cmap = {c: {} for c in (len_, buc, tu, xa)}
+    res = {"SCOPE": {len_: {"Kích thước BoQ": "H150"}, buc: {"Kích thước BoQ": "L3727×H150×W600"},
+                     tu: {"Mô tả BOQ": "BF-01B cabinet W 1500 × H 3000 × D 600 mm, detail FUR-1523"}, xa: {"Kích thước BoQ": "L3727"}},
+           "TRANG_QS": []}
+    tq = [{"Khóa trang": "F1|7", "Cụm đọc": len_, "Giá trị": "len chân cao 150 dưới vùng WP-04 3727 (FUR-1523)"},
+          {"Khóa trang": "F1|8", "Cụm đọc": len_, "Giá trị": "tấm 600 sát góc, cao tới CH 3000, len 150"},
+          {"Khóa trang": "F1|9", "Cụm ứng viên": len_, "Giá trị": "dải 3727"}]
+    ra = dict(docsau.trung_kt_cum_khac(res, cmap, len_, tq))
+    assert list(ra) == [buc], ra  # tủ 600/3000 (bội 50) không báo; K!5 khác sheet, không cùng trang; dòng chỉ ứng viên không xét
+    assert ra[buc] == [("F1|7", [150, 3727], "len chân cao 150 dưới vùng WP-04 3727 (FUR-1523)")], ra
+    assert docsau._so_kt("FUR-1523 WD-01 SW3 F0004 12.5 mm 15×10 5%") == set()
+    assert docsau._so_kt("L3727×H150×W600") == {3727, 150, 600} and docsau._so_kt("W1500 x D600") == {1500, 600}
+    # số của chính cụm không tính: bục có 3727 thì dòng của bục không báo ngược về cụm len
+    res["SCOPE"][len_]["Kích thước BoQ"] = "L3727×H150"
+    assert docsau.trung_kt_cum_khac(res, cmap, len_, tq) == [], "số trùng thuộc kích thước của chính cụm → không báo"
+    # cụm khác sheet mà cùng trang (theo TRANG_QS) thì có xét
+    res["SCOPE"][len_]["Kích thước BoQ"] = "H150"
+    res["TRANG_QS"] = [{"Khóa trang": "F1|7", "Cụm đọc": xa}]
+    assert set(dict(docsau.trung_kt_cum_khac(res, cmap, len_, tq))) == {buc, xa}
+
+
+@kiem(7, "mau")
 def gd7_anh_gioi_han_pixel(tmp):
     import pymupdf
     pdf = os.path.join(tmp, "a3.pdf")
